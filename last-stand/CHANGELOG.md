@@ -6,6 +6,26 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-28 (Phase 3 complete: expandable upgrade system)
+
+### Changed
+- **Upgrade system is now data-driven** (foundation for 60–100+ upgrades; see PLAN.md section 7):
+  - Each upgrade is a registry entry with a unique ID, rarity, max stacks, optional tower scope,
+    eligibility requirements (minimum wave, owned upgrades, built tower types) and typed effects.
+  - Descriptions are generated from effects; effects aggregate in one place, cached per tower type.
+  - Tower-specific upgrades are supported (effects apply only to the listed tower types).
+  - Nothing assumes a fixed pool size; tests run the draft on a synthetic 40-upgrade pool.
+- **Rarities** (Common, Uncommon, Rare, Legendary) with weighted offers: 60 / 28 / 10 / 2.
+  Overclock and Critical Strike are Common, Compound Interest and Frostbite Uncommon,
+  Explosive Rounds and Chain Lightning Rare.
+- **Eligibility**: maxed upgrades and upgrades with unmet requirements are never offered.
+  Frostbite now only appears once a Frost tower is built.
+- Pick cards show rarity and stacking (New / Rank I → II / max).
+
+### Balance notes
+- Strong strategies on Switchback: waves 30–40 (median), 2–5 waves of warning. Slightly lower than 0.3.0
+  because Rare upgrades now appear less often and Frostbite needs a Frost tower.
+
 ## [0.3.0] - 2026-10-28 (Phase 3: roguelite upgrades and balance)
 
 ### Added
