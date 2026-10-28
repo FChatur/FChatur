@@ -17,5 +17,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "vite.config.ts", "vitest.balance.config.ts", "vitest.slow.config.ts"]
+  "include": ["src", "tests", "e2e", "playwright.config.ts", "vite.config.ts", "vitest.balance.config.ts", "vitest.slow.config.ts"]
 }

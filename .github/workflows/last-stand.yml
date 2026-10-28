@@ -33,15 +33,49 @@ jobs:
           cache-dependency-path: last-stand/package-lock.json
       - run: npm ci
       - run: npm test
+      - run: npm run test:slow
       - run: npm run build
       - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v5
         with:
           path: last-stand/dist
 
+  # End-to-end tests of the production build in all three browser engines:
+  # Chromium (Chrome, Edge), Firefox, and WebKit (Safari's engine).
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    defaults:
+      run:
+        working-directory: last-stand
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: last-stand/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx playwright test
+        env:
+          E2E_BROWSERS: ${{ matrix.browser }}
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: |
+            last-stand/playwright-report
+            last-stand/test-results
+          retention-days: 7
+
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, e2e]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -58,7 +92,7 @@ jobs:
   # unreleased work on main is never included in a checkpoint.
   tag:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, e2e]
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -10,6 +10,15 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 - Robustness tests: a shared invariant checker (gold, health, towers, enemies, projectiles, phases,
   drafts, countdown, stacks), seeded fuzz tests that perform thousands of random and invalid actions on
   the game and the session, and a wave-100 soak test on a maxed-out board (`npm run test:slow`).
+- End-to-end browser tests (`npm run test:e2e`, Playwright) of the production build: clean load and
+  1:1 canvas, building/tooltips/panel/upgrade/sell, a full wave with Auto Wave and pause, settings
+  persisting across reloads, losing a run and recording a personal best, and resizing.
+- CI runs the end-to-end tests in Chromium (Chrome, Edge), Firefox and WebKit (Safari's engine) on every
+  push, plus the slow soak test; deploys and release tags now wait for all of them to pass.
+
+### Compatibility
+- Build output targets Chrome/Edge 100+, Firefox 100+ and Safari 15+ (newer syntax is downlevelled).
+- Every CSS `color-mix()` has a plain-colour fallback for browsers that lack it.
 
 ### Changed
 - **Late-game performance** (measured with Chrome's CPU profiler at wave 40, 3x speed):

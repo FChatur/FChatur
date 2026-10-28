@@ -200,6 +200,7 @@ body {
 
 .tower-btn.selected {
   border-color: var(--tower-color);
+  background: var(--panel); /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--tower-color) 16%, var(--bg));
   box-shadow: 0 0 0 1px var(--tower-color) inset;
 }
@@ -218,6 +219,7 @@ body {
   height: 18px;
   border: 2px solid var(--tower-color);
   border-radius: 4px;
+  background: transparent; /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--tower-color) 30%, transparent);
 }
 
@@ -381,6 +383,7 @@ kbd {
 }
 
 .speed-btn.active {
+  background: #232c52; /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--wave) 25%, var(--bg));
   color: var(--text);
 }
@@ -396,6 +399,7 @@ kbd {
   padding: 14px 16px 16px;
   border: 1px solid var(--tower-color);
   border-radius: 8px;
+  background: var(--panel); /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--panel) 94%, transparent);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   animation: fade-in 0.15s ease-out;
@@ -423,6 +427,7 @@ kbd {
   height: 14px;
   border: 2px solid var(--tower-color);
   border-radius: 3px;
+  background: transparent; /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--tower-color) 30%, transparent);
 }
 
@@ -743,6 +748,7 @@ kbd {
   padding: 12px 14px;
   border: 1px solid var(--accent);
   border-radius: 8px;
+  background: var(--panel); /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--panel) 95%, transparent);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
   animation: fade-in 0.2s ease-out;
@@ -785,6 +791,7 @@ kbd {
 
 .btn-toggle[aria-pressed='true'] {
   border-color: var(--wave);
+  background: #232c52; /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--wave) 22%, var(--bg));
   color: var(--text);
 }
@@ -797,6 +804,7 @@ kbd {
   padding: 8px 16px;
   border: 1px solid var(--wave);
   border-radius: 999px;
+  background: var(--panel); /* fallback: browsers without color-mix() */
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   font-size: 15px;
@@ -873,6 +881,7 @@ kbd {
   height: 18px;
   border: 2px solid var(--tower-color);
   border-radius: 50%;
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.12); /* fallback: browsers without color-mix() */
   box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--tower-color) 35%, transparent);
 }
 
@@ -994,6 +1003,7 @@ kbd {
 }
 
 .tt-bad {
+  border-color: #4a2333; /* fallback: browsers without color-mix() */
   border-color: color-mix(in srgb, var(--health) 35%, #1f2a3d);
 }
 

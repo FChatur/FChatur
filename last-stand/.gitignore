@@ -3,3 +3,5 @@ dist/
 *.log
 .DS_Store
 balance-report.md
+test-results/
+playwright-report/

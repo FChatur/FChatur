@@ -12,12 +12,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "balance": "vitest run --config vitest.balance.config.ts",
-    "test:slow": "vitest run --config vitest.slow.config.ts"
+    "test:slow": "vitest run --config vitest.slow.config.ts",
+    "test:e2e": "npm run build && playwright test"
   },
   "dependencies": {
     "phaser": "3.90.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "22.20.5",
     "typescript": "5.9.3",
     "vite": "7.3.7",
