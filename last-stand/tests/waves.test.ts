@@ -53,10 +53,24 @@ describe('wave composition', () => {
   it('keeps the regular enemy count and mixes types roughly by share', () => {
     const wave = 20;
     const list = types(wave).filter((t) => t !== 'boss');
-    expect(list).toHaveLength(cfg.baseCount + Math.floor((wave - 1) * cfg.countPerWave));
+    expect(list).toHaveLength(Math.min(cfg.maxCount, cfg.baseCount + Math.floor((wave - 1) * cfg.countPerWave)));
     const runners = list.filter((t) => t === 'runner').length;
     const expected = Math.min(cfg.runners.maxShare, cfg.runners.startShare + cfg.runners.sharePerWave * (wave - cfg.runners.fromWave));
     expect(Math.abs(runners - expected * list.length)).toBeLessThanOrEqual(1);
+  });
+
+  it('caps regular enemies per wave, scales by the map count modifier, and still adds the boss', () => {
+    for (const w of [30, 60, 100]) {
+      const regular = planWave(w, cfg).spawns.filter((s) => s.enemy !== 'boss');
+      expect(regular.length).toBeLessThanOrEqual(cfg.maxCount);
+    }
+    expect(planWave(60, cfg, 1.5).spawns.filter((s) => s.enemy !== 'boss')).toHaveLength(Math.round(cfg.maxCount * 1.5));
+    expect(planWave(60, cfg, 1.5).spawns.at(-1)!.enemy).toBe('boss');
+  });
+
+  it('grows health with both the compounding and linear terms', () => {
+    const n = 9;
+    expect(planWave(n + 1, cfg).hpMultiplier).toBeCloseTo((1 + cfg.hpLinearPerWave * n) * cfg.hpGrowthPerWave ** n);
   });
 
   it('is deterministic', () => {

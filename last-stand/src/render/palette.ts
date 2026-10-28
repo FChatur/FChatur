@@ -17,6 +17,9 @@ export const PALETTE = {
   hpLow: 0xef476f,
   hpBack: 0x000000,
   projectile: 0xfff3b0,
+  crit: 0xfacc15,
+  lightning: 0xbfdbfe,
+  splash: 0xf87171,
   towerBase: 0x141b2b,
   enemyOutline: 0x0b0f1a,
 } as const;

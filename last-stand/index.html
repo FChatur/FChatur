@@ -13,6 +13,7 @@
       <header id="top-bar">
         <h1 class="logo">LAST<span>STAND</span></h1>
         <span id="version" class="version"></span>
+        <div id="upgrade-list" class="upgrade-list" aria-label="Run upgrades"></div>
         <div class="stats">
           <div class="stat stat-wave"><span class="stat-label">Wave</span><span id="stat-wave">0</span></div>
           <div class="stat stat-gold"><span class="stat-label">Gold</span><span id="stat-gold">0</span></div>
@@ -36,6 +37,14 @@
             <button id="tp-sell" class="btn btn-danger">Sell <span id="tp-sell-value"></span> <kbd>S</kbd></button>
           </div>
         </aside>
+
+        <div id="overlay-draft" class="overlay hidden" role="dialog" aria-labelledby="draft-title">
+          <div class="draft">
+            <h2 id="draft-title">Choose an upgrade</h2>
+            <p class="subtitle">Wave <strong id="draft-wave">0</strong> cleared. Your pick lasts for the rest of the run.</p>
+            <div id="draft-cards" class="draft-cards"></div>
+          </div>
+        </div>
 
         <div id="overlay-gameover" class="overlay hidden" role="dialog" aria-labelledby="go-title">
           <div class="panel">

@@ -20,6 +20,7 @@ so keep the repo root free of game files (no root README).
 4. **Check for bugs and side effects** before committing:
    - `npm test`, `npm run build` (includes typecheck) in `last-stand/`.
    - Add or update unit tests for any rule change in `src/core`.
+   - For balance changes, run `npm run balance` before and after and report the difference.
    - Playtest in a real browser (Playwright against `npm run preview`) for anything visible
      or interactive, and check the console for errors.
 5. **Keep the playable version updated**: commit and push working changes; `main` auto-deploys

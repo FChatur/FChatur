@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GRID } from './config/map';
+import { DEFAULT_MAP } from './config/maps';
 import { GameSession } from './game/GameSession';
 import { PALETTE } from './render/palette';
 import { GameScene, type GameSceneData } from './scenes/GameScene';
@@ -11,8 +11,8 @@ const session = new GameSession();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: GRID.cols * GRID.tileSize,
-  height: GRID.rows * GRID.tileSize,
+  width: DEFAULT_MAP.grid.cols * DEFAULT_MAP.grid.tileSize,
+  height: DEFAULT_MAP.grid.rows * DEFAULT_MAP.grid.tileSize,
   backgroundColor: PALETTE.background,
   antialias: true,
   scale: {

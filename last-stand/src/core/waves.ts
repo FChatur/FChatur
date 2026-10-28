@@ -26,9 +26,11 @@ export function isBossWave(wave: number, cfg: WaveBalance): boolean {
   return wave % cfg.bossEvery === 0;
 }
 
-export function planWave(wave: number, cfg: WaveBalance): WavePlan {
+/** `countMultiplier` is the map's enemy-count modifier; it never removes the boss. */
+export function planWave(wave: number, cfg: WaveBalance, countMultiplier = 1): WavePlan {
   const n = wave - 1;
-  const count = cfg.baseCount + Math.floor(n * cfg.countPerWave);
+  const regular = Math.min(cfg.maxCount, cfg.baseCount + Math.floor(n * cfg.countPerWave));
+  const count = Math.max(1, Math.round(regular * countMultiplier));
   const interval = Math.max(cfg.spawnIntervalMin, cfg.spawnIntervalStart * cfg.spawnIntervalDecay ** n);
 
   const runner = mixShare(cfg.runners, wave);
@@ -60,7 +62,7 @@ export function planWave(wave: number, cfg: WaveBalance): WavePlan {
 
   if (isBossWave(wave, cfg)) spawns.push({ enemy: 'boss', delay: cfg.bossDelay });
 
-  return { wave, spawns, hpMultiplier: cfg.hpGrowthPerWave ** n };
+  return { wave, spawns, hpMultiplier: (1 + cfg.hpLinearPerWave * n) * cfg.hpGrowthPerWave ** n };
 }
 
 export function waveClearBonus(wave: number, cfg: WaveBalance): number {

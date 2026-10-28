@@ -1,7 +1,8 @@
 import type { EnemyTypeId } from '../config/enemies';
 import type { TargetingMode, TowerTypeId } from '../config/towers';
 
-export type Phase = 'build' | 'wave' | 'gameover';
+/** 'draft' = a wave was just cleared and the player must pick a run upgrade before the next one. */
+export type Phase = 'build' | 'wave' | 'draft' | 'gameover';
 
 export interface Enemy {
   id: number;

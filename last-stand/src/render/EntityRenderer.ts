@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ENEMIES, type EnemyShape } from '../config/enemies';
-import { GRID } from '../config/map';
+import { TILE_SIZE } from '../config/map';
 import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
 import type { Enemy, Projectile, Tower } from '../core/types';
@@ -108,7 +108,7 @@ export class EntityRenderer {
 
   private createTower(t: Tower): TowerView {
     const color = TOWERS[t.type].color;
-    const ts = GRID.tileSize;
+    const ts = TILE_SIZE;
     const half = ts * (0.33 + 0.02 * t.level);
     const base = this.scene.add.graphics();
     if (t.level === MAX_TOWER_LEVEL) {
@@ -140,7 +140,7 @@ export class EntityRenderer {
 
   /** Barrel silhouettes, drawn pointing along +x so rotation aims them. */
   private barrelParts(type: TowerTypeId, color: number): Phaser.GameObjects.GameObject[] {
-    const ts = GRID.tileSize;
+    const ts = TILE_SIZE;
     const rect = (y: number, length: number, width: number) =>
       this.scene.add.rectangle(0, y, length, width, color).setOrigin(0, 0.5);
     switch (type) {

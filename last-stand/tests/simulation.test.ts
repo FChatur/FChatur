@@ -124,7 +124,8 @@ describe('balance smoke test', () => {
       sim.startWave();
       runUntil(sim, () => sim.phase !== 'wave');
     }
-    expect(sim.phase).toBe('build');
+    // Clearing wave 5 opens the first upgrade pick.
+    expect(sim.phase).toBe('draft');
     expect(sim.wave).toBe(5);
   });
 });

@@ -3,14 +3,22 @@ export interface WaveBalance {
   baseCount: number;
   /** Extra enemies added per wave after the first (fractions accumulate). */
   countPerWave: number;
+  /**
+   * Regular enemies per wave never exceed this (before map modifiers). Late-game difficulty then
+   * comes from tougher enemies rather than ever-longer streams, so a slightly-too-weak defence leaks
+   * a few enemies per wave instead of collapsing in one.
+   */
+  maxCount: number;
   /** Seconds between spawns in wave 1. */
   spawnIntervalStart: number;
   /** Spawn interval never drops below this. */
   spawnIntervalMin: number;
   /** Spawn interval is multiplied by this each wave. */
   spawnIntervalDecay: number;
-  /** Enemy health is multiplied by this each wave. */
+  /** Enemy health is multiplied by this each wave (compounding). */
   hpGrowthPerWave: number;
+  /** Plus this much linear health growth per wave (0.1 = +10% of base per wave), applied on top. */
+  hpLinearPerWave: number;
   /** Gold for clearing wave 1. */
   clearBonusBase: number;
   /** Extra clear bonus per wave after the first. */
@@ -32,6 +40,13 @@ export interface EnemyMix {
   maxShare: number;
 }
 
+export interface RogueliteBalance {
+  /** After clearing every Nth wave, the player picks a run upgrade. */
+  draftEvery: number;
+  /** Upgrades offered per pick. */
+  draftChoices: number;
+}
+
 export interface BalanceConfig {
   startingGold: number;
   startingHealth: number;
@@ -40,6 +55,7 @@ export interface BalanceConfig {
   /** Armor can never reduce a hit below this fraction of its damage. */
   armorMinDamageFraction: number;
   waves: WaveBalance;
+  roguelite: RogueliteBalance;
 }
 
 export const BALANCE: BalanceConfig = {
@@ -50,16 +66,22 @@ export const BALANCE: BalanceConfig = {
   waves: {
     baseCount: 8,
     countPerWave: 2,
+    maxCount: 30,
     spawnIntervalStart: 1.0,
     spawnIntervalMin: 0.35,
     spawnIntervalDecay: 0.96,
-    hpGrowthPerWave: 1.13,
+    hpGrowthPerWave: 1.12,
+    hpLinearPerWave: 0.02,
     clearBonusBase: 20,
     clearBonusPerWave: 3,
     runners: { fromWave: 3, startShare: 0.15, sharePerWave: 0.03, maxShare: 0.35 },
     armored: { fromWave: 5, startShare: 0.1, sharePerWave: 0.025, maxShare: 0.3 },
     bossEvery: 10,
     bossDelay: 2,
+  },
+  roguelite: {
+    draftEvery: 5,
+    draftChoices: 3,
   },
 };
 

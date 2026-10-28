@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { ENEMIES } from '../config/enemies';
-import { GRID } from '../config/map';
+import { TILE_SIZE } from '../config/map';
 import { TOWERS } from '../config/towers';
 import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
@@ -20,9 +20,27 @@ export function attachEffects(
   const subs = [
     bus.on('towerFired', ({ tower }) => entities.recoilTower(tower.id)),
 
-    bus.on('projectileHit', ({ projectile, enemy }) => {
+    bus.on('projectileHit', ({ projectile, enemy, crit }) => {
       entities.flashEnemy(enemy.id);
-      spark(scene, projectile.x, projectile.y);
+      spark(scene, projectile.x, projectile.y, crit);
+    }),
+
+    bus.on('chainArc', ({ fromX, fromY, toX, toY }) => lightning(scene, fromX, fromY, toX, toY)),
+
+    bus.on('splash', ({ x, y, radius }) => {
+      const ring = scene.add
+        .circle(x, y, radius)
+        .setFillStyle(PALETTE.splash, 0.18)
+        .setStrokeStyle(2, PALETTE.splash, 0.8)
+        .setDepth(DEPTH.effects)
+        .setScale(0.4);
+      scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 220, ease: 'Quad.Out', onComplete: () => ring.destroy() });
+    }),
+
+    bus.on('waveCleared', ({ interest }) => {
+      if (interest <= 0) return;
+      const { width } = scene.scale;
+      floatText(scene, width / 2, 40, `Interest +${interest}`, PALETTE.gold);
     }),
 
     bus.on('enemyKilled', ({ enemy }) => {
@@ -32,7 +50,7 @@ export function attachEffects(
 
     bus.on('towerUpgraded', ({ tower }) => {
       const ring = scene.add
-        .circle(tower.x, tower.y, GRID.tileSize * 0.45)
+        .circle(tower.x, tower.y, TILE_SIZE * 0.45)
         .setStrokeStyle(3, TOWERS[tower.type].color, 1)
         .setDepth(DEPTH.effects);
       scene.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => ring.destroy() });
@@ -47,7 +65,7 @@ export function attachEffects(
     bus.on('enemyLeaked', () => {
       scene.cameras.main.shake(140, 0.004);
       const flash = scene.add
-        .rectangle(exit.x, exit.y, 16, GRID.tileSize * 1.4, PALETTE.exit, 0.8)
+        .rectangle(exit.x, exit.y, 16, TILE_SIZE * 1.4, PALETTE.exit, 0.8)
         .setDepth(DEPTH.effects);
       scene.tweens.add({ targets: flash, alpha: 0, scaleX: 3, duration: 350, onComplete: () => flash.destroy() });
     }),
@@ -55,9 +73,27 @@ export function attachEffects(
   return () => subs.forEach((off) => off());
 }
 
-function spark(scene: Phaser.Scene, x: number, y: number): void {
-  const ring = scene.add.circle(x, y, 3).setStrokeStyle(2, PALETTE.projectile, 1).setDepth(DEPTH.effects);
-  scene.tweens.add({ targets: ring, scale: 2.4, alpha: 0, duration: 160, onComplete: () => ring.destroy() });
+function spark(scene: Phaser.Scene, x: number, y: number, crit: boolean): void {
+  const color = crit ? PALETTE.crit : PALETTE.projectile;
+  const ring = scene.add.circle(x, y, crit ? 5 : 3).setStrokeStyle(crit ? 3 : 2, color, 1).setDepth(DEPTH.effects);
+  scene.tweens.add({ targets: ring, scale: crit ? 3.2 : 2.4, alpha: 0, duration: crit ? 260 : 160, onComplete: () => ring.destroy() });
+}
+
+/** A jagged bolt between two points that fades quickly. */
+function lightning(scene: Phaser.Scene, x1: number, y1: number, x2: number, y2: number): void {
+  const g = scene.add.graphics().setDepth(DEPTH.effects);
+  const segments = 5;
+  const nx = -(y2 - y1);
+  const ny = x2 - x1;
+  const len = Math.hypot(nx, ny) || 1;
+  g.lineStyle(2, PALETTE.lightning, 1).beginPath().moveTo(x1, y1);
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const jitter = (Math.random() - 0.5) * 12;
+    g.lineTo(x1 + (x2 - x1) * t + (nx / len) * jitter, y1 + (y2 - y1) * t + (ny / len) * jitter);
+  }
+  g.lineTo(x2, y2).strokePath();
+  scene.tweens.add({ targets: g, alpha: 0, duration: 180, onComplete: () => g.destroy() });
 }
 
 function burst(scene: Phaser.Scene, x: number, y: number, color: number): void {

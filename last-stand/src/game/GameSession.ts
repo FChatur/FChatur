@@ -1,5 +1,6 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
 import type { TowerTypeId } from '../config/towers';
+import type { UpgradeId } from '../config/upgrades';
 import { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import { Simulation } from '../core/Simulation';
@@ -75,6 +76,10 @@ export class GameSession {
 
   startWave(): boolean {
     return this._sim.startWave();
+  }
+
+  chooseUpgrade(id: UpgradeId): boolean {
+    return this._sim.chooseUpgrade(id);
   }
 
   setSpeed(speed: GameSpeed): void {

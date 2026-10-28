@@ -1,6 +1,8 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
 import { MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
+import { MAX_UPGRADE_RANK, UPGRADE_ORDER, UPGRADES, type UpgradeId } from '../config/upgrades';
+import { fireRateMultiplier } from '../core/modifiers';
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
 
@@ -24,6 +26,8 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'gameOver',
   'selectionChanged',
   'speedChanged',
+  'draftOffered',
+  'upgradeChosen',
   'sessionReset',
 ];
 
@@ -118,6 +122,11 @@ export class Hud {
       this.session.clearSelection();
       return;
     }
+    if (sim.phase === 'draft') {
+      const choice = sim.draftChoices[Number(e.key) - 1];
+      if (choice) this.session.chooseUpgrade(choice);
+      return;
+    }
     const key = e.key.toLowerCase();
     if (key === 'f') {
       this.session.cycleSpeed();
@@ -166,12 +175,61 @@ export class Hud {
 
     const building = sim.phase === 'build';
     this.startWave.disabled = !building;
-    this.startWaveLabel.textContent =
-      sim.phase === 'gameover' ? 'Run over' : building ? `Start Wave ${sim.wave + 1}` : `Wave ${sim.wave} in progress`;
+    this.startWaveLabel.textContent = {
+      build: `Start Wave ${sim.wave + 1}`,
+      wave: `Wave ${sim.wave} in progress`,
+      draft: 'Choose an upgrade',
+      gameover: 'Run over',
+    }[sim.phase];
 
     this.hint.textContent = this.hintText();
+    this.renderUpgradeList();
+    this.renderDraft();
     this.renderTowerPanel();
     this.renderGameOver();
+  }
+
+  private renderUpgradeList(): void {
+    const ranks = this.session.sim.upgrades;
+    el('upgrade-list').innerHTML = UPGRADE_ORDER.filter((id) => ranks[id] > 0)
+      .map((id) => {
+        const info = UPGRADES[id];
+        return `<span class="upgrade-chip" style="--chip-color:${cssColor(info.color)}" title="${info.describe(ranks[id])}">${info.name} ${roman(ranks[id])}</span>`;
+      })
+      .join('');
+  }
+
+  /** Rebuilt only when a new offer appears, so cards don't flicker while the player decides. */
+  private renderedDraft = '';
+
+  private renderDraft(): void {
+    const sim = this.session.sim;
+    const open = sim.phase === 'draft';
+    el('overlay-draft').classList.toggle('hidden', !open);
+    const key = open ? `${sim.wave}:${sim.draftChoices.join()}` : '';
+    if (key === this.renderedDraft) return;
+    this.renderedDraft = key;
+    const cards = el('draft-cards');
+    cards.replaceChildren();
+    if (!open) return;
+    el('draft-wave').textContent = String(sim.wave);
+    sim.draftChoices.forEach((id, i) => cards.appendChild(this.draftCard(id, i + 1)));
+  }
+
+  private draftCard(id: UpgradeId, index: number): HTMLButtonElement {
+    const info = UPGRADES[id];
+    const rank = this.session.sim.upgrades[id];
+    const btn = document.createElement('button');
+    btn.className = 'draft-card';
+    btn.style.setProperty('--card-color', cssColor(info.color));
+    btn.innerHTML = `
+      <span class="draft-rank">${rank === 0 ? 'New' : `Rank ${roman(rank)} → ${roman(rank + 1)}`}${rank + 1 === MAX_UPGRADE_RANK ? ' (max)' : ''}</span>
+      <h3>${info.name}</h3>
+      <p class="draft-desc">${info.describe(rank + 1)}</p>
+      ${rank > 0 ? `<p class="draft-now">Now: ${info.describe(rank)}</p>` : ''}
+      <kbd>${index}</kbd>`;
+    btn.addEventListener('click', () => this.session.chooseUpgrade(id));
+    return btn;
   }
 
   private renderTowerPanel(): void {
@@ -186,7 +244,7 @@ export class Hud {
     this.panel.style.setProperty('--tower-color', cssColor(cfg.color));
     el('tp-name').textContent = cfg.name;
     el('tp-level').textContent = `LV ${tower.level}/${MAX_TOWER_LEVEL}`;
-    el('tp-stats').innerHTML = statRows(tower, current, next)
+    el('tp-stats').innerHTML = statRows(tower, current, next, fireRateMultiplier(sim.upgrades))
       .map(([label, now, then]) => `<dt>${label}</dt><dd>${now}${then && then !== now ? ` <span class="tp-next">→ ${then}</span>` : ''}</dd>`)
       .join('');
 
@@ -201,6 +259,7 @@ export class Hud {
     const sim = this.session.sim;
     const selected = this.session.selectedTower;
     if (sim.phase === 'gameover') return '';
+    if (sim.phase === 'draft') return 'Pick an upgrade (1-3) to continue.';
     if (selected) return `Click a free tile to build a ${TOWERS[selected].name}. Right-click or Esc to cancel.`;
     if (this.session.selectedTowerInstance) return 'U to upgrade, S to sell, Esc to deselect.';
     if (sim.towers.length === 0) return 'Pick a tower (1-4), then click a free tile beside the path.';
@@ -220,11 +279,17 @@ export class Hud {
   }
 }
 
-/** Label, current value and next-level value (null at max level) for the tower panel. */
-function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null): [string, string, string | null][] {
+const roman = (n: number): string => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
+
+/**
+ * Label, current value and next-level value (null at max level) for the tower panel.
+ * Fire rate includes run upgrades (Overclock) so it shows what the tower really does.
+ */
+function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMult: number): [string, string, string | null][] {
+  const rate = (l: TowerLevel) => `${+(l.fireRate * rateMult).toFixed(2)}/s`;
   const rows: [string, string, string | null][] = [
     ['Damage', String(now.damage), next && String(next.damage)],
-    ['Fire rate', `${now.fireRate}/s`, next && `${next.fireRate}/s`],
+    ['Fire rate', rate(now), next && rate(next)],
     ['Range', `${now.rangeTiles}`, next && `${next.rangeTiles}`],
   ];
   if (now.slow) {

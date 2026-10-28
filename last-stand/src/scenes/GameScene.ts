@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { SIMULATION } from '../config/balance';
-import { GRID, type TileCoord } from '../config/map';
+import { TILE_SIZE, type TileCoord } from '../config/map';
 import { worldToTile } from '../core/grid';
 import type { GameSession } from '../game/GameSession';
 import { drawBoard } from '../render/BoardRenderer';
@@ -32,14 +32,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    const path = this.session.sim.path;
-    drawBoard(this, GRID, path);
+    const { path, map } = this.session.sim;
+    drawBoard(this, map.grid, path);
     this.entities = new EntityRenderer(this);
     this.preview = new PlacementPreview(this);
 
     const exitPoint = path.points[path.points.length - 2];
     const detachEffects = attachEffects(this, this.session.bus, this.entities, {
-      x: GRID.cols * GRID.tileSize,
+      x: map.grid.cols * TILE_SIZE,
       y: exitPoint.y,
     });
     const offReset = this.session.bus.on('sessionReset', () => {
@@ -53,7 +53,7 @@ export class GameScene extends Phaser.Scene {
 
     this.input.mouse?.disableContextMenu();
     this.input.on(Phaser.Input.Events.POINTER_MOVE, (p: Phaser.Input.Pointer) => {
-      this.hover = worldToTile(p.worldX, p.worldY, GRID.tileSize);
+      this.hover = worldToTile(p.worldX, p.worldY, TILE_SIZE);
     });
     this.input.on(Phaser.Input.Events.GAME_OUT, () => {
       this.hover = null;
@@ -85,7 +85,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const sim = this.session.sim;
-    const tile = worldToTile(p.worldX, p.worldY, GRID.tileSize);
+    const tile = worldToTile(p.worldX, p.worldY, TILE_SIZE);
     this.hover = tile;
     const buildType = this.session.selectedTower;
     if (buildType) {

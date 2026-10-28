@@ -37,6 +37,8 @@ body {
 /* ---------------------------------------------------------------- top bar */
 
 #top-bar {
+  /* Fixed height (fits two rows of upgrade chips) so the board never resizes mid-run. */
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -59,9 +61,28 @@ body {
 }
 
 .version {
-  margin-right: auto;
   font-size: 11px;
   color: var(--muted);
+}
+
+.upgrade-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  max-height: 48px;
+  overflow: hidden;
+  gap: 4px 6px;
+  margin-right: auto;
+}
+
+.upgrade-chip {
+  padding: 2px 7px;
+  border: 1px solid var(--chip-color);
+  border-radius: 999px;
+  color: var(--chip-color);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .stats {
@@ -472,4 +493,84 @@ kbd {
   #bottom-bar {
     justify-content: space-between;
   }
+}
+
+/* ---------------------------------------------------------------- upgrade draft */
+
+.draft {
+  width: min(820px, 100%);
+  padding: 0 16px;
+  text-align: center;
+}
+
+.draft h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.draft-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.draft-card {
+  --card-color: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 190px;
+  padding: 18px 16px;
+  border: 1px solid var(--panel-edge);
+  border-top: 4px solid var(--card-color);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.draft-card:hover,
+.draft-card:focus-visible {
+  border-color: var(--card-color);
+  box-shadow: 0 0 0 1px var(--card-color), 0 14px 30px rgba(0, 0, 0, 0.45);
+  transform: translateY(-3px);
+  outline: none;
+}
+
+.draft-card h3 {
+  margin: 0;
+  color: var(--card-color);
+  font-size: 17px;
+}
+
+.draft-rank {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.draft-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.draft-now {
+  margin: auto 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.draft-card kbd {
+  position: absolute;
+  top: 12px;
+  right: 12px;
 }

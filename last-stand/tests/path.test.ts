@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { GRID, PATH_WAYPOINTS } from '../src/config/map';
+import { DEFAULT_MAP } from '../src/config/maps';
+
+const GRID = DEFAULT_MAP.grid;
+const PATH_WAYPOINTS = DEFAULT_MAP.waypoints;
 import { Path } from '../src/core/Path';
 
 describe('Path', () => {

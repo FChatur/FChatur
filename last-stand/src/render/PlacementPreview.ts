@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import type { TileCoord } from '../config/map';
-import { GRID } from '../config/map';
+import { TILE_SIZE, type TileCoord } from '../config/map';
 import { TOWERS, type TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
 import type { PlacementBlock, Tower } from '../core/types';
@@ -41,7 +40,7 @@ export class PlacementPreview {
     this.label.setVisible(false);
     if (sim.phase === 'gameover') return;
 
-    const ts = GRID.tileSize;
+    const ts = TILE_SIZE;
     if (picked) {
       this.drawRange(picked.x, picked.y, picked.range, PALETTE.range);
       this.g.lineStyle(2, PALETTE.range, 0.9).strokeRect(picked.col * ts + 2, picked.row * ts + 2, ts - 4, ts - 4);

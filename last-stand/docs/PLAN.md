@@ -7,7 +7,7 @@
 | **Game logic tangled with rendering** | The most common way small Phaser games become unmaintainable. Makes 2x speed buggy, balancing slow, and testing impossible. | The simulation (`src/core`) is plain TypeScript with no Phaser or DOM imports. Phaser only draws state and forwards input. |
 | **Frame-rate dependent gameplay** | Variable `delta` makes runs behave differently on 60 Hz and 144 Hz screens and breaks at 2x speed. | Fixed 60 Hz simulation step with an accumulator; rendering interpolates positions between steps. 2x speed = more steps per frame, same rules. |
 | **Roguelite upgrade combinatorics** | Six upgrades that stack (chain + explosive + crit) can multiply into degenerate damage or be dead picks. | Upgrades will be data-driven modifiers applied through one stat pipeline, with explicit caps. A headless auto-player (already used for the Phase 1 probe) measures how far runs get with each build. |
-| **Endless scaling cliff** | Exponential enemy health against linear income gives a run that is trivial for 20 waves and then collapses in one. The Phase 1 probe shows exactly this at wave ~23. | Rebalance in Phase 3 once tower upgrades and armored enemies exist; track "waves survived" from scripted bots per build. |
+| **Endless scaling cliff** | Exponential enemy health against linear income gives a run that is trivial for 20 waves and then collapses in one. | Resolved in 0.3.0: waves are capped in size and difficulty grows through enemy toughness; `npm run balance` tracks the warning gap per strategy and map. |
 | **Late-wave performance** | Hundreds of projectiles and tweens per second on low-end laptops. | Entity counts are small by design; views are created and destroyed per entity today. If profiling shows GC spikes, add object pooling (contained to `EntityRenderer`/`Effects`). |
 | **Browser audio policy** | Audio contexts start suspended until a user gesture; asset pipelines add weight and licensing risk. | Procedural Web Audio sound effects generated in code (no files), unlocked on the first click. |
 | **Phaser canvas and HTML UI drifting apart** | Two UI systems can fight over input and layout. | Clear split: canvas = the board only; all menus, buttons and text are DOM. They communicate only through `GameSession` and its typed event bus. |
@@ -84,7 +84,7 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - Sniper targets the toughest enemy in range; others target the furthest along.
 - Pulled forward from Phase 4 at the owner's request: 1x/2x/3x game speed.
 
-### Phase 3: Roguelite system and balance
+### Phase 3: Roguelite system and balance ✅
 - Upgrade pick every 5 waves: Chain Lightning, Overclock, Critical Strike, Compound Interest, Frostbite, Explosive Rounds.
   Each stackable to rank 3; no reroll or skip in this phase.
 - Modifier pipeline so upgrades compose predictably; caps where needed. Seeded RNG for reproducible runs.
@@ -92,6 +92,9 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
   late-game cliff. Built map-agnostic per the balance principles below.
 - Provisional target **for the baseline map only**: strong builds reach waves 30–40, with leaks starting
   several waves before a run ends.
+- Result (0.3.0): capped wave size + gentler health growth. Strong strategies reach a median of 32–40 on
+  Switchback with 2–8 waves of warning. Bosses every 10 waves act as checkpoints that cost 6 health.
+  Remaining spread: Frost + Rapid and Economy builds sit at the low end (~32); revisit if playtesting agrees.
 
 ### Phase 4: UI, effects, sound, QoL
 - Main menu, pause/resume, personal best wave. (Game speed shipped in Phase 2.)

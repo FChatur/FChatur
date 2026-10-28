@@ -1,13 +1,14 @@
 import { BALANCE, type BalanceConfig } from '../src/config/balance';
 import { EventBus } from '../src/core/EventBus';
 import type { GameEvents } from '../src/core/events';
-import { Simulation } from '../src/core/Simulation';
+import { Simulation, type SimulationOptions } from '../src/core/Simulation';
 
 export const STEP = 1 / 60;
 
-export function makeSim(overrides: Partial<BalanceConfig> = {}) {
+/** A run with optional balance overrides. Seeded (default 1) so every test is reproducible. */
+export function makeSim(overrides: Partial<BalanceConfig> = {}, options: Omit<SimulationOptions, 'balance'> = {}) {
   const bus = new EventBus<GameEvents>();
-  const sim = new Simulation(bus, { ...BALANCE, ...overrides });
+  const sim = new Simulation(bus, { seed: 1, ...options, balance: { ...BALANCE, ...overrides } });
   return { bus, sim };
 }
 

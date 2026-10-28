@@ -17,10 +17,15 @@ Built with TypeScript, Phaser 3 and Vite. No backend.
 | Sell selected tower (70% refund) | Sell button | `S` |
 | Cancel / deselect | Right-click | `Esc` |
 | Game speed 1x / 2x / 3x | Speed buttons | `F` cycles |
+| Pick a run upgrade (every 5th wave) | Click a card | `1` `2` `3` |
 | Start next wave | Start Wave button | `Space` |
 | Restart after game over | Play again | `R` |
 
 **Towers:** Turret (balanced), Sniper (long range, big hits, targets the toughest enemy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
+
+**Run upgrades:** after every 5th wave you pick 1 of 3 upgrades that last for the rest of the run, each
+stackable to rank III: Chain Lightning, Overclock, Critical Strike, Compound Interest, Frostbite, Explosive Rounds.
+They combine: Frost + Frostbite + Rapid shreds slowed enemies, Sniper + Critical Strike handles bosses.
 
 **Enemies:** Grunt, Runner (fast, from wave 3), Brute (armored, from wave 5), Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Brutes and bosses.
 
@@ -43,6 +48,7 @@ npm test          # unit tests (Vitest)
 npm run typecheck # TypeScript only
 npm run build     # typecheck + production build into dist/
 npm run preview   # serve the production build at http://localhost:4173
+npm run balance   # bots play every map with several strategies; prints a waves-survived report
 ```
 
 ## Deploy
@@ -70,9 +76,10 @@ Run `npm run build` and upload the contents of `dist/` to any static host.
 ## Project layout
 
 ```
-src/config   Tunable game data (towers, enemies, map, balance)
+src/config   Tunable game data: towers, enemies, upgrades, global balance, maps (with per-map modifiers)
 src/core     Simulation and rules (no Phaser, unit-tested)
 src/game     GameSession: glue between simulation, scene and UI
+src/balance  Headless balance harness (not part of the game bundle)
 src/render   Phaser drawing
 src/scenes   Phaser scene: game loop and board input
 src/ui       HTML HUD and keyboard shortcuts
