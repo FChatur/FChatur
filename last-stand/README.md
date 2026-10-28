@@ -4,7 +4,7 @@ A browser roguelite tower defense game. Build towers along the path, survive esc
 
 Built with TypeScript, Phaser 3 and Vite. No backend.
 
-**Status:** Phase 2 (full tower and enemy roster, upgrades, selling, game speed). See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
+**Status:** Phase 4 complete (menus, pause, sound, tutorial, personal bests). Next: Phase 5, final testing and polish. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
 
 ## How to play
 
@@ -19,6 +19,8 @@ Built with TypeScript, Phaser 3 and Vite. No backend.
 | Game speed 1x / 2x / 3x | Speed buttons | `F` cycles |
 | Pick a run upgrade (every 5th wave) | Click a card | `1` `2` `3` |
 | Start next wave | Start Wave button | `Space` |
+| Pause / resume | Pause button | `P` or `Esc` |
+| Mute sound | Speaker button (top right) | `M` |
 | Restart after game over | Play again | `R` |
 
 **Towers:** Turret (balanced), Sniper (long range, big hits, targets the toughest enemy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).

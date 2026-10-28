@@ -3,8 +3,11 @@ import type { TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
 import type { Enemy, Projectile, Tower } from './types';
 
+export type Screen = 'menu' | 'playing';
+
 export interface GameEvents {
   // Simulation events
+  enemySpawned: { enemy: Enemy };
   enemyKilled: { enemy: Enemy };
   enemyLeaked: { enemy: Enemy };
   towerPlaced: { tower: Tower };
@@ -25,5 +28,8 @@ export interface GameEvents {
   /** Either a tower type to build is armed, or a built tower is selected, or neither. */
   selectionChanged: { towerType: TowerTypeId | null; towerId: number | null };
   speedChanged: { speed: GameSpeed };
+  /** Main menu shown/hidden, or game paused/resumed. */
+  screenChanged: { screen: Screen; paused: boolean };
+  muteChanged: { muted: boolean };
   sessionReset: Record<string, never>;
 }

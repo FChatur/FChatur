@@ -229,7 +229,7 @@ export class Simulation {
     const cfg = ENEMIES[type];
     const start = this.path.positionAt(0);
     const hp = Math.round(cfg.maxHp * this.hpMultiplier * this.map.modifiers.enemyHp);
-    this.enemies.push({
+    const enemy: Enemy = {
       id: this.nextId++,
       type,
       hp,
@@ -247,7 +247,9 @@ export class Simulation {
       prevX: start.x,
       prevY: start.y,
       alive: true,
-    });
+    };
+    this.enemies.push(enemy);
+    this.bus.emit('enemySpawned', { enemy });
   }
 
   private updateEnemies(dt: number): void {

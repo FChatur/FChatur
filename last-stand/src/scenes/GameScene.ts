@@ -64,7 +64,10 @@ export class GameScene extends Phaser.Scene {
   override update(_time: number, deltaMs: number): void {
     const sim = this.session.sim;
     const step = SIMULATION.stepSeconds;
-    this.accumulator += (Math.min(deltaMs, SIMULATION.maxFrameDeltaMs) / 1000) * this.session.speed;
+    // In the menu or while paused the board stays drawn but time doesn't advance.
+    if (this.session.running) {
+      this.accumulator += (Math.min(deltaMs, SIMULATION.maxFrameDeltaMs) / 1000) * this.session.speed;
+    }
 
     let steps = 0;
     while (this.accumulator >= step && steps < SIMULATION.maxStepsPerFrame) {
@@ -80,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
+    if (this.session.screen !== 'playing' || this.session.paused) return;
     if (p.rightButtonDown()) {
       this.session.clearSelection();
       return;

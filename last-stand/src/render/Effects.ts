@@ -18,7 +18,21 @@ export function attachEffects(
   exit: { x: number; y: number },
 ): () => void {
   const subs = [
-    bus.on('towerFired', ({ tower }) => entities.recoilTower(tower.id)),
+    bus.on('towerFired', ({ tower, projectile }) => {
+      entities.recoilTower(tower.id);
+      const flash = scene.add
+        .circle(projectile.x, projectile.y, 5, TOWERS[tower.type].color, 0.9)
+        .setDepth(DEPTH.effects);
+      scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 90, onComplete: () => flash.destroy() });
+    }),
+
+    bus.on('waveStarted', ({ wave }) => banner(scene, `WAVE ${wave}`, PALETTE.waveText, 26)),
+
+    bus.on('enemySpawned', ({ enemy }) => {
+      if (enemy.type !== 'boss') return;
+      banner(scene, `${ENEMIES.boss.name.toUpperCase()} APPROACHES`, PALETTE.exit, 30);
+      scene.cameras.main.shake(400, 0.006);
+    }),
 
     bus.on('projectileHit', ({ projectile, enemy, crit }) => {
       entities.flashEnemy(enemy.id);
@@ -71,6 +85,32 @@ export function attachEffects(
     }),
   ];
   return () => subs.forEach((off) => off());
+}
+
+/** A short centred title that fades in and out over the board. */
+function banner(scene: Phaser.Scene, text: string, color: number, size: number): void {
+  const { width, height } = scene.scale;
+  const label = scene.add
+    .text(width / 2, height * 0.3, text, {
+      fontFamily: FONT_FAMILY,
+      fontSize: `${size}px`,
+      fontStyle: 'bold',
+      color: Phaser.Display.Color.IntegerToColor(color).rgba,
+      stroke: '#000000',
+      strokeThickness: 6,
+    })
+    .setOrigin(0.5)
+    .setDepth(DEPTH.effects + 5)
+    .setAlpha(0)
+    .setScale(0.9);
+  scene.tweens.chain({
+    targets: label,
+    tweens: [
+      { alpha: 1, scale: 1, duration: 220, ease: 'Back.Out' },
+      { alpha: 0, duration: 400, delay: 800 },
+    ],
+    onComplete: () => label.destroy(),
+  });
 }
 
 function spark(scene: Phaser.Scene, x: number, y: number, crit: boolean): void {

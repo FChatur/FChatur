@@ -3,6 +3,7 @@ import { DEFAULT_MAP } from './config/maps';
 import { GameSession } from './game/GameSession';
 import { PALETTE } from './render/palette';
 import { GameScene, type GameSceneData } from './scenes/GameScene';
+import { Sfx } from './audio/Sfx';
 import { Hud } from './ui/Hud';
 import './style.css';
 
@@ -27,6 +28,7 @@ game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
 // Dev-server only (stripped from production builds): lets automated playtests drive the game.
 if (import.meta.env.DEV) Object.assign(window, { __lastStand: { session, game } });
 new Hud(session);
+new Sfx(session);
 
 const versionLabel = document.getElementById('version');
 if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;

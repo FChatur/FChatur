@@ -4,6 +4,7 @@ import type { GameEvents } from '../core/events';
 import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
+import { TUTORIAL_STEPS, TutorialProgress } from './tutorial';
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -28,12 +29,14 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'draftOffered',
   'upgradeChosen',
   'sessionReset',
+  'screenChanged',
+  'muteChanged',
 ];
 
 /**
- * The HTML overlay: stats bar, build bar, speed control, wave button, contextual hint,
- * selected-tower panel and game-over panel. Also owns keyboard shortcuts, since they map onto
- * the same actions as the buttons.
+ * The HTML overlay: main menu, stats bar, build bar, speed control, wave button, contextual hint,
+ * tutorial, selected-tower panel, upgrade draft, pause and game-over screens. Also owns keyboard
+ * shortcuts, since they map onto the same actions as the buttons.
  */
 export class Hud {
   private readonly wave = el('stat-wave');
@@ -49,6 +52,7 @@ export class Hud {
   private readonly panelSell = el<HTMLButtonElement>('tp-sell');
   private readonly gameOver = el('overlay-gameover');
   private lastHealth = 0;
+  private tutorial: TutorialProgress | null = null;
 
   constructor(private readonly session: GameSession) {
     this.buildTowerBar();
@@ -66,10 +70,44 @@ export class Hud {
       this.session.startWave();
       this.startWave.blur();
     });
-    el('btn-restart').addEventListener('click', () => this.session.restart());
+    this.click('btn-restart', () => this.session.restart());
+    this.click('btn-gameover-menu', () => this.session.toMenu());
+    this.click('btn-play', () => this.session.play());
+    this.click('btn-pause', () => this.session.togglePause());
+    this.click('btn-resume', () => this.session.setPaused(false));
+    this.click('btn-pause-restart', () => this.session.restart());
+    this.click('btn-pause-menu', () => this.session.toMenu());
+    this.click('btn-mute', () => this.session.toggleMute());
+    this.click('btn-menu-mute', () => this.session.toggleMute());
+    this.click('btn-menu-tutorial', () => {
+      if (this.session.tutorialDone) this.session.resetTutorial();
+      else this.session.completeTutorial();
+      this.startTutorial();
+      this.refresh();
+    });
+    this.click('tutorial-skip', () => this.tutorial?.skip());
     window.addEventListener('keydown', (e) => this.onKey(e));
+    // Losing focus (switching tabs, alt-tab) pauses a run in progress.
+    document.addEventListener('visibilitychange', () => document.hidden && this.session.setPaused(true));
+    this.startTutorial();
     for (const type of REFRESH_ON) session.bus.on(type, () => this.refresh());
     this.refresh();
+  }
+
+  private click(id: string, action: () => void): void {
+    const btn = el(id);
+    btn.addEventListener('click', () => {
+      action();
+      btn.blur();
+    });
+  }
+
+  /** (Re)creates tutorial tracking if the player hasn't finished it. */
+  private startTutorial(): void {
+    this.tutorial?.dispose();
+    this.tutorial = this.session.tutorialDone
+      ? null
+      : new TutorialProgress(this.session.bus, TUTORIAL_STEPS, () => this.renderTutorial(), () => this.session.completeTutorial());
   }
 
   private buildTowerBar(): void {
@@ -112,13 +150,36 @@ export class Hud {
   private onKey(e: KeyboardEvent): void {
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     const sim = this.session.sim;
-    if (e.code === 'Space') {
-      e.preventDefault();
-      this.session.startWave();
+    const key = e.key.toLowerCase();
+    if (key === 'm') {
+      this.session.toggleMute();
+      return;
+    }
+    if (this.session.screen === 'menu') {
+      if (e.key === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        this.session.play();
+      }
+      return;
+    }
+    if (key === 'p') {
+      this.session.togglePause();
       return;
     }
     if (e.key === 'Escape') {
-      this.session.clearSelection();
+      const s = this.session;
+      if (s.paused) s.setPaused(false);
+      else if (s.selectedTower || s.selectedTowerInstance) s.clearSelection();
+      else s.setPaused(true);
+      return;
+    }
+    if (this.session.paused) {
+      if (e.code === 'Space') e.preventDefault();
+      return;
+    }
+    if (e.code === 'Space') {
+      e.preventDefault();
+      this.session.startWave();
       return;
     }
     if (sim.phase === 'draft') {
@@ -126,7 +187,6 @@ export class Hud {
       if (choice) this.session.chooseUpgrade(choice);
       return;
     }
-    const key = e.key.toLowerCase();
     if (key === 'f') {
       this.session.cycleSpeed();
       return;
@@ -181,11 +241,36 @@ export class Hud {
       gameover: 'Run over',
     }[sim.phase];
 
+    const playing = this.session.screen === 'playing';
+    el<HTMLButtonElement>('btn-pause').disabled = !playing || sim.phase === 'gameover';
+    el('overlay-menu').classList.toggle('hidden', playing);
+    el('overlay-pause').classList.toggle('hidden', !this.session.paused);
+    el('btn-mute').classList.toggle('muted', this.session.muted);
+    el('btn-mute').setAttribute('aria-label', this.session.muted ? 'Unmute sound' : 'Mute sound');
+    el('btn-menu-mute').textContent = `Sound: ${this.session.muted ? 'Off' : 'On'}`;
+    el('btn-menu-tutorial').textContent = `Tutorial: ${this.session.tutorialDone ? 'Off' : 'On'}`;
+    const record = this.session.record;
+    el('menu-record').textContent = record
+      ? `Best on ${sim.map.name}: wave ${record.bestWave} (${record.runs} ${record.runs === 1 ? 'run' : 'runs'})`
+      : `${sim.map.name}: no runs yet.`;
+
     this.hint.textContent = this.hintText();
+    this.renderTutorial();
     this.renderUpgradeList();
     this.renderDraft();
     this.renderTowerPanel();
     this.renderGameOver();
+  }
+
+  private renderTutorial(): void {
+    const t = this.tutorial;
+    const show =
+      !!t && !t.finished && this.session.screen === 'playing' && !this.session.paused && this.session.sim.phase !== 'gameover';
+    el('tutorial').classList.toggle('hidden', !show);
+    if (!show || !t.current) return;
+    const { step, total } = t.position;
+    el('tutorial-step').textContent = `TUTORIAL ${step}/${total}`;
+    el('tutorial-text').textContent = t.current.text;
   }
 
   private renderUpgradeList(): void {
@@ -284,6 +369,10 @@ export class Hud {
     el('go-kills').textContent = String(sim.stats.kills);
     el('go-towers').textContent = String(sim.stats.towersBuilt);
     el('go-gold').textContent = String(sim.stats.goldEarned);
+    const last = this.session.lastRun;
+    el('go-best').innerHTML = last
+      ? `Personal best: wave ${last.record.bestWave}${last.newBest ? ' <span class="new-best">New best!</span>' : ''}`
+      : '';
   }
 }
 

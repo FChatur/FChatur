@@ -20,6 +20,7 @@ export const PALETTE = {
   crit: 0xfacc15,
   lightning: 0xbfdbfe,
   splash: 0xf87171,
+  waveText: 0xc7d2fe,
   towerBase: 0x141b2b,
   enemyOutline: 0x0b0f1a,
 } as const;

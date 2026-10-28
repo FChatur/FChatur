@@ -96,8 +96,8 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
   Switchback with 2–8 waves of warning. Bosses every 10 waves act as checkpoints that cost 6 health.
   Remaining spread: Frost + Rapid and Economy builds sit at the low end (~32); revisit if playtesting agrees.
 
-### Phase 4: UI, effects, sound, QoL
-- Main menu, pause/resume, personal best wave. (Game speed shipped in Phase 2.)
+### Phase 4: UI, effects, sound, QoL ✅
+- Main menu, pause/resume, personal best wave (per map). (Game speed shipped in Phase 2.)
 - Procedural Web Audio SFX + mute toggle; settings persisted.
 - Effect polish (muzzle flashes, slow visuals, boss intro), first-run tutorial flow.
 

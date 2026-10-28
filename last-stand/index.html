@@ -19,10 +19,19 @@
           <div class="stat stat-gold"><span class="stat-label">Gold</span><span id="stat-gold">0</span></div>
           <div class="stat stat-health"><span class="stat-label">Health</span><span id="stat-health">0</span></div>
         </div>
+        <button id="btn-mute" class="icon-btn" aria-label="Mute sound" title="Sound (M)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="sound-waves" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="sound-off" d="M16 9l6 6M22 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </header>
 
       <main id="stage">
         <div id="game-container"></div>
+
+        <aside id="tutorial" class="tutorial hidden" aria-live="polite">
+          <span id="tutorial-step" class="tutorial-step">1/5</span>
+          <p id="tutorial-text"></p>
+          <button id="tutorial-skip" class="tutorial-skip">Skip tutorial</button>
+        </aside>
 
         <aside id="tower-panel" class="tower-panel hidden" aria-live="polite">
           <header class="tp-header">
@@ -55,7 +64,43 @@
               <dt>Towers built</dt><dd id="go-towers">0</dd>
               <dt>Gold earned</dt><dd id="go-gold">0</dd>
             </dl>
-            <button id="btn-restart" class="btn btn-primary">Play again <kbd>R</kbd></button>
+            <p id="go-best" class="go-best"></p>
+            <div class="panel-actions">
+              <button id="btn-restart" class="btn btn-primary">Play again <kbd>R</kbd></button>
+              <button id="btn-gameover-menu" class="btn">Main menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="overlay-pause" class="overlay hidden" role="dialog" aria-labelledby="pause-title">
+          <div class="panel">
+            <h2 id="pause-title" class="pause-title">Paused</h2>
+            <div class="panel-actions panel-actions-column">
+              <button id="btn-resume" class="btn btn-primary">Resume <kbd>P</kbd></button>
+              <button id="btn-pause-restart" class="btn">Restart run</button>
+              <button id="btn-pause-menu" class="btn">Main menu</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="overlay-menu" class="overlay overlay-menu" role="dialog" aria-labelledby="menu-title">
+          <div class="menu">
+            <h1 id="menu-title" class="menu-title">LAST<span>STAND</span></h1>
+            <p class="menu-tagline">Build towers. Pick upgrades. Hold the line as long as you can.</p>
+            <button id="btn-play" class="btn btn-primary btn-big">Play <kbd>Enter</kbd></button>
+            <p id="menu-record" class="menu-record"></p>
+            <div class="menu-options">
+              <button id="btn-menu-mute" class="btn"></button>
+              <button id="btn-menu-tutorial" class="btn"></button>
+            </div>
+            <dl class="menu-controls">
+              <dt>1–4</dt><dd>Pick a tower, click a tile to build</dd>
+              <dt>Click tower</dt><dd>Upgrade (U) or sell (S)</dd>
+              <dt>Space</dt><dd>Send the next wave</dd>
+              <dt>F</dt><dd>Game speed 1x / 2x / 3x</dd>
+              <dt>P / Esc</dt><dd>Pause</dd>
+              <dt>M</dt><dd>Mute</dd>
+            </dl>
           </div>
         </div>
       </main>
@@ -64,6 +109,7 @@
         <div id="tower-bar" aria-label="Towers"></div>
         <p id="hint" aria-live="polite"></p>
         <div id="speed-control" class="speed-control" role="group" aria-label="Game speed" title="Game speed (F)"></div>
+        <button id="btn-pause" class="btn" title="Pause (P)">Pause <kbd>P</kbd></button>
         <button id="btn-start-wave" class="btn btn-primary"><span id="start-wave-label">Start Wave 1</span> <kbd>Space</kbd></button>
       </footer>
     </div>
