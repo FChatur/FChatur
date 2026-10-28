@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Last Stand: a roguelite tower defense game you can play in your browser." />
+    <meta name="theme-color" content="#0b0f1a" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='%23141b2b' stroke='%234fd1c5' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='2.5' fill='%234fd1c5'/%3E%3C/svg%3E" />
+    <title>Last Stand</title>
+  </head>
+  <body>
+    <div id="app">
+      <header id="top-bar">
+        <h1 class="logo">LAST<span>STAND</span></h1>
+        <div class="stats">
+          <div class="stat stat-wave"><span class="stat-label">Wave</span><span id="stat-wave">0</span></div>
+          <div class="stat stat-gold"><span class="stat-label">Gold</span><span id="stat-gold">0</span></div>
+          <div class="stat stat-health"><span class="stat-label">Health</span><span id="stat-health">0</span></div>
+        </div>
+      </header>
+
+      <main id="stage">
+        <div id="game-container"></div>
+
+        <div id="overlay-gameover" class="overlay hidden" role="dialog" aria-labelledby="go-title">
+          <div class="panel">
+            <h2 id="go-title">Overrun</h2>
+            <p class="subtitle">The line broke on wave <strong id="go-wave">0</strong>.</p>
+            <dl class="summary">
+              <dt>Enemies defeated</dt><dd id="go-kills">0</dd>
+              <dt>Towers built</dt><dd id="go-towers">0</dd>
+              <dt>Gold earned</dt><dd id="go-gold">0</dd>
+            </dl>
+            <button id="btn-restart" class="btn btn-primary">Play again <kbd>R</kbd></button>
+          </div>
+        </div>
+      </main>
+
+      <footer id="bottom-bar">
+        <div id="tower-bar" aria-label="Towers"></div>
+        <p id="hint" aria-live="polite"></p>
+        <button id="btn-start-wave" class="btn btn-primary"><span id="start-wave-label">Start Wave 1</span> <kbd>Space</kbd></button>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
