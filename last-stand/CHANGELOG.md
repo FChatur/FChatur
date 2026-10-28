@@ -16,6 +16,16 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 - CI runs the end-to-end tests in Chromium (Chrome, Edge), Firefox and WebKit (Safari's engine) on every
   push, plus the slow soak test; deploys and release tags now wait for all of them to pass.
 
+- Resilience: a clear notice (with Reload) for unexpected errors in the game's own code, and for the
+  browser resetting the graphics context; the game pauses and recovers when graphics come back. A
+  message is shown if JavaScript is disabled.
+- Link previews: an image and description when the game's link is shared (Discord, Slack, Teams,
+  Messages, social), captured from real gameplay.
+- Accessibility: reduced-motion support (no screen shake, pop or pulse animations when the system asks
+  for reduced motion) and a visible focus outline for keyboard navigation.
+- README rewritten as a front page with the play link, a screenshot, browser support and test commands.
+- End-to-end tests for keyboard-focus tooltips, tab-switch auto-pause, and the board actually rendering.
+
 ### Compatibility
 - Build output targets Chrome/Edge 100+, Firefox 100+ and Safari 15+ (newer syntax is downlevelled).
 - Every CSS `color-mix()` has a plain-colour fallback for browsers that lack it.

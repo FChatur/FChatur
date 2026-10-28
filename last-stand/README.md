@@ -1,10 +1,19 @@
 # Last Stand
 
-A browser roguelite tower defense game. Build towers along the path, survive escalating waves, and see how long you can hold the line.
+**[Play it in your browser →](https://fchatur.github.io/FChatur/)** (free, no install, no account)
 
-Built with TypeScript, Phaser 3 and Vite. No backend.
+A roguelite tower defense game. Build towers along the path, pick run upgrades every five waves, and
+see how long you can hold the line. Runs take 10–30 minutes; your best wave is saved.
 
-**Status:** Phase 4 complete (menus, pause, sound, tutorial, personal bests). Next: Phase 5, final testing and polish. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
+![Last Stand gameplay](public/og-image.png)
+
+Built with TypeScript, Phaser 3 and Vite. No backend; everything runs in the browser.
+
+**Status:** MVP complete (Phases 1–5). See [docs/PLAN.md](docs/PLAN.md) for the roadmap and long-term
+direction, and [CHANGELOG.md](CHANGELOG.md) for every release. Each release is tagged `last-stand-vX.Y.Z`.
+
+**Browsers:** desktop Chrome, Edge, Firefox and Safari (2022 releases or newer), mouse and keyboard.
+Tested automatically in Chromium, Firefox and WebKit on every change. Mobile/touch is on the roadmap.
 
 ## How to play
 
@@ -49,12 +58,20 @@ npm run dev     # start dev server at http://localhost:5173
 Other scripts:
 
 ```bash
-npm test          # unit tests (Vitest)
+npm test          # unit, fuzz and model tests (Vitest, ~7 s)
+npm run test:slow # wave-100 soak test on a maxed-out board (~30 s)
+npm run test:e2e  # production build + end-to-end browser tests (Playwright, Chromium by default)
 npm run typecheck # TypeScript only
 npm run build     # typecheck + production build into dist/
 npm run preview   # serve the production build at http://localhost:4173
 npm run balance   # bots play every map with several strategies; prints a waves-survived report
 ```
+
+`npm run test:e2e` needs Playwright's browsers once: `npx playwright install chromium` (or
+`firefox`/`webkit`; choose with `E2E_BROWSERS=chromium,firefox,webkit`).
+
+In the dev server (`npm run dev`) only, `window.__lastStand` exposes the session and Phaser game for
+debugging and automated playtests; it is stripped from production builds.
 
 ## Deploy
 
@@ -62,7 +79,13 @@ The build is a static folder (`dist/`) with relative asset paths, so it works fr
 
 ### GitHub Pages (automatic)
 
-The workflow at `.github/workflows/last-stand.yml` tests and builds on every push that touches `last-stand/`, and deploys when the push is to `main`. On `main` it also tags each new version as `last-stand-vX.Y.Z` (taken from `package.json`).
+The workflow at `.github/workflows/last-stand.yml` runs on every push that touches `last-stand/`: unit
+and soak tests, the production build, and the end-to-end tests in Chromium, Firefox and WebKit. On
+`main`, once all of those pass, it deploys to GitHub Pages and tags each new version as
+`last-stand-vX.Y.Z` (taken from `package.json`).
+
+The link-preview image and URL in `index.html` (`og:image`, `og:url`) point at the GitHub Pages address;
+update them if the game moves.
 
 One-time setup: in the repository on GitHub, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. After the next push to `main` the game is live at `https://<user>.github.io/<repo>/`.
 
@@ -85,10 +108,13 @@ src/config   Tunable game data: towers, enemies, upgrades, global balance, maps 
 src/core     Simulation and rules (no Phaser, unit-tested)
 src/game     GameSession: glue between simulation, scene and UI
 src/balance  Headless balance harness (not part of the game bundle)
-src/render   Phaser drawing
+src/render   Phaser drawing (baked static art, entities, effects, viewport sizing)
 src/scenes   Phaser scene: game loop and board input
-src/ui       HTML HUD and keyboard shortcuts
-tests        Vitest tests
+src/audio    Procedural sound effects (Web Audio, no files)
+src/ui       HTML HUD, tooltips, tutorial, notices, keyboard shortcuts
+tests        Vitest tests (unit, fuzz, soak)
+e2e          Playwright end-to-end tests
+public       Static files copied as-is (link-preview image)
 ```
 
 All gameplay numbers live in `src/config`. Change a value there, and the game and tests pick it up.

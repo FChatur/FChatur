@@ -124,3 +124,39 @@ test('resizing keeps the board sharp and clicks on the right tile', async ({ pag
   await clickTile(page, 3, 3);
   await expect(page.locator('#tp-name')).toHaveText('Turret');
 });
+
+test('keyboard focus on a shop tower shows its tooltip', async ({ page }) => {
+  await startRun(page);
+  await page.locator('.tower-btn').nth(1).focus();
+  await expect(page.locator('#tower-tooltip')).toBeVisible();
+  await expect(page.locator('#tower-tooltip h3')).toHaveText('Sniper');
+  await expect(page.locator('#tower-tooltip .tt-stats')).toContainText('Global');
+});
+
+test('switching away from the tab pauses a running game', async ({ page }) => {
+  await startRun(page);
+  await expect(page.locator('#overlay-pause')).toBeHidden();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('#overlay-pause')).toBeVisible();
+});
+
+test('the board actually renders (grid, path and towers are drawn)', async ({ page }) => {
+  await startRun(page);
+  await page.keyboard.press('1');
+  await clickTile(page, 3, 3);
+  await page.keyboard.press('Escape');
+  await page.mouse.move(0, 0);
+  const canvas = page.locator('#game-container canvas');
+  const box = (await canvas.boundingBox())!;
+  const clip = { x: box.x, y: box.y, width: box.width / 2, height: box.height / 2 };
+  // Same region with and without the canvas: a drawn board has far more detail (larger PNG) than
+  // the empty background behind it.
+  const drawn = await page.screenshot({ clip });
+  await canvas.evaluate((c) => ((c as HTMLElement).style.visibility = 'hidden'));
+  const blank = await page.screenshot({ clip });
+  // Measured ~3x in Chromium; an unrendered board would be ~1x.
+  expect(drawn.length).toBeGreaterThan(blank.length * 2);
+});

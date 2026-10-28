@@ -1038,3 +1038,64 @@ kbd {
   padding-left: 16px;
   font-size: 12px;
 }
+
+/* ---------------------------------------------------------------- notices */
+
+.notice {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border: 1px solid var(--health);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  transform: translateX(-50%);
+}
+
+.notice p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.notice .btn {
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.noscript {
+  margin: 40px auto;
+  max-width: 480px;
+  color: var(--text);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- accessibility */
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Players who ask for reduced motion: no pulsing, popping or sliding UI (fades are kept). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tower-btn:hover:not(:disabled),
+  .btn:hover:not(:disabled),
+  .draft-card:hover,
+  .draft-card:focus-visible {
+    transform: none;
+  }
+}

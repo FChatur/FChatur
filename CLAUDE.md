@@ -18,7 +18,8 @@ so keep the repo root free of game files (no root README).
 2. **Preserve existing features** unless the owner explicitly asks for removal.
 3. **Stay focused** on the requested change. Note unrelated ideas instead of doing them.
 4. **Check for bugs and side effects** before committing:
-   - `npm test`, `npm run build` (includes typecheck) in `last-stand/`.
+   - `npm test`, `npm run build` (includes typecheck) in `last-stand/`; `npm run test:e2e` for anything
+     players can see or touch (CI also runs `test:slow` and e2e in Chromium, Firefox and WebKit).
    - Add or update unit tests for any rule change in `src/core`.
    - For balance changes, run `npm run balance` before and after and report the difference.
    - Playtest in a real browser (Playwright against `npm run preview`) for anything visible

@@ -8,7 +8,7 @@
 | **Frame-rate dependent gameplay** | Variable `delta` makes runs behave differently on 60 Hz and 144 Hz screens and breaks at 2x speed. | Fixed 60 Hz simulation step with an accumulator; rendering interpolates positions between steps. 2x speed = more steps per frame, same rules. |
 | **Roguelite upgrade combinatorics** | Six upgrades that stack (chain + explosive + crit) can multiply into degenerate damage or be dead picks. | Upgrades will be data-driven modifiers applied through one stat pipeline, with explicit caps. A headless auto-player (already used for the Phase 1 probe) measures how far runs get with each build. |
 | **Endless scaling cliff** | Exponential enemy health against linear income gives a run that is trivial for 20 waves and then collapses in one. | Resolved in 0.3.0: waves are capped in size and difficulty grows through enemy toughness; `npm run balance` tracks the warning gap per strategy and map. |
-| **Late-wave performance** | Hundreds of projectiles and tweens per second on low-end laptops. | Entity counts are small by design; views are created and destroyed per entity today. If profiling shows GC spikes, add object pooling (contained to `EntityRenderer`/`Effects`). |
+| **Late-wave performance** | Hundreds of projectiles and tweens per second on low-end laptops. | Addressed in 0.5.0 after profiling: static art baked to textures, tween-free hit feedback, per-category effect caps, pooled projectiles, one HUD refresh per frame. Simulation measured at ~0.1 ms/step at wave 100 on a full board. |
 | **Browser audio policy** | Audio contexts start suspended until a user gesture; asset pipelines add weight and licensing risk. | Procedural Web Audio sound effects generated in code (no files), unlocked on the first click. |
 | **Phaser canvas and HTML UI drifting apart** | Two UI systems can fight over input and layout. | Clear split: canvas = the board only; all menus, buttons and text are DOM. They communicate only through `GameSession` and its typed event bus. |
 | **Deployment base paths** | GitHub Pages serves from `/<repo>/`, which breaks absolute asset URLs. | Vite `base: './'`; the build works from any sub-path. |
@@ -101,10 +101,15 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - Procedural Web Audio SFX + mute toggle; settings persisted.
 - Effect polish (muzzle flashes, slow visuals, boss intro), first-run tutorial flow.
 
-### Phase 5: Testing, optimization, deployment
-- Cross-browser pass (Chrome, Firefox, Edge, Safari), profiling late waves, pooling if needed.
-- Error-free console, tab-switch behaviour, window resizing.
-- GitHub Pages deployment and share link; README polish.
+### Phase 5: Testing, optimization, deployment ✅
+- Cross-browser: end-to-end tests in Chromium, Firefox and WebKit in CI; build targets 2022+ browsers;
+  CSS fallbacks.
+- Profiled late waves (Chrome CPU profiler): baked static art, tween-free hit feedback, capped effects,
+  pooled projectiles, frame-batched HUD.
+- Robustness: invariant-checked fuzz tests, wave-100 soak test; crash and GPU-reset notices.
+- Error-free console, tab-switch auto-pause and window resizing covered by end-to-end tests.
+- Deployment gated on all tests; link preview image and meta tags; README as a public front page;
+  reduced-motion support and visible keyboard focus.
 
 ### Future (after the MVP, not scheduled)
 - **Additional maps**, each balanced individually against the shared difficulty expectations (see below).

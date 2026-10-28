@@ -5,6 +5,7 @@ import { TOWERS } from '../config/towers';
 import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import type { EntityRenderer } from './EntityRenderer';
+import { prefersReducedMotion } from './motion';
 import { DEPTH, FONT_FAMILY, PALETTE, textResolution } from './palette';
 
 /**
@@ -116,7 +117,7 @@ export function attachEffects(
     bus.on('enemySpawned', ({ enemy }) => {
       if (enemy.type !== 'boss') return;
       banner(scene, world, `${ENEMIES.boss.name.toUpperCase()} APPROACHES`, PALETTE.exit, 30);
-      scene.cameras.main.shake(400, 0.006);
+      if (!prefersReducedMotion()) scene.cameras.main.shake(400, 0.006);
     }),
 
     bus.on('projectileHit', ({ projectile, enemy, crit }) => {
@@ -169,7 +170,7 @@ export function attachEffects(
     }),
 
     bus.on('enemyLeaked', () => {
-      scene.cameras.main.shake(140, 0.004);
+      if (!prefersReducedMotion()) scene.cameras.main.shake(140, 0.004);
       const flash = scene.add
         .rectangle(exit.x, exit.y, 16, TILE_SIZE * 1.4, PALETTE.exit, 0.8)
         .setDepth(DEPTH.effects);
@@ -194,11 +195,11 @@ function banner(scene: Phaser.Scene, world: { width: number; height: number }, t
     .setOrigin(0.5)
     .setDepth(DEPTH.effects + 5)
     .setAlpha(0)
-    .setScale(0.9);
+    .setScale(prefersReducedMotion() ? 1 : 0.9);
   scene.tweens.chain({
     targets: label,
     tweens: [
-      { alpha: 1, scale: 1, duration: 220, ease: 'Back.Out' },
+      { alpha: 1, scale: 1, duration: 220, ease: prefersReducedMotion() ? 'Linear' : 'Back.Out' },
       { alpha: 0, duration: 400, delay: 800 },
     ],
     onComplete: () => label.destroy(),

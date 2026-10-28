@@ -5,6 +5,7 @@ import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
 import type { Enemy, Projectile, Tower } from '../core/types';
 import { bakedImage, bakeTexture } from './bake';
+import { prefersReducedMotion } from './motion';
 import { DEPTH, PALETTE } from './palette';
 
 const HP_BAR_HEIGHT = 4;
@@ -147,7 +148,7 @@ export class EntityRenderer {
     const cap = this.capPart(t.type, color, half);
     const root = this.scene.add.container(t.x, t.y, [base, barrel, cap]).setDepth(DEPTH.towers);
 
-    if (!this.rebuilding) {
+    if (!this.rebuilding && !prefersReducedMotion()) {
       root.setScale(0.5);
       this.scene.tweens.add({ targets: root, scale: 1, duration: 220, ease: 'Back.Out' });
     }

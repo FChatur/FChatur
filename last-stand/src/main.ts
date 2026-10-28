@@ -6,8 +6,10 @@ import { clampPixelRatio, computeViewport, type Viewport } from './render/viewpo
 import { GameScene, type GameSceneData } from './scenes/GameScene';
 import { Sfx } from './audio/Sfx';
 import { Hud } from './ui/Hud';
+import { hideNotice, showNotice, watchForCrashes } from './ui/notice';
 import './style.css';
 
+watchForCrashes();
 const session = new GameSession();
 
 // Rendering: the canvas buffer matches the device pixels it covers (see render/viewport.ts), so the
@@ -81,7 +83,26 @@ function positionCanvas(): void {
   game.canvas.style.marginTop = `${viewport.offsetY}px`;
   game.scale.refresh();
 }
-game.events.once(Phaser.Core.Events.READY, positionCanvas);
+game.events.once(Phaser.Core.Events.READY, () => {
+  positionCanvas();
+  // The browser can reset the GPU context (driver hiccup, sleep/wake, too many tabs). Phaser restores
+  // its resources when the context comes back; pause meanwhile so the run isn't lost blind.
+  const renderer = game.renderer;
+  if (renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
+    renderer.on(Phaser.Renderer.Events.LOSE_WEBGL, () => {
+      session.setPaused(true);
+      showNotice('graphics', 'Your browser reset the game\u2019s graphics. Waiting for them to come back\u2026', [
+        { label: 'Reload', run: () => location.reload() },
+      ]);
+    });
+    renderer.on(Phaser.Renderer.Events.RESTORE_WEBGL, () => {
+      hideNotice('graphics');
+      showNotice('graphics-restored', 'Graphics restored. The game is paused; press P to continue.', [
+        { label: 'OK', run: () => hideNotice('graphics-restored') },
+      ]);
+    });
+  }
+});
 
 game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
 
