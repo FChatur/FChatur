@@ -14,6 +14,8 @@ export interface Settings {
   speed: GameSpeed;
   /** Set once the first-run tutorial has been finished or skipped. */
   tutorialDone: boolean;
+  /** Start the next wave automatically after a short countdown. */
+  autoWave: boolean;
 }
 
 export interface MapRecord {
@@ -25,7 +27,7 @@ export interface MapRecord {
 /** Personal records, kept per map so different maps never share one leaderboard. */
 export type Records = Partial<Record<MapId, MapRecord>>;
 
-export const DEFAULT_SETTINGS: Settings = { muted: false, volume: 0.6, speed: 1, tutorialDone: false };
+export const DEFAULT_SETTINGS: Settings = { muted: false, volume: 0.6, speed: 1, tutorialDone: false, autoWave: true };
 
 const KEYS = { settings: 'lastStand.v1.settings', records: 'lastStand.v1.records' } as const;
 
@@ -53,6 +55,7 @@ export class Persistence {
     if (typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1) s.volume = raw.volume;
     if (raw.speed === 1 || raw.speed === 2 || raw.speed === 3) s.speed = raw.speed;
     if (typeof raw.tutorialDone === 'boolean') s.tutorialDone = raw.tutorialDone;
+    if (typeof raw.autoWave === 'boolean') s.autoWave = raw.autoWave;
     return s;
   }
 

@@ -23,6 +23,8 @@ export interface SimulationOptions {
   seed?: number;
   /** The upgrade pool. Defaults to config/upgrades.ts; tests can pass their own. */
   upgradeRegistry?: ReadonlyMap<UpgradeId, UpgradeDef>;
+  /** Start each next wave automatically after a countdown. Off unless asked for. */
+  autoWave?: boolean;
 }
 
 /**
@@ -37,6 +39,12 @@ export class Simulation {
   readonly mods: RunModifiers;
   /** Upgrades on offer while `phase === 'draft'`. */
   draftChoices: UpgradeId[] = [];
+  /**
+   * Seconds (game time) until the next wave starts automatically, or null if no countdown is running.
+   * Counts down in `step`, so it follows game speed and stops while the game is paused.
+   */
+  autoWaveCountdown: number | null = null;
+  private _autoWave: boolean;
   gold: number;
   health: number;
   /** The most recently started wave (0 before the first). */
@@ -66,6 +74,7 @@ export class Simulation {
     this.seed = options.seed ?? randomSeed();
     this.rng = createRng(this.seed);
     this.mods = new RunModifiers(options.upgradeRegistry ?? UPGRADES);
+    this._autoWave = options.autoWave ?? false;
     this.path = Path.fromWaypoints(this.map.waypoints, this.map.grid);
     this.gold = Math.round(this.balance.startingGold * this.map.modifiers.startingGold);
     this.health = this.balance.startingHealth;
@@ -167,7 +176,36 @@ export class Simulation {
     this.draftChoices = [];
     this.phase = 'build';
     this.bus.emit('upgradeChosen', { id, rank: this.mods.stacksOf(id) });
+    this.armAutoWave();
     return true;
+  }
+
+  get autoWave(): boolean {
+    return this._autoWave;
+  }
+
+  /**
+   * Turning Auto Wave off cancels a running countdown. Turning it on between waves (after the first)
+   * starts one; before the first wave the player still sends it manually.
+   */
+  setAutoWave(on: boolean): void {
+    this._autoWave = on;
+    if (!on) this.setCountdown(null);
+    else this.armAutoWave();
+  }
+
+  private armAutoWave(): void {
+    if (!this._autoWave || this.phase !== 'build' || this.wave === 0 || this.autoWaveCountdown !== null) return;
+    this.setCountdown(this.balance.autoWaveDelay);
+  }
+
+  private setCountdown(seconds: number | null): void {
+    // Displayed as whole seconds 3, 2, 1; the wave starts as the last second runs out.
+    const shown = (s: number | null) => (s === null ? null : Math.max(1, Math.ceil(s)));
+    const before = shown(this.autoWaveCountdown);
+    this.autoWaveCountdown = seconds;
+    const after = shown(seconds);
+    if (before !== after) this.bus.emit('countdownChanged', { seconds: after });
   }
 
   /** Adds upgrade stacks outside the draft (tests, balance tools). Respects max stacks. */
@@ -178,6 +216,8 @@ export class Simulation {
   /** Starts the next wave. Only allowed between waves, after any pending upgrade pick. */
   startWave(): boolean {
     if (this.phase !== 'build') return false;
+    // A manual start skips any running countdown; either way the wave starts exactly once.
+    this.setCountdown(null);
     this.wave++;
     const plan = planWave(this.wave, this.balance.waves, this.map.modifiers.enemyCount);
     this.spawnQueue = plan.spawns;
@@ -203,6 +243,10 @@ export class Simulation {
       p.prevY = p.y;
     }
 
+    if (this.phase === 'build' && this.autoWaveCountdown !== null) {
+      this.setCountdown(this.autoWaveCountdown - dt);
+      if (this.autoWaveCountdown! <= 0) this.startWave();
+    }
     if (this.phase === 'wave') this.updateSpawning(dt);
     this.updateEnemies(dt);
     if (this.health <= 0) {
@@ -466,9 +510,12 @@ export class Simulation {
         this.bus.emit('draftOffered', { choices });
       }
     }
+    // During an upgrade pick the countdown waits; chooseUpgrade() starts it afterwards.
+    this.armAutoWave();
   }
 
   private endRun(): void {
+    this.setCountdown(null);
     this.phase = 'gameover';
     this.bus.emit('gameOver', { wave: this.wave });
   }

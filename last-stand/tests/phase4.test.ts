@@ -20,8 +20,8 @@ describe('persistence', () => {
   it('returns defaults when nothing is stored, and round-trips settings', () => {
     const p = new Persistence(new MemoryStore());
     expect(p.loadSettings()).toEqual(DEFAULT_SETTINGS);
-    p.saveSettings({ muted: true, volume: 0.3, speed: 3, tutorialDone: true });
-    expect(p.loadSettings()).toEqual({ muted: true, volume: 0.3, speed: 3, tutorialDone: true });
+    p.saveSettings({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false });
+    expect(p.loadSettings()).toEqual({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false });
   });
 
   it('ignores corrupt or invalid data', () => {

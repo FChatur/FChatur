@@ -58,6 +58,8 @@ export interface BalanceConfig {
   sellRefundRatio: number;
   /** Armor can never reduce a hit below this fraction of its damage. */
   armorMinDamageFraction: number;
+  /** Auto Wave: seconds of game time between a cleared wave (or an upgrade pick) and the next wave. */
+  autoWaveDelay: number;
   waves: WaveBalance;
   roguelite: RogueliteBalance;
 }
@@ -67,6 +69,7 @@ export const BALANCE: BalanceConfig = {
   startingHealth: 20,
   sellRefundRatio: 0.7,
   armorMinDamageFraction: 0.25,
+  autoWaveDelay: 3,
   waves: {
     baseCount: 8,
     countPerWave: 2,

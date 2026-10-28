@@ -18,7 +18,8 @@ Built with TypeScript, Phaser 3 and Vite. No backend.
 | Cancel / deselect | Right-click | `Esc` |
 | Game speed 1x / 2x / 3x | Speed buttons | `F` cycles |
 | Pick a run upgrade (every 5th wave) | Click a card | `1` `2` `3` |
-| Start next wave | Start Wave button | `Space` |
+| Start next wave (skips the countdown) | Start Wave button | `Space` |
+| Auto Wave on/off (next wave starts 3s after the last) | Auto button | `A` |
 | Pause / resume | Pause button | `P` or `Esc` |
 | Mute sound | Speaker button (top right) | `M` |
 | Restart after game over | Play again | `R` |

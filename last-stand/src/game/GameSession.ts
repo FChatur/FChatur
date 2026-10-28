@@ -25,7 +25,7 @@ export class GameSession {
 
   constructor(private readonly persistence = new Persistence()) {
     this.settings = persistence.loadSettings();
-    this._sim = new Simulation(this.bus);
+    this._sim = this.newSimulation();
     this.bus.on('gameOver', ({ wave }) => {
       this.lastRun = this.persistence.recordRun(this._sim.map.id, wave, this._sim.stats.kills);
       this.clearSelection();
@@ -181,9 +181,26 @@ export class GameSession {
     this.emitScreen();
   }
 
-  /** New run. Speed and sound are player preferences and carry over. */
+  get autoWave(): boolean {
+    return this.settings.autoWave;
+  }
+
+  /** Toggles Auto Wave for this run and every later one. Off cancels a running countdown. */
+  setAutoWave(on: boolean): void {
+    if (on === this.settings.autoWave) return;
+    this.settings.autoWave = on;
+    this.saveSettings();
+    this._sim.setAutoWave(on);
+    this.bus.emit('autoWaveChanged', { on });
+  }
+
+  toggleAutoWave(): void {
+    this.setAutoWave(!this.settings.autoWave);
+  }
+
+  /** New run. Speed, sound and Auto Wave are player preferences and carry over. */
   restart(): void {
-    this._sim = new Simulation(this.bus);
+    this._sim = this.newSimulation();
     this._buildType = null;
     this._selectedTowerId = null;
     this._paused = false;
@@ -191,6 +208,10 @@ export class GameSession {
     this.bus.emit('sessionReset', {});
     this.bus.emit('selectionChanged', { towerType: null, towerId: null });
     this.emitScreen();
+  }
+
+  private newSimulation(): Simulation {
+    return new Simulation(this.bus, { autoWave: this.settings.autoWave });
   }
 
   private emitScreen(): void {

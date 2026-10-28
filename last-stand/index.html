@@ -27,6 +27,11 @@
       <main id="stage">
         <div id="game-container"></div>
 
+        <div id="wave-countdown" class="wave-countdown hidden" aria-live="polite">
+          Next wave in <strong id="wave-countdown-seconds">3</strong>
+          <span class="wave-countdown-hint">Space: start now</span>
+        </div>
+
         <aside id="tutorial" class="tutorial hidden" aria-live="polite">
           <span id="tutorial-step" class="tutorial-step">1/5</span>
           <p id="tutorial-text"></p>
@@ -92,11 +97,13 @@
             <div class="menu-options">
               <button id="btn-menu-mute" class="btn"></button>
               <button id="btn-menu-tutorial" class="btn"></button>
+              <button id="btn-menu-autowave" class="btn"></button>
             </div>
             <dl class="menu-controls">
               <dt>1–4</dt><dd>Pick a tower, click a tile to build</dd>
               <dt>Click tower</dt><dd>Upgrade (U) or sell (S)</dd>
               <dt>Space</dt><dd>Send the next wave</dd>
+              <dt>A</dt><dd>Auto Wave on / off</dd>
               <dt>F</dt><dd>Game speed 1x / 2x / 3x</dd>
               <dt>P / Esc</dt><dd>Pause</dd>
               <dt>M</dt><dd>Mute</dd>
@@ -110,6 +117,9 @@
         <p id="hint" aria-live="polite"></p>
         <div id="speed-control" class="speed-control" role="group" aria-label="Game speed" title="Game speed (F)"></div>
         <button id="btn-pause" class="btn" title="Pause (P)">Pause <kbd>P</kbd></button>
+        <button id="btn-autowave" class="btn btn-toggle" title="Start the next wave automatically after 3 seconds (A)" aria-pressed="true">
+          Auto <span id="autowave-state">On</span> <kbd>A</kbd>
+        </button>
         <button id="btn-start-wave" class="btn btn-primary"><span id="start-wave-label">Start Wave 1</span> <kbd>Space</kbd></button>
       </footer>
     </div>

@@ -22,6 +22,8 @@ export interface GameEvents {
   waveStarted: { wave: number; enemyCount: number };
   waveCleared: { wave: number; bonus: number; interest: number };
   draftOffered: { choices: UpgradeId[] };
+  /** Auto Wave countdown: whole seconds left, or null when no countdown is running. */
+  countdownChanged: { seconds: number | null };
   upgradeChosen: { id: UpgradeId; rank: number };
   gameOver: { wave: number };
   // Session events
@@ -31,5 +33,6 @@ export interface GameEvents {
   /** Main menu shown/hidden, or game paused/resumed. */
   screenChanged: { screen: Screen; paused: boolean };
   muteChanged: { muted: boolean };
+  autoWaveChanged: { on: boolean };
   sessionReset: Record<string, never>;
 }

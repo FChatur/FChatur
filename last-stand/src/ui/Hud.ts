@@ -31,6 +31,8 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'sessionReset',
   'screenChanged',
   'muteChanged',
+  'countdownChanged',
+  'autoWaveChanged',
 ];
 
 /**
@@ -79,6 +81,8 @@ export class Hud {
     this.click('btn-pause-menu', () => this.session.toMenu());
     this.click('btn-mute', () => this.session.toggleMute());
     this.click('btn-menu-mute', () => this.session.toggleMute());
+    this.click('btn-autowave', () => this.session.toggleAutoWave());
+    this.click('btn-menu-autowave', () => this.session.toggleAutoWave());
     this.click('btn-menu-tutorial', () => {
       if (this.session.tutorialDone) this.session.resetTutorial();
       else this.session.completeTutorial();
@@ -166,6 +170,10 @@ export class Hud {
       this.session.togglePause();
       return;
     }
+    if (key === 'a') {
+      this.session.toggleAutoWave();
+      return;
+    }
     if (e.key === 'Escape') {
       const s = this.session;
       if (s.paused) s.setPaused(false);
@@ -233,9 +241,10 @@ export class Hud {
     }
 
     const building = sim.phase === 'build';
+    const countdown = sim.autoWaveCountdown === null ? null : Math.max(1, Math.ceil(sim.autoWaveCountdown));
     this.startWave.disabled = !building;
     this.startWaveLabel.textContent = {
-      build: `Start Wave ${sim.wave + 1}`,
+      build: countdown === null ? `Start Wave ${sim.wave + 1}` : `Wave ${sim.wave + 1} in ${countdown}s`,
       wave: `Wave ${sim.wave} in progress`,
       draft: 'Choose an upgrade',
       gameover: 'Run over',
@@ -249,6 +258,11 @@ export class Hud {
     el('btn-mute').setAttribute('aria-label', this.session.muted ? 'Unmute sound' : 'Mute sound');
     el('btn-menu-mute').textContent = `Sound: ${this.session.muted ? 'Off' : 'On'}`;
     el('btn-menu-tutorial').textContent = `Tutorial: ${this.session.tutorialDone ? 'Off' : 'On'}`;
+    el('btn-menu-autowave').textContent = `Auto Wave: ${this.session.autoWave ? 'On' : 'Off'}`;
+    el('btn-autowave').setAttribute('aria-pressed', String(this.session.autoWave));
+    el('autowave-state').textContent = this.session.autoWave ? 'On' : 'Off';
+    el('wave-countdown').classList.toggle('hidden', countdown === null || !playing);
+    if (countdown !== null) el('wave-countdown-seconds').textContent = String(countdown);
     const record = this.session.record;
     el('menu-record').textContent = record
       ? `Best on ${sim.map.name}: wave ${record.bestWave} (${record.runs} ${record.runs === 1 ? 'run' : 'runs'})`
@@ -355,6 +369,7 @@ export class Hud {
     if (sim.phase === 'draft') return 'Pick an upgrade (1-3) to continue.';
     if (selected) return `Click a free tile to build a ${TOWERS[selected].name}. Right-click or Esc to cancel.`;
     if (this.session.selectedTowerInstance) return 'U to upgrade, S to sell, Esc to deselect.';
+    if (sim.phase === 'build' && sim.autoWaveCountdown !== null) return 'Next wave starts automatically. Keep building, or Space to send it now.';
     if (sim.towers.length === 0) return 'Pick a tower (1-4), then click a free tile beside the path.';
     if (sim.phase === 'build') return 'Click a tower to upgrade or sell it. Space sends the next wave.';
     return 'Enemies that reach the red exit cost health. F changes speed.';
