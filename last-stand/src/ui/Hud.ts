@@ -1,5 +1,5 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
-import { isGlobalRange, MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
+import { isGlobalRange, MAX_TOWER_LEVEL, TARGETING, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
 import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { Tower } from '../core/types';
@@ -326,7 +326,11 @@ export class Hud {
       this.tooltip.hide();
       return;
     }
-    this.tooltip.show(towerInfo(t.type, { level: t.level, mods: sim.mods }), this.towerScreenRect(t), ['right', 'left', 'below', 'above']);
+    this.tooltip.show(
+      towerInfo(t.type, { level: t.level, mods: sim.mods, targeting: t.targeting }),
+      this.towerScreenRect(t),
+      ['right', 'left', 'below', 'above'],
+    );
   }
 
   /** A built tower's tile in page coordinates, from the canvas's on-screen box. */
@@ -481,6 +485,6 @@ function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMu
     const slow = (l: TowerLevel) => `${Math.round((1 - l.slow!.factor) * 100)}% / ${l.slow!.duration}s`;
     rows.push(['Slow', slow(now), next && slow(next)]);
   }
-  rows.push(['Targeting', tower.targeting === 'strongest' ? 'Toughest' : 'First', null]);
+  rows.push(['Targeting', TARGETING[tower.targeting].label, null]);
   return rows;
 }

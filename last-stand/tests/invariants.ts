@@ -1,5 +1,5 @@
 import { expect } from 'vitest';
-import { MAX_TOWER_LEVEL, TOWERS } from '../src/config/towers';
+import { MAX_TOWER_LEVEL, TARGETING_MODES, TOWERS } from '../src/config/towers';
 import { isEligible } from '../src/core/modifiers';
 import type { Simulation } from '../src/core/Simulation';
 
@@ -28,6 +28,7 @@ export function checkInvariants(sim: Simulation, startHealth: number, context: s
     if (sim.path.isPathTile(t.col, t.row)) fail(`tower on path at ${key}`);
     if (sim.towerAt(t.col, t.row) !== t) fail(`tile index out of sync at ${key}`);
     if (t.level < 1 || t.level > MAX_TOWER_LEVEL) fail(`tower level ${t.level}`);
+    if (!TARGETING_MODES.includes(t.targeting)) fail(`tower targeting ${t.targeting}`);
     if (t.invested < TOWERS[t.type].cost) fail(`tower invested ${t.invested}`);
     if (!(t.fireInterval > 0) || !Number.isFinite(t.fireInterval)) fail(`fire interval ${t.fireInterval}`);
     if (!Number.isFinite(t.cooldown) || !Number.isFinite(t.angle)) fail('tower cooldown/angle not finite');

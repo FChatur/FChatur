@@ -1,7 +1,17 @@
 export type TowerTypeId = 'basic' | 'sniper' | 'rapid' | 'frost';
 
-/** How a tower picks between enemies in range. */
-export type TargetingMode = 'first' | 'strongest';
+/** How a tower picks between enemies in range. Each built tower has its own, changeable by the player. */
+export type TargetingMode = 'first' | 'last' | 'strongest' | 'fastest';
+
+/** Display order of the targeting buttons. */
+export const TARGETING_MODES: readonly TargetingMode[] = ['first', 'last', 'strongest', 'fastest'];
+
+export const TARGETING: Record<TargetingMode, { label: string; description: string }> = {
+  first: { label: 'First', description: 'Shoots the enemy closest to the exit.' },
+  last: { label: 'Last', description: 'Shoots the enemy furthest from the exit (the newest arrival).' },
+  strongest: { label: 'Strongest', description: 'Shoots the enemy with the most health left.' },
+  fastest: { label: 'Fastest', description: 'Shoots the fastest-moving enemy, counting slows.' },
+};
 
 export interface SlowEffect {
   /** Speed multiplier while slowed (0.6 = 40% slower). Lower is stronger. */
@@ -32,6 +42,7 @@ export interface TowerConfig {
   description: string;
   /** Gold to build (level 1). */
   cost: number;
+  /** Targeting mode a newly built tower starts with. */
   targeting: TargetingMode;
   /** Level 1, 2 and 3 stats, in order. */
   levels: readonly TowerLevel[];

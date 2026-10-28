@@ -1,5 +1,5 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
-import type { TowerTypeId } from '../config/towers';
+import { TARGETING_MODES, type TargetingMode, type TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
 import { EventBus } from '../core/EventBus';
 import type { GameEvents, Screen } from '../core/events';
@@ -129,6 +129,19 @@ export class GameSession {
   sellSelected(): boolean {
     const tower = this.selectedTowerInstance;
     return tower ? this._sim.sellTower(tower) : false;
+  }
+
+  setTargetingSelected(mode: TargetingMode): boolean {
+    const tower = this.selectedTowerInstance;
+    return tower ? this._sim.setTargeting(tower, mode) : false;
+  }
+
+  /** Steps the selected tower to the next targeting mode (keyboard shortcut). */
+  cycleTargetingSelected(): boolean {
+    const tower = this.selectedTowerInstance;
+    if (!tower) return false;
+    const next = TARGETING_MODES[(TARGETING_MODES.indexOf(tower.targeting) + 1) % TARGETING_MODES.length];
+    return this._sim.setTargeting(tower, next);
   }
 
   startWave(): boolean {

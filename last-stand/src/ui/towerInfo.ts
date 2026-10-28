@@ -1,6 +1,6 @@
 import { BALANCE } from '../config/balance';
 import { ENEMIES } from '../config/enemies';
-import { isGlobalRange, MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
+import { isGlobalRange, MAX_TOWER_LEVEL, TARGETING, TOWERS, type TargetingMode, type TowerTypeId } from '../config/towers';
 import type { RunModifiers, TowerModifiers } from '../core/modifiers';
 import { mitigate } from '../core/Simulation';
 
@@ -49,12 +49,17 @@ function armorYardstick() {
 }
 
 /**
- * @param level 1-based level; the shop shows level 1.
- * @param mods  The run's upgrades, for built towers; omitted in the shop.
+ * @param level     1-based level; the shop shows level 1.
+ * @param mods      The run's upgrades, for built towers; omitted in the shop.
+ * @param targeting A built tower's current targeting mode; the shop shows the default.
  */
-export function towerInfo(type: TowerTypeId, opts: { level?: number; mods?: RunModifiers } = {}): TowerInfo {
+export function towerInfo(
+  type: TowerTypeId,
+  opts: { level?: number; mods?: RunModifiers; targeting?: TargetingMode } = {},
+): TowerInfo {
   const cfg = TOWERS[type];
   const level = opts.level ?? 1;
+  const targeting = opts.targeting ?? cfg.targeting;
   const stats = cfg.levels[level - 1];
   const m: TowerModifiers | null = opts.mods ? opts.mods.forTower(type) : null;
   const rate = stats.fireRate * (m?.fireRateMultiplier ?? 1);
@@ -75,7 +80,7 @@ export function towerInfo(type: TowerTypeId, opts: { level?: number; mods?: RunM
         boost: m && m.fireRateMultiplier > 1 ? `+${pct(m.fireRateMultiplier - 1)}` : undefined,
       },
       { label: 'Range', value: global ? 'Global' : `${stats.rangeTiles} tiles` },
-      { label: 'Targeting', value: cfg.targeting === 'strongest' ? 'Toughest' : 'First' },
+      { label: 'Targeting', value: TARGETING[targeting].label },
     ],
     traits: [],
     bonuses: [],
@@ -85,8 +90,8 @@ export function towerInfo(type: TowerTypeId, opts: { level?: number; mods?: RunM
   if (global) {
     out.traits.push({ title: 'Global range', text: 'Can hit enemies anywhere on the map, so placement doesn’t matter.', tone: 'good' });
   }
-  if (cfg.targeting === 'strongest') {
-    out.traits.push({ title: 'Targets the toughest', text: 'Always shoots the enemy with the most health left.', tone: 'neutral' });
+  if (targeting !== 'first') {
+    out.traits.push({ title: `Targets ${TARGETING[targeting].label}`, text: TARGETING[targeting].description, tone: 'neutral' });
   }
   if (stats.slow) {
     out.traits.push({

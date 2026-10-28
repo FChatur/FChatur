@@ -111,8 +111,25 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - Deployment gated on all tests; link preview image and meta tags; README as a public front page;
   reduced-motion support and visible keyboard focus.
 
+### Phase 6: Visual identity and combat prototype (in progress; awaiting the owner's review)
+Set by the owner after playtesting 0.5.0: the game runs well, but combat looks dull. Before more content,
+turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTOTYPE.md](VISUAL_PROTOTYPE.md)
+(visual specification, asset approach, interface layout, steps, risks, balance evidence).
+- Switchback redesigned as a grassy clearing with a dirt road; recognizable animated creatures (Goblin,
+  Wolf, Armored Orc, Ogre Warlord) and fantasy towers (Archer, Ballista, Ranger, Frost Mage) with
+  visible projectiles and impacts. Crisp at any resolution (whole-pixel scaling only).
+- Interface: collapsible left sidebar shop with large cards, drag-and-drop building (click-to-build kept),
+  clearer tower panel.
+- Per-tower targeting: First, Last, Strongest, Fastest.
+- Combat balance review with new tooling; no stat changes without evidence.
+- Scope limits: no new maps, towers, enemies, upgrades or major systems. Not released to `main` until the
+  owner approves screenshots or a playable preview.
+
+### Phase 7: Maps and map selection (planned, after Phase 6 is approved)
+- **Additional maps**, each balanced individually against the shared difficulty expectations (see
+  section 6), and a way to choose between them.
+
 ### Future (after the MVP, not scheduled)
-- **Additional maps**, each balanced individually against the shared difficulty expectations (see below).
 - **Mobile**: touch-first controls and layout, then **PWA installation** (web app manifest, icons,
   "Add to Home Screen") and **offline support** (service worker caching the built game so it runs without
   a connection; versioned cache so a new release replaces the old one).

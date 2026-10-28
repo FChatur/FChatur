@@ -13,6 +13,8 @@ export interface GameEvents {
   towerPlaced: { tower: Tower };
   towerUpgraded: { tower: Tower; cost: number };
   towerSold: { tower: Tower; refund: number };
+  /** The player changed a tower's targeting mode. */
+  towerTargetingChanged: { tower: Tower };
   towerFired: { tower: Tower; projectile: Projectile };
   projectileHit: { projectile: Projectile; enemy: Enemy; crit: boolean };
   /** Chain Lightning jumped between two points. */

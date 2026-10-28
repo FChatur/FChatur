@@ -6,6 +6,21 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+Phase 6 (visual identity and combat prototype) in progress on the development branch; not released yet.
+
+### Added
+- Per-tower targeting modes: First, Last, Strongest and Fastest. Each built tower keeps its own mode;
+  defaults are unchanged (Sniper: Strongest, the rest: First), so balance is identical until the player
+  changes one. Global range is unaffected.
+- Balance tooling: `npm run balance` also writes `tower-report.md`, comparing towers by paper stats, damage
+  actually dealt per gold in bot runs, swap tests on the Mixed build, early-game openings, and Frostbite
+  on/off.
+
+### Docs
+- Phase 6 proposal: [docs/VISUAL_PROTOTYPE.md](docs/VISUAL_PROTOTYPE.md) (pixel-art specification, asset
+  approach, interface layout, steps and risks, combat balance evidence). Roadmap: Phase 6, then Phase 7
+  (maps and map selection).
+
 ## [0.5.0] - 2026-10-28 (Phase 5: testing, performance, polish; MVP complete)
 
 ### Added
