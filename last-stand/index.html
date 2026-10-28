@@ -23,6 +23,20 @@
       <main id="stage">
         <div id="game-container"></div>
 
+        <aside id="tower-panel" class="tower-panel hidden" aria-live="polite">
+          <header class="tp-header">
+            <span class="tp-swatch"></span>
+            <h2 id="tp-name">Tower</h2>
+            <span id="tp-level" class="tp-level">LV 1</span>
+            <button id="tp-close" class="tp-close" aria-label="Close">&times;</button>
+          </header>
+          <dl id="tp-stats" class="tp-stats"></dl>
+          <div class="tp-actions">
+            <button id="tp-upgrade" class="btn btn-primary">Upgrade <span id="tp-upgrade-cost"></span> <kbd>U</kbd></button>
+            <button id="tp-sell" class="btn btn-danger">Sell <span id="tp-sell-value"></span> <kbd>S</kbd></button>
+          </div>
+        </aside>
+
         <div id="overlay-gameover" class="overlay hidden" role="dialog" aria-labelledby="go-title">
           <div class="panel">
             <h2 id="go-title">Overrun</h2>
@@ -40,6 +54,7 @@
       <footer id="bottom-bar">
         <div id="tower-bar" aria-label="Towers"></div>
         <p id="hint" aria-live="polite"></p>
+        <div id="speed-control" class="speed-control" role="group" aria-label="Game speed" title="Game speed (F)"></div>
         <button id="btn-start-wave" class="btn btn-primary"><span id="start-wave-label">Start Wave 1</span> <kbd>Space</kbd></button>
       </footer>
     </div>

@@ -324,3 +324,152 @@ kbd {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------- speed control */
+
+.speed-control {
+  display: flex;
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.speed-btn {
+  padding: 9px 12px;
+  border: 0;
+  border-right: 1px solid var(--panel-edge);
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.speed-btn:last-child {
+  border-right: 0;
+}
+
+.speed-btn:hover {
+  color: var(--text);
+}
+
+.speed-btn.active {
+  background: color-mix(in srgb, var(--wave) 25%, var(--bg));
+  color: var(--text);
+}
+
+/* ---------------------------------------------------------------- tower panel */
+
+.tower-panel {
+  --tower-color: var(--accent);
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 260px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--tower-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: fade-in 0.15s ease-out;
+}
+
+.tower-panel.hidden {
+  display: none;
+}
+
+.tp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tp-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+}
+
+.tp-swatch {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--tower-color);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--tower-color) 30%, transparent);
+}
+
+.tp-level {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tower-color);
+}
+
+.tp-close {
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tp-close:hover {
+  color: var(--text);
+}
+
+.tp-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.tp-stats dt {
+  color: var(--muted);
+}
+
+.tp-stats dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-next {
+  color: var(--accent);
+}
+
+.tp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tp-actions .btn {
+  padding: 8px 6px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  border-color: var(--health);
+  background: transparent;
+  color: var(--health);
+}
+
+.btn.unaffordable #tp-upgrade-cost {
+  color: #7a1d32;
+}
+
+/* ---------------------------------------------------------------- narrow screens */
+
+@media (max-width: 1180px) {
+  #hint {
+    display: none;
+  }
+
+  #bottom-bar {
+    justify-content: space-between;
+  }
+}

@@ -89,7 +89,7 @@ describe('combat', () => {
     const seconds = 3;
     for (let i = 0; i < seconds / STEP; i++) sim.step(STEP);
     expect(shots).toBeGreaterThan(0);
-    expect(shots).toBeLessThanOrEqual(Math.ceil(seconds * TOWERS.basic.fireRate) + 1);
+    expect(shots).toBeLessThanOrEqual(Math.ceil(seconds * TOWERS.basic.levels[0].fireRate) + 1);
   });
 
   it('a projectile whose target dies fizzles without dealing damage', () => {
@@ -101,7 +101,7 @@ describe('combat', () => {
     sim.startWave();
     runUntil(sim, () => sim.phase !== 'wave', 120);
     // Every hit lands on a living enemy; overkill shots never register as hits.
-    const shotsToKill = Math.ceil(BALANCE.waves.baseCount * 30 / TOWERS.basic.damage);
+    const shotsToKill = Math.ceil(BALANCE.waves.baseCount * 30 / TOWERS.basic.levels[0].damage);
     expect(hits).toBeLessThanOrEqual(shotsToKill);
   });
 });

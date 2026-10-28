@@ -15,17 +15,38 @@ export interface WaveBalance {
   clearBonusBase: number;
   /** Extra clear bonus per wave after the first. */
   clearBonusPerWave: number;
+  /** First wave that includes Runners, their share of the wave then, growth per wave, and cap. */
+  runners: EnemyMix;
+  /** Same for Brutes (armored). */
+  armored: EnemyMix;
+  /** A boss joins every Nth wave, after the regular enemies. */
+  bossEvery: number;
+  /** Seconds between the last regular spawn and the boss. */
+  bossDelay: number;
+}
+
+export interface EnemyMix {
+  fromWave: number;
+  startShare: number;
+  sharePerWave: number;
+  maxShare: number;
 }
 
 export interface BalanceConfig {
   startingGold: number;
   startingHealth: number;
+  /** Fraction of all gold spent on a tower (build + upgrades) returned when it is sold. */
+  sellRefundRatio: number;
+  /** Armor can never reduce a hit below this fraction of its damage. */
+  armorMinDamageFraction: number;
   waves: WaveBalance;
 }
 
 export const BALANCE: BalanceConfig = {
   startingGold: 120,
   startingHealth: 20,
+  sellRefundRatio: 0.7,
+  armorMinDamageFraction: 0.25,
   waves: {
     baseCount: 8,
     countPerWave: 2,
@@ -35,6 +56,10 @@ export const BALANCE: BalanceConfig = {
     hpGrowthPerWave: 1.13,
     clearBonusBase: 20,
     clearBonusPerWave: 3,
+    runners: { fromWave: 3, startShare: 0.15, sharePerWave: 0.03, maxShare: 0.35 },
+    armored: { fromWave: 5, startShare: 0.1, sharePerWave: 0.025, maxShare: 0.3 },
+    bossEvery: 10,
+    bossDelay: 2,
   },
 };
 
@@ -42,7 +67,11 @@ export const SIMULATION = {
   /** Fixed simulation step. Rendering interpolates between steps. */
   stepSeconds: 1 / 60,
   /** Upper bound on catch-up steps per rendered frame, so a stall can't freeze the tab. */
-  maxStepsPerFrame: 8,
+  maxStepsPerFrame: 12,
   /** Frame deltas above this (e.g. returning from a background tab) are clamped. */
   maxFrameDeltaMs: 250,
 } as const;
+
+/** Selectable game speeds (simulation seconds per real second). */
+export const GAME_SPEEDS = [1, 2, 3] as const;
+export type GameSpeed = (typeof GAME_SPEEDS)[number];

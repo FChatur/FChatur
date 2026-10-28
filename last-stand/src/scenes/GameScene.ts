@@ -22,8 +22,6 @@ export class GameScene extends Phaser.Scene {
   private preview!: PlacementPreview;
   private hover: TileCoord | null = null;
   private accumulator = 0;
-  /** Simulation seconds per real second. */
-  timeScale = 1;
 
   constructor() {
     super('Game');
@@ -66,7 +64,7 @@ export class GameScene extends Phaser.Scene {
   override update(_time: number, deltaMs: number): void {
     const sim = this.session.sim;
     const step = SIMULATION.stepSeconds;
-    this.accumulator += (Math.min(deltaMs, SIMULATION.maxFrameDeltaMs) / 1000) * this.timeScale;
+    this.accumulator += (Math.min(deltaMs, SIMULATION.maxFrameDeltaMs) / 1000) * this.session.speed;
 
     let steps = 0;
     while (this.accumulator >= step && steps < SIMULATION.maxStepsPerFrame) {
@@ -78,18 +76,23 @@ export class GameScene extends Phaser.Scene {
     if (steps === SIMULATION.maxStepsPerFrame) this.accumulator = 0;
 
     this.entities.sync(sim, this.accumulator / step);
-    this.preview.update(sim, this.hover, this.session.selectedTower);
+    this.preview.update(sim, this.hover, this.session.selectedTower, this.session.selectedTowerInstance);
   }
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
     if (p.rightButtonDown()) {
-      this.session.selectTower(null);
+      this.session.clearSelection();
       return;
     }
-    const selected = this.session.selectedTower;
-    if (!selected) return;
+    const sim = this.session.sim;
     const tile = worldToTile(p.worldX, p.worldY, GRID.tileSize);
     this.hover = tile;
-    this.session.sim.placeTower(selected, tile.col, tile.row);
+    const buildType = this.session.selectedTower;
+    if (buildType) {
+      sim.placeTower(buildType, tile.col, tile.row);
+      return;
+    }
+    // Nothing armed: clicking a tower selects it, clicking anywhere else deselects.
+    this.session.selectBuiltTower(sim.towerAt(tile.col, tile.row) ?? null);
   }
 }

@@ -1,12 +1,12 @@
 import { BALANCE, type BalanceConfig } from '../config/balance';
 import { ENEMIES, type EnemyTypeId } from '../config/enemies';
 import { GRID, PATH_WAYPOINTS } from '../config/map';
-import { TOWERS, type TowerTypeId } from '../config/towers';
+import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
 import type { EventBus } from './EventBus';
 import type { GameEvents } from './events';
 import { inBounds, tileCenter, tileKey } from './grid';
 import { Path } from './Path';
-import type { Enemy, Phase, PlacementCheck, Projectile, RunStats, Tower } from './types';
+import type { Enemy, Phase, PlacementCheck, Projectile, RunStats, Tower, UpgradeCheck } from './types';
 import { planWave, waveClearBonus, type SpawnEntry } from './waves';
 
 /** Distance from a tower's centre to its muzzle, as a fraction of a tile. */
@@ -23,7 +23,7 @@ export class Simulation {
   /** The most recently started wave (0 before the first). */
   wave = 0;
   phase: Phase = 'build';
-  readonly stats: RunStats = { kills: 0, leaks: 0, towersBuilt: 0, goldEarned: 0 };
+  readonly stats: RunStats = { kills: 0, leaks: 0, towersBuilt: 0, towersSold: 0, goldEarned: 0 };
 
   readonly enemies: Enemy[] = [];
   readonly towers: Tower[] = [];
@@ -67,13 +67,19 @@ export class Simulation {
       row,
       x,
       y,
-      damage: cfg.damage,
-      fireInterval: 1 / cfg.fireRate,
-      range: cfg.rangeTiles * GRID.tileSize,
-      projectileSpeed: cfg.projectileSpeed,
+      level: 1,
+      invested: cfg.cost,
+      targeting: cfg.targeting,
+      damage: 0,
+      fireInterval: 0,
+      range: 0,
+      projectileSpeed: 0,
+      slowFactor: 1,
+      slowDuration: 0,
       cooldown: 0,
       angle: -Math.PI / 2,
     };
+    applyLevelStats(tower);
     this.gold -= cfg.cost;
     this.towers.push(tower);
     this.towerByTile.set(tileKey(col, row), tower);
@@ -84,6 +90,48 @@ export class Simulation {
 
   towerAt(col: number, row: number): Tower | undefined {
     return this.towerByTile.get(tileKey(col, row));
+  }
+
+  towerById(id: number): Tower | undefined {
+    return this.towers.find((t) => t.id === id);
+  }
+
+  canUpgradeTower(tower: Tower): UpgradeCheck {
+    if (this.phase === 'gameover') return { ok: false, reason: 'game-over' };
+    if (tower.level >= MAX_TOWER_LEVEL) return { ok: false, reason: 'max-level' };
+    const cost = TOWERS[tower.type].levels[tower.level].upgradeCost;
+    if (this.gold < cost) return { ok: false, reason: 'insufficient-gold' };
+    return { ok: true, cost };
+  }
+
+  upgradeTower(tower: Tower): boolean {
+    const check = this.canUpgradeTower(tower);
+    if (!check.ok) return false;
+    this.gold -= check.cost;
+    tower.invested += check.cost;
+    tower.level++;
+    applyLevelStats(tower);
+    this.bus.emit('towerUpgraded', { tower, cost: check.cost });
+    return true;
+  }
+
+  /** Gold returned if this tower were sold now. */
+  sellValue(tower: Tower): number {
+    return Math.floor(tower.invested * this.balance.sellRefundRatio);
+  }
+
+  /** Removes a tower and refunds part of its cost. Allowed during waves. */
+  sellTower(tower: Tower): boolean {
+    if (this.phase === 'gameover') return false;
+    const index = this.towers.indexOf(tower);
+    if (index < 0) return false;
+    const refund = this.sellValue(tower);
+    this.towers.splice(index, 1);
+    this.towerByTile.delete(tileKey(tower.col, tower.row));
+    this.gold += refund;
+    this.stats.towersSold++;
+    this.bus.emit('towerSold', { tower, refund });
+    return true;
   }
 
   /** Starts the next wave. Only allowed between waves. */
@@ -146,6 +194,9 @@ export class Simulation {
       hp,
       maxHp: hp,
       speed: cfg.speedTiles * GRID.tileSize,
+      armor: cfg.armor,
+      slowFactor: 1,
+      slowTimer: 0,
       reward: cfg.reward,
       leakDamage: cfg.leakDamage,
       radius: cfg.radius,
@@ -161,7 +212,14 @@ export class Simulation {
   private updateEnemies(dt: number): void {
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      e.distance += e.speed * dt;
+      if (e.slowTimer > 0) {
+        e.slowTimer -= dt;
+        if (e.slowTimer <= 0) {
+          e.slowTimer = 0;
+          e.slowFactor = 1;
+        }
+      }
+      e.distance += e.speed * e.slowFactor * dt;
       if (e.distance >= this.path.length) {
         e.alive = false;
         this.health = Math.max(0, this.health - e.leakDamage);
@@ -191,7 +249,10 @@ export class Simulation {
     }
   }
 
-  /** "First" targeting: the enemy in range that is furthest along the path. */
+  /**
+   * "first": the enemy in range furthest along the path.
+   * "strongest": the enemy in range with the most health, ties broken by "first".
+   */
   private findTarget(t: Tower): Enemy | null {
     const r2 = t.range * t.range;
     let best: Enemy | null = null;
@@ -200,7 +261,7 @@ export class Simulation {
       const dx = e.x - t.x;
       const dy = e.y - t.y;
       if (dx * dx + dy * dy > r2) continue;
-      if (!best || e.distance > best.distance) best = e;
+      if (!best || isBetterTarget(t, e, best)) best = e;
     }
     return best;
   }
@@ -221,6 +282,8 @@ export class Simulation {
       ty: target.y,
       speed: t.projectileSpeed,
       damage: t.damage,
+      slowFactor: t.slowFactor,
+      slowDuration: t.slowDuration,
       alive: true,
     };
     this.projectiles.push(projectile);
@@ -251,14 +314,15 @@ export class Simulation {
       if (p.target) {
         const enemy = p.target;
         this.bus.emit('projectileHit', { projectile: p, enemy });
+        if (p.slowFactor < 1) applySlow(enemy, p.slowFactor, p.slowDuration);
         this.damageEnemy(enemy, p.damage);
       }
     }
   }
 
-  private damageEnemy(e: Enemy, amount: number): void {
+  private damageEnemy(e: Enemy, raw: number): void {
     if (!e.alive) return;
-    e.hp -= amount;
+    e.hp -= mitigate(raw, e.armor, this.balance.armorMinDamageFraction);
     if (e.hp > 0) return;
     e.hp = 0;
     e.alive = false;
@@ -282,6 +346,37 @@ export class Simulation {
     this.phase = 'gameover';
     this.bus.emit('gameOver', { wave: this.wave });
   }
+}
+
+/** Damage after flat armor, never below `minFraction` of the raw hit. */
+export function mitigate(raw: number, armor: number, minFraction: number): number {
+  return Math.max(raw * minFraction, raw - armor);
+}
+
+/** The strongest slow wins; reapplying the same strength refreshes its duration. */
+function applySlow(e: Enemy, factor: number, duration: number): void {
+  if (factor < e.slowFactor) {
+    e.slowFactor = factor;
+    e.slowTimer = duration;
+  } else if (factor === e.slowFactor) {
+    e.slowTimer = Math.max(e.slowTimer, duration);
+  }
+}
+
+function isBetterTarget(t: Tower, candidate: Enemy, current: Enemy): boolean {
+  if (t.targeting === 'strongest' && candidate.hp !== current.hp) return candidate.hp > current.hp;
+  return candidate.distance > current.distance;
+}
+
+/** Copies the stats for the tower's current level from config. */
+function applyLevelStats(t: Tower): void {
+  const stats = TOWERS[t.type].levels[t.level - 1];
+  t.damage = stats.damage;
+  t.fireInterval = 1 / stats.fireRate;
+  t.range = stats.rangeTiles * GRID.tileSize;
+  t.projectileSpeed = stats.projectileSpeed;
+  t.slowFactor = stats.slow?.factor ?? 1;
+  t.slowDuration = stats.slow?.duration ?? 0;
 }
 
 /** Removes entries with `alive === false` in place, preserving order. */

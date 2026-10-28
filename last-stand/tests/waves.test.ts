@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../src/config/balance';
-import { planWave, waveClearBonus } from '../src/core/waves';
+import { isBossWave, planWave, waveClearBonus } from '../src/core/waves';
 
 const cfg = BALANCE.waves;
 
@@ -24,5 +24,42 @@ describe('wave planning', () => {
   it('pays a growing clear bonus', () => {
     expect(waveClearBonus(1, cfg)).toBe(cfg.clearBonusBase);
     expect(waveClearBonus(2, cfg)).toBe(cfg.clearBonusBase + cfg.clearBonusPerWave);
+  });
+});
+
+describe('wave composition', () => {
+  const types = (wave: number) => planWave(wave, cfg).spawns.map((s) => s.enemy);
+
+  it('introduces Runners and Brutes at their configured waves', () => {
+    expect(types(cfg.runners.fromWave - 1)).not.toContain('runner');
+    expect(types(cfg.runners.fromWave)).toContain('runner');
+    expect(types(cfg.armored.fromWave - 1)).not.toContain('armored');
+    expect(types(cfg.armored.fromWave)).toContain('armored');
+  });
+
+  it('adds exactly one boss, last, on boss waves only', () => {
+    for (let w = 1; w <= 30; w++) {
+      const list = types(w);
+      const bosses = list.filter((t) => t === 'boss').length;
+      expect(bosses).toBe(isBossWave(w, cfg) ? 1 : 0);
+      if (bosses) {
+        expect(list[list.length - 1]).toBe('boss');
+        expect(planWave(w, cfg).spawns.at(-1)!.delay).toBe(cfg.bossDelay);
+      }
+    }
+    expect(isBossWave(10, cfg)).toBe(true);
+  });
+
+  it('keeps the regular enemy count and mixes types roughly by share', () => {
+    const wave = 20;
+    const list = types(wave).filter((t) => t !== 'boss');
+    expect(list).toHaveLength(cfg.baseCount + Math.floor((wave - 1) * cfg.countPerWave));
+    const runners = list.filter((t) => t === 'runner').length;
+    const expected = Math.min(cfg.runners.maxShare, cfg.runners.startShare + cfg.runners.sharePerWave * (wave - cfg.runners.fromWave));
+    expect(Math.abs(runners - expected * list.length)).toBeLessThanOrEqual(1);
+  });
+
+  it('is deterministic', () => {
+    expect(planWave(17, cfg)).toEqual(planWave(17, cfg));
   });
 });

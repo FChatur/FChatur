@@ -1,5 +1,5 @@
 import type { EnemyTypeId } from '../config/enemies';
-import type { TowerTypeId } from '../config/towers';
+import type { TargetingMode, TowerTypeId } from '../config/towers';
 
 export type Phase = 'build' | 'wave' | 'gameover';
 
@@ -8,8 +8,13 @@ export interface Enemy {
   type: EnemyTypeId;
   hp: number;
   maxHp: number;
-  /** Pixels per second. */
+  /** Base movement speed in pixels per second, before slows. */
   speed: number;
+  armor: number;
+  /** Current speed multiplier from slows (1 = unslowed). */
+  slowFactor: number;
+  /** Seconds until the current slow wears off. */
+  slowTimer: number;
   reward: number;
   leakDamage: number;
   radius: number;
@@ -30,12 +35,19 @@ export interface Tower {
   row: number;
   x: number;
   y: number;
+  /** 1-based upgrade level. */
+  level: number;
+  /** Total gold spent on this tower (build + upgrades); the basis for its sell refund. */
+  invested: number;
+  targeting: TargetingMode;
   damage: number;
   /** Seconds between shots. */
   fireInterval: number;
   /** Pixels. */
   range: number;
   projectileSpeed: number;
+  slowFactor: number;
+  slowDuration: number;
   /** Seconds until the tower may fire again. */
   cooldown: number;
   /** Radians; the direction the barrel points. */
@@ -55,6 +67,9 @@ export interface Projectile {
   ty: number;
   speed: number;
   damage: number;
+  /** 1 means the projectile doesn't slow. */
+  slowFactor: number;
+  slowDuration: number;
   alive: boolean;
 }
 
@@ -62,9 +77,14 @@ export type PlacementBlock = 'out-of-bounds' | 'path' | 'occupied' | 'insufficie
 
 export type PlacementCheck = { ok: true } | { ok: false; reason: PlacementBlock };
 
+export type UpgradeBlock = 'max-level' | 'insufficient-gold' | 'game-over';
+
+export type UpgradeCheck = { ok: true; cost: number } | { ok: false; reason: UpgradeBlock };
+
 export interface RunStats {
   kills: number;
   leaks: number;
   towersBuilt: number;
+  towersSold: number;
   goldEarned: number;
 }

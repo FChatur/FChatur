@@ -77,11 +77,12 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - HTML HUD, keyboard shortcuts, contextual hints.
 - Unit tests for path, waves, placement, combat, economy, game over.
 
-### Phase 2: Core tower defense
-- Sniper, Rapid and Frost towers; slow status effect.
-- Runner, Armored (flat armor) and Boss enemies; mixed wave composition.
-- Tower selection panel: upgrade (3 levels) and sell (partial refund).
-- Targeting improvements only if playtesting shows a need.
+### Phase 2: Core tower defense ✅
+- Sniper, Rapid and Frost towers; slow status effect (strongest slow wins).
+- Runner, Brute (flat armor) and Warlord boss enemies; deterministic mixed wave composition.
+- Tower selection panel: upgrade (3 levels, next-level preview) and sell (70% refund).
+- Sniper targets the toughest enemy in range; others target the furthest along.
+- Pulled forward from Phase 4 at the owner's request: 1x/2x/3x game speed.
 
 ### Phase 3: Roguelite system and balance
 - Upgrade pick every 5 waves: Chain Lightning, Overclock, Critical Strike, Compound Interest, Frostbite, Explosive Rounds.
@@ -89,7 +90,7 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - Headless balance harness: scripted builds, waves-survived report; fix the late-game cliff.
 
 ### Phase 4: UI, effects, sound, QoL
-- Main menu, pause/resume, 1x/2x speed, personal best wave.
+- Main menu, pause/resume, personal best wave. (Game speed shipped in Phase 2.)
 - Procedural Web Audio SFX + mute toggle; settings persisted.
 - Effect polish (muzzle flashes, slow visuals, boss intro), first-run tutorial flow.
 

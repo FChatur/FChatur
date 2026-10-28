@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ENEMIES } from '../config/enemies';
 import { GRID } from '../config/map';
+import { TOWERS } from '../config/towers';
 import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import type { EntityRenderer } from './EntityRenderer';
@@ -27,6 +28,20 @@ export function attachEffects(
     bus.on('enemyKilled', ({ enemy }) => {
       burst(scene, enemy.x, enemy.y, ENEMIES[enemy.type].color);
       floatText(scene, enemy.x, enemy.y - 12, `+${enemy.reward}`, PALETTE.gold);
+    }),
+
+    bus.on('towerUpgraded', ({ tower }) => {
+      const ring = scene.add
+        .circle(tower.x, tower.y, GRID.tileSize * 0.45)
+        .setStrokeStyle(3, TOWERS[tower.type].color, 1)
+        .setDepth(DEPTH.effects);
+      scene.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => ring.destroy() });
+      floatText(scene, tower.x, tower.y - 20, `LV ${tower.level}`, TOWERS[tower.type].color);
+    }),
+
+    bus.on('towerSold', ({ tower, refund }) => {
+      burst(scene, tower.x, tower.y, TOWERS[tower.type].color);
+      floatText(scene, tower.x, tower.y - 12, `+${refund}`, PALETTE.gold);
     }),
 
     bus.on('enemyLeaked', () => {

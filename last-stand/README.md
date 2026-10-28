@@ -4,19 +4,27 @@ A browser roguelite tower defense game. Build towers along the path, survive esc
 
 Built with TypeScript, Phaser 3 and Vite. No backend.
 
-**Status:** Phase 1 (playable prototype). See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
+**Status:** Phase 2 (full tower and enemy roster, upgrades, selling, game speed). See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
 
 ## How to play
 
 | Action | Mouse | Keyboard |
 | --- | --- | --- |
-| Select Turret | Click it in the build bar | `1` |
+| Pick a tower to build | Click it in the build bar | `1` Turret, `2` Sniper, `3` Rapid, `4` Frost |
 | Build | Click a free tile | |
-| Cancel selection | Right-click | `Esc` |
+| Select a built tower | Click it | |
+| Upgrade selected tower (3 levels) | Upgrade button | `U` |
+| Sell selected tower (70% refund) | Sell button | `S` |
+| Cancel / deselect | Right-click | `Esc` |
+| Game speed 1x / 2x / 3x | Speed buttons | `F` cycles |
 | Start next wave | Start Wave button | `Space` |
 | Restart after game over | Play again | `R` |
 
-Hover an existing tower to see its range. Each enemy that reaches the red exit costs 1 health; the run ends at 0.
+**Towers:** Turret (balanced), Sniper (long range, big hits, targets the toughest enemy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
+
+**Enemies:** Grunt, Runner (fast, from wave 3), Brute (armored, from wave 5), Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Brutes and bosses.
+
+Hover a tower to see its range. Enemies that reach the red exit cost health (bosses cost much more); the run ends at 0.
 
 ## Run locally
 

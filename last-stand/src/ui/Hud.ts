@@ -1,5 +1,7 @@
-import { TOWER_ORDER, TOWERS, type TowerTypeId } from '../config/towers';
+import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
+import { MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
+import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -15,16 +17,20 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'enemyKilled',
   'enemyLeaked',
   'towerPlaced',
+  'towerUpgraded',
+  'towerSold',
   'waveStarted',
   'waveCleared',
   'gameOver',
   'selectionChanged',
+  'speedChanged',
   'sessionReset',
 ];
 
 /**
- * The HTML overlay: stats bar, build bar, wave button, contextual hint and game-over panel.
- * Also owns keyboard shortcuts, since they map onto the same actions as the buttons.
+ * The HTML overlay: stats bar, build bar, speed control, wave button, contextual hint,
+ * selected-tower panel and game-over panel. Also owns keyboard shortcuts, since they map onto
+ * the same actions as the buttons.
  */
 export class Hud {
   private readonly wave = el('stat-wave');
@@ -34,11 +40,25 @@ export class Hud {
   private readonly startWave = el<HTMLButtonElement>('btn-start-wave');
   private readonly startWaveLabel = el('start-wave-label');
   private readonly towerButtons = new Map<TowerTypeId, HTMLButtonElement>();
+  private readonly speedButtons = new Map<GameSpeed, HTMLButtonElement>();
+  private readonly panel = el('tower-panel');
+  private readonly panelUpgrade = el<HTMLButtonElement>('tp-upgrade');
+  private readonly panelSell = el<HTMLButtonElement>('tp-sell');
   private readonly gameOver = el('overlay-gameover');
   private lastHealth = 0;
 
   constructor(private readonly session: GameSession) {
     this.buildTowerBar();
+    this.buildSpeedControl();
+    this.panelUpgrade.addEventListener('click', () => {
+      this.session.upgradeSelected();
+      this.panelUpgrade.blur();
+    });
+    this.panelSell.addEventListener('click', () => {
+      this.session.sellSelected();
+      this.panelSell.blur();
+    });
+    el('tp-close').addEventListener('click', () => this.session.clearSelection());
     this.startWave.addEventListener('click', () => {
       this.session.startWave();
       this.startWave.blur();
@@ -71,6 +91,21 @@ export class Hud {
     }
   }
 
+  private buildSpeedControl(): void {
+    const group = el('speed-control');
+    for (const speed of GAME_SPEEDS) {
+      const btn = document.createElement('button');
+      btn.className = 'speed-btn';
+      btn.textContent = `${speed}x`;
+      btn.addEventListener('click', () => {
+        this.session.setSpeed(speed);
+        btn.blur();
+      });
+      group.appendChild(btn);
+      this.speedButtons.set(speed, btn);
+    }
+  }
+
   private onKey(e: KeyboardEvent): void {
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
     const sim = this.session.sim;
@@ -80,10 +115,23 @@ export class Hud {
       return;
     }
     if (e.key === 'Escape') {
-      this.session.selectTower(null);
+      this.session.clearSelection();
       return;
     }
-    if (e.key.toLowerCase() === 'r' && sim.phase === 'gameover') {
+    const key = e.key.toLowerCase();
+    if (key === 'f') {
+      this.session.cycleSpeed();
+      return;
+    }
+    if (key === 'u') {
+      this.session.upgradeSelected();
+      return;
+    }
+    if (key === 's') {
+      this.session.sellSelected();
+      return;
+    }
+    if (key === 'r' && sim.phase === 'gameover') {
       this.session.restart();
       return;
     }
@@ -111,13 +159,42 @@ export class Hud {
       btn.disabled = sim.phase === 'gameover';
     }
 
+    for (const [speed, btn] of this.speedButtons) {
+      btn.classList.toggle('active', this.session.speed === speed);
+      btn.setAttribute('aria-pressed', String(this.session.speed === speed));
+    }
+
     const building = sim.phase === 'build';
     this.startWave.disabled = !building;
     this.startWaveLabel.textContent =
       sim.phase === 'gameover' ? 'Run over' : building ? `Start Wave ${sim.wave + 1}` : `Wave ${sim.wave} in progress`;
 
     this.hint.textContent = this.hintText();
+    this.renderTowerPanel();
     this.renderGameOver();
+  }
+
+  private renderTowerPanel(): void {
+    const tower = this.session.selectedTowerInstance;
+    this.panel.classList.toggle('hidden', !tower);
+    if (!tower) return;
+    const sim = this.session.sim;
+    const cfg = TOWERS[tower.type];
+    const current = cfg.levels[tower.level - 1];
+    const next = tower.level < MAX_TOWER_LEVEL ? cfg.levels[tower.level] : null;
+
+    this.panel.style.setProperty('--tower-color', cssColor(cfg.color));
+    el('tp-name').textContent = cfg.name;
+    el('tp-level').textContent = `LV ${tower.level}/${MAX_TOWER_LEVEL}`;
+    el('tp-stats').innerHTML = statRows(tower, current, next)
+      .map(([label, now, then]) => `<dt>${label}</dt><dd>${now}${then && then !== now ? ` <span class="tp-next">→ ${then}</span>` : ''}</dd>`)
+      .join('');
+
+    const upgrade = sim.canUpgradeTower(tower);
+    this.panelUpgrade.disabled = !upgrade.ok;
+    el('tp-upgrade-cost').textContent = next ? `${next.upgradeCost}g` : '(max)';
+    this.panelUpgrade.classList.toggle('unaffordable', !upgrade.ok && upgrade.reason === 'insufficient-gold');
+    el('tp-sell-value').textContent = `+${sim.sellValue(tower)}g`;
   }
 
   private hintText(): string {
@@ -125,9 +202,10 @@ export class Hud {
     const selected = this.session.selectedTower;
     if (sim.phase === 'gameover') return '';
     if (selected) return `Click a free tile to build a ${TOWERS[selected].name}. Right-click or Esc to cancel.`;
-    if (sim.towers.length === 0) return 'Select the Turret (1), then click a free tile beside the path.';
-    if (sim.phase === 'build') return 'Build more, or press Space to send the next wave.';
-    return 'Each enemy that reaches the red exit costs 1 health.';
+    if (this.session.selectedTowerInstance) return 'U to upgrade, S to sell, Esc to deselect.';
+    if (sim.towers.length === 0) return 'Pick a tower (1-4), then click a free tile beside the path.';
+    if (sim.phase === 'build') return 'Click a tower to upgrade or sell it. Space sends the next wave.';
+    return 'Enemies that reach the red exit cost health. F changes speed.';
   }
 
   private renderGameOver(): void {
@@ -140,4 +218,19 @@ export class Hud {
     el('go-towers').textContent = String(sim.stats.towersBuilt);
     el('go-gold').textContent = String(sim.stats.goldEarned);
   }
+}
+
+/** Label, current value and next-level value (null at max level) for the tower panel. */
+function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null): [string, string, string | null][] {
+  const rows: [string, string, string | null][] = [
+    ['Damage', String(now.damage), next && String(next.damage)],
+    ['Fire rate', `${now.fireRate}/s`, next && `${next.fireRate}/s`],
+    ['Range', `${now.rangeTiles}`, next && `${next.rangeTiles}`],
+  ];
+  if (now.slow) {
+    const slow = (l: TowerLevel) => `${Math.round((1 - l.slow!.factor) * 100)}% / ${l.slow!.duration}s`;
+    rows.push(['Slow', slow(now), next && slow(next)]);
+  }
+  rows.push(['Targets', tower.targeting === 'strongest' ? 'Toughest' : 'First', null]);
+  return rows;
 }

@@ -23,6 +23,9 @@ const game = new Phaser.Game({
 });
 
 game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
+
+// Dev-server only (stripped from production builds): lets automated playtests drive the game.
+if (import.meta.env.DEV) Object.assign(window, { __lastStand: { session, game } });
 new Hud(session);
 
 const versionLabel = document.getElementById('version');

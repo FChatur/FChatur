@@ -3,7 +3,7 @@ import type { TileCoord } from '../config/map';
 import { GRID } from '../config/map';
 import { TOWERS, type TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
-import type { PlacementBlock } from '../core/types';
+import type { PlacementBlock, Tower } from '../core/types';
 import { DEPTH, FONT_FAMILY, PALETTE } from './palette';
 
 const BLOCK_LABEL: Partial<Record<PlacementBlock, string>> = {
@@ -13,8 +13,9 @@ const BLOCK_LABEL: Partial<Record<PlacementBlock, string>> = {
 };
 
 /**
- * Hover feedback: with a tower selected, shows the target tile (green/red) and the tower's range.
- * With nothing selected, hovering an existing tower shows its range.
+ * Board overlays: with a tower type armed, shows the target tile (green/red) and the new tower's
+ * range. A selected built tower shows its range and a highlight. With nothing armed, hovering a
+ * tower shows its range.
  */
 export class PlacementPreview {
   private readonly g: Phaser.GameObjects.Graphics;
@@ -35,12 +36,18 @@ export class PlacementPreview {
       .setVisible(false);
   }
 
-  update(sim: Simulation, hover: TileCoord | null, selected: TowerTypeId | null): void {
+  update(sim: Simulation, hover: TileCoord | null, selected: TowerTypeId | null, picked: Tower | null): void {
     this.g.clear();
     this.label.setVisible(false);
-    if (!hover || sim.phase === 'gameover') return;
+    if (sim.phase === 'gameover') return;
 
     const ts = GRID.tileSize;
+    if (picked) {
+      this.drawRange(picked.x, picked.y, picked.range, PALETTE.range);
+      this.g.lineStyle(2, PALETTE.range, 0.9).strokeRect(picked.col * ts + 2, picked.row * ts + 2, ts - 4, ts - 4);
+    }
+    if (!hover) return;
+
     const cx = (hover.col + 0.5) * ts;
     const cy = (hover.row + 0.5) * ts;
 
@@ -48,7 +55,7 @@ export class PlacementPreview {
       const check = sim.canPlaceTower(selected, hover.col, hover.row);
       if (!check.ok && check.reason === 'out-of-bounds') return;
       const color = check.ok ? PALETTE.valid : PALETTE.invalid;
-      this.drawRange(cx, cy, TOWERS[selected].rangeTiles * ts, color);
+      this.drawRange(cx, cy, TOWERS[selected].levels[0].rangeTiles * ts, color);
       this.g.fillStyle(color, 0.28).fillRect(hover.col * ts, hover.row * ts, ts, ts);
       this.g.lineStyle(2, color, 0.9).strokeRect(hover.col * ts + 1, hover.row * ts + 1, ts - 2, ts - 2);
       const text = check.ok ? null : BLOCK_LABEL[check.reason];
@@ -59,7 +66,7 @@ export class PlacementPreview {
     }
 
     const tower = sim.towerAt(hover.col, hover.row);
-    if (tower) this.drawRange(tower.x, tower.y, tower.range, PALETTE.range);
+    if (tower && tower !== picked) this.drawRange(tower.x, tower.y, tower.range, PALETTE.range);
   }
 
   private drawRange(x: number, y: number, radius: number, color: number): void {
