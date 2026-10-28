@@ -4,7 +4,7 @@ A browser roguelite tower defense game. Build towers along the path, survive esc
 
 Built with TypeScript, Phaser 3 and Vite. No backend.
 
-**Status:** Phase 1 (playable prototype). See [docs/PLAN.md](docs/PLAN.md) for the roadmap.
+**Status:** Phase 1 (playable prototype). See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped. Each release is tagged `last-stand-vX.Y.Z`.
 
 ## How to play
 

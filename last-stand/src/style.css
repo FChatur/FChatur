@@ -58,6 +58,12 @@ body {
   margin-left: 0.4em;
 }
 
+.version {
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .stats {
   display: flex;
   gap: 10px;

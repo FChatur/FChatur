@@ -24,3 +24,6 @@ const game = new Phaser.Game({
 
 game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
 new Hud(session);
+
+const versionLabel = document.getElementById('version');
+if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;
