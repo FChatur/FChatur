@@ -6,6 +6,24 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-28 (Auto Wave)
+
+Builds on 0.4.1 (crisp rendering, smooth motion, global-range Sniper), which shipped just before.
+
+### Added
+- **Auto Wave** (on by default): after a wave is cleared, the next one starts after a 3-second countdown.
+  - Countdown shown at the top of the board ("Next wave in 3") and on the Start Wave button.
+  - Keep building, upgrading and selling during the countdown; the countdown never blocks the board.
+  - Start Wave / Space skips the countdown and starts immediately; a wave can never start twice.
+  - Waits while an upgrade pick is open, then runs a fresh 3-second countdown after you choose.
+  - Counts game time: pausing freezes it, and it follows 1x / 2x / 3x speed.
+  - Toggle with the Auto button, the `A` key or the main menu. Turning it off cancels a running
+    countdown. The setting is saved and carries over restarts; the first wave is always started by you.
+  - Countdown length is configurable (`autoWaveDelay` in `config/balance.ts`).
+
+### Changed
+- The bottom-bar hint is hidden below 1400 px wide to make room for the Auto button.
+
 ## [0.4.1] - 2026-10-28 (rendering quality, global Sniper)
 
 ### Fixed
