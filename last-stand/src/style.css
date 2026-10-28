@@ -137,6 +137,12 @@ body {
 #game-container {
   width: 100%;
   height: 100%;
+  overflow: hidden;
+}
+
+/* Sized and positioned in device pixels by main.ts; never stretched by CSS. */
+#game-container canvas {
+  display: block;
 }
 
 #game-container canvas {

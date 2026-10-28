@@ -94,7 +94,7 @@ export const SIMULATION = {
   /** Fixed simulation step. Rendering interpolates between steps. */
   stepSeconds: 1 / 60,
   /** Upper bound on catch-up steps per rendered frame, so a stall can't freeze the tab. */
-  maxStepsPerFrame: 12,
+  maxStepsPerFrame: 24,
   /** Frame deltas above this (e.g. returning from a background tab) are clamped. */
   maxFrameDeltaMs: 250,
 } as const;

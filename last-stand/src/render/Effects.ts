@@ -5,7 +5,7 @@ import { TOWERS } from '../config/towers';
 import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import type { EntityRenderer } from './EntityRenderer';
-import { DEPTH, FONT_FAMILY, PALETTE } from './palette';
+import { DEPTH, FONT_FAMILY, PALETTE, textResolution } from './palette';
 
 /**
  * Short-lived visual feedback driven by simulation events. Effects run on real time, so they
@@ -16,6 +16,7 @@ export function attachEffects(
   bus: EventBus<GameEvents>,
   entities: EntityRenderer,
   exit: { x: number; y: number },
+  world: { width: number; height: number },
 ): () => void {
   const subs = [
     bus.on('towerFired', ({ tower, projectile }) => {
@@ -26,11 +27,11 @@ export function attachEffects(
       scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 90, onComplete: () => flash.destroy() });
     }),
 
-    bus.on('waveStarted', ({ wave }) => banner(scene, `WAVE ${wave}`, PALETTE.waveText, 26)),
+    bus.on('waveStarted', ({ wave }) => banner(scene, world, `WAVE ${wave}`, PALETTE.waveText, 26)),
 
     bus.on('enemySpawned', ({ enemy }) => {
       if (enemy.type !== 'boss') return;
-      banner(scene, `${ENEMIES.boss.name.toUpperCase()} APPROACHES`, PALETTE.exit, 30);
+      banner(scene, world, `${ENEMIES.boss.name.toUpperCase()} APPROACHES`, PALETTE.exit, 30);
       scene.cameras.main.shake(400, 0.006);
     }),
 
@@ -53,8 +54,7 @@ export function attachEffects(
 
     bus.on('waveCleared', ({ interest }) => {
       if (interest <= 0) return;
-      const { width } = scene.scale;
-      floatText(scene, width / 2, 40, `Interest +${interest}`, PALETTE.gold);
+      floatText(scene, world.width / 2, 40, `Interest +${interest}`, PALETTE.gold);
     }),
 
     bus.on('enemyKilled', ({ enemy }) => {
@@ -88,10 +88,10 @@ export function attachEffects(
 }
 
 /** A short centred title that fades in and out over the board. */
-function banner(scene: Phaser.Scene, text: string, color: number, size: number): void {
-  const { width, height } = scene.scale;
+function banner(scene: Phaser.Scene, world: { width: number; height: number }, text: string, color: number, size: number): void {
   const label = scene.add
-    .text(width / 2, height * 0.3, text, {
+    .text(world.width / 2, world.height * 0.3, text, {
+      resolution: textResolution(scene),
       fontFamily: FONT_FAMILY,
       fontSize: `${size}px`,
       fontStyle: 'bold',
@@ -158,6 +158,7 @@ function burst(scene: Phaser.Scene, x: number, y: number, color: number): void {
 function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color: number): void {
   const label = scene.add
     .text(x, y, text, {
+      resolution: textResolution(scene),
       fontFamily: FONT_FAMILY,
       fontSize: '13px',
       fontStyle: 'bold',

@@ -16,7 +16,7 @@ export interface TowerLevel {
   damage: number;
   /** Shots per second. */
   fireRate: number;
-  /** Attack radius measured in tiles from the tower's centre. */
+  /** Attack radius measured in tiles from the tower's centre, or GLOBAL_RANGE for the whole map. */
   rangeTiles: number;
   /** Projectile travel speed in pixels per second. */
   projectileSpeed: number;
@@ -39,6 +39,13 @@ export interface TowerConfig {
 
 export const MAX_TOWER_LEVEL = 3;
 
+/** Range value meaning "anywhere on the map" (e.g. the Sniper). */
+export const GLOBAL_RANGE = Number.POSITIVE_INFINITY;
+
+export function isGlobalRange(rangeTiles: number): boolean {
+  return rangeTiles === GLOBAL_RANGE;
+}
+
 export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   basic: {
     id: 'basic',
@@ -57,13 +64,16 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   sniper: {
     id: 'sniper',
     name: 'Sniper',
-    description: 'Huge damage and range, slow to fire. Targets the toughest enemy in range.',
-    cost: 90,
+    description: 'Huge damage, slow to fire. Global range: shoots the toughest enemy anywhere on the map.',
+    cost: 110,
     targeting: 'strongest',
+    // Priced for global range: it covers the whole path from anywhere, so it costs more than its
+    // raw damage alone would suggest.
     levels: [
-      { upgradeCost: 0, damage: 45, fireRate: 0.45, rangeTiles: 5.0, projectileSpeed: 1100 },
-      { upgradeCost: 80, damage: 80, fireRate: 0.5, rangeTiles: 5.5, projectileSpeed: 1200 },
-      { upgradeCost: 140, damage: 140, fireRate: 0.55, rangeTiles: 6.0, projectileSpeed: 1300 },
+      // Global range at every level; shots are fast so cross-map hits land before the target moves on.
+      { upgradeCost: 0, damage: 45, fireRate: 0.45, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2400 },
+      { upgradeCost: 100, damage: 80, fireRate: 0.5, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2600 },
+      { upgradeCost: 170, damage: 140, fireRate: 0.55, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2800 },
     ],
     color: 0xa78bfa,
     hotkey: '2',

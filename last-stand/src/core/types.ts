@@ -12,6 +12,8 @@ export interface Enemy {
   /** Base movement speed in pixels per second, before slows. */
   speed: number;
   armor: number;
+  /** Expected damage (after armor) from projectiles already flying at this enemy. */
+  incomingDamage: number;
   /** Current speed multiplier from slows (1 = unslowed). */
   slowFactor: number;
   /** Seconds until the current slow wears off. */

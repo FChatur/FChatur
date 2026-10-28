@@ -23,7 +23,7 @@ Built with TypeScript, Phaser 3 and Vite. No backend.
 | Mute sound | Speaker button (top right) | `M` |
 | Restart after game over | Play again | `R` |
 
-**Towers:** Turret (balanced), Sniper (long range, big hits, targets the toughest enemy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
+**Towers:** Turret (balanced), Sniper (global range: hits the toughest enemy anywhere on the map, slow but heavy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
 
 **Run upgrades:** after every 5th wave you pick 1 of 3 random upgrades that last for the rest of the run.
 Upgrades have rarities (Common, Uncommon, Rare, Legendary), stack up to a limit, and some only appear once

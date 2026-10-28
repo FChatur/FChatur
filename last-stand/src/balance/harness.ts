@@ -6,7 +6,7 @@
  */
 import { BALANCE, type BalanceConfig } from '../config/balance';
 import type { MapConfig } from '../config/maps';
-import { TOWERS, type TowerTypeId } from '../config/towers';
+import { isGlobalRange, TOWERS, type TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
 import { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
@@ -81,7 +81,11 @@ export function runStrategy(
   const spotCache = new Map<number, { col: number; row: number }[]>();
   const spotsFor = (type: TowerTypeId) => {
     const range = TOWERS[type].levels[0].rangeTiles;
-    if (!spotCache.has(range)) spotCache.set(range, rankBuildSpots(sim, range));
+    if (!spotCache.has(range)) {
+      // Global-range towers don't care where they stand, so they take the spots other towers want least.
+      const spots = isGlobalRange(range) ? rankBuildSpots(sim, 3).reverse() : rankBuildSpots(sim, range);
+      spotCache.set(range, spots);
+    }
     return spotCache.get(range)!;
   };
 

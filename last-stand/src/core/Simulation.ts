@@ -236,6 +236,7 @@ export class Simulation {
       maxHp: hp,
       speed: cfg.speedTiles * TILE_SIZE * this.map.modifiers.enemySpeed,
       armor: cfg.armor,
+      incomingDamage: 0,
       slowFactor: 1,
       slowTimer: 0,
       reward: Math.max(1, Math.round(cfg.reward * this.map.modifiers.goldIncome)),
@@ -295,18 +296,32 @@ export class Simulation {
   /**
    * "first": the enemy in range furthest along the path.
    * "strongest": the enemy in range with the most health, ties broken by "first".
+   * Only enemies on the map can be targeted; global-range towers consider every one of them.
+   * Enemies that shots already in flight will kill are skipped (no wasted overkill), unless every
+   * candidate is covered, in which case the tower fires at its normal pick anyway.
    */
   private findTarget(t: Tower): Enemy | null {
+    const global = t.range === Number.POSITIVE_INFINITY;
     const r2 = t.range * t.range;
     let best: Enemy | null = null;
+    let bestUncovered: Enemy | null = null;
     for (const e of this.enemies) {
-      if (!e.alive) continue;
-      const dx = e.x - t.x;
-      const dy = e.y - t.y;
-      if (dx * dx + dy * dy > r2) continue;
+      if (!e.alive || !this.isOnMap(e)) continue;
+      if (!global) {
+        const dx = e.x - t.x;
+        const dy = e.y - t.y;
+        if (dx * dx + dy * dy > r2) continue;
+      }
       if (!best || isBetterTarget(t, e, best)) best = e;
+      if (e.incomingDamage < e.hp && (!bestUncovered || isBetterTarget(t, e, bestUncovered))) bestUncovered = e;
     }
-    return best;
+    return bestUncovered ?? best;
+  }
+
+  /** Enemies walk in from (and out to) just beyond the map edge; they can't be shot until visible. */
+  private isOnMap(e: Enemy): boolean {
+    const { cols, rows } = this.map.grid;
+    return e.x >= 0 && e.y >= 0 && e.x <= cols * TILE_SIZE && e.y <= rows * TILE_SIZE;
   }
 
   private fire(t: Tower, target: Enemy): void {
@@ -329,6 +344,7 @@ export class Simulation {
       slowDuration: t.slowDuration,
       alive: true,
     };
+    target.incomingDamage += mitigate(t.damage, target.armor, this.balance.armorMinDamageFraction);
     this.projectiles.push(projectile);
     this.bus.emit('towerFired', { tower: t, projectile });
   }
@@ -354,7 +370,10 @@ export class Simulation {
       p.x = p.tx;
       p.y = p.ty;
       p.alive = false;
-      if (p.target) this.resolveHit(p, p.target);
+      if (p.target) {
+        p.target.incomingDamage -= mitigate(p.damage, p.target.armor, this.balance.armorMinDamageFraction);
+        this.resolveHit(p, p.target);
+      }
     }
   }
 

@@ -25,6 +25,11 @@ export const PALETTE = {
   enemyOutline: 0x0b0f1a,
 } as const;
 
+/** Text is rasterised to a texture, so render it at the camera zoom to keep it sharp on screen. */
+export function textResolution(scene: { cameras: { main: { zoom: number } } }): number {
+  return Math.max(1, scene.cameras.main.zoom);
+}
+
 export const FONT_FAMILY = 'ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace';
 
 export const DEPTH = {

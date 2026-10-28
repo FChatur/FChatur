@@ -1,5 +1,5 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
-import { MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
+import { isGlobalRange, MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
 import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { Tower } from '../core/types';
@@ -378,6 +378,8 @@ export class Hud {
 
 const describe = (def: UpgradeDef, stacks: number): string => describeUpgrade(def, stacks, (t) => TOWERS[t].name);
 
+const rangeLabel = (l: TowerLevel): string => (isGlobalRange(l.rangeTiles) ? 'Global' : `${l.rangeTiles}`);
+
 const roman = (n: number): string => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
 
 /**
@@ -389,7 +391,7 @@ function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMu
   const rows: [string, string, string | null][] = [
     ['Damage', String(now.damage), next && String(next.damage)],
     ['Fire rate', rate(now), next && rate(next)],
-    ['Range', `${now.rangeTiles}`, next && `${next.rangeTiles}`],
+    ['Range', rangeLabel(now), next && rangeLabel(next)],
   ];
   if (now.slow) {
     const slow = (l: TowerLevel) => `${Math.round((1 - l.slow!.factor) * 100)}% / ${l.slow!.duration}s`;
