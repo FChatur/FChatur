@@ -6,6 +6,30 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-28 (Phase 2: core tower defense)
+
+### Added
+- Three new towers: **Sniper** (long range, heavy hits, targets the toughest enemy in range),
+  **Rapid** (very fast, light shots), **Frost** (light damage, slows enemies it hits).
+- Three upgrade levels for every tower, with level pips on the tower and a stronger look at max level.
+- Tower panel: click a built tower to see its stats with a next-level preview, then **upgrade** (`U`)
+  or **sell** (`S`, 70% of everything spent on it, works mid-wave).
+- Game speed **1x / 2x / 3x** (buttons, or `F` to cycle). Speed carries over when restarting.
+- Three new enemies: **Runner** (fast, fragile, from wave 3), **Brute** (armored, from wave 5),
+  **Warlord** boss (every 10th wave, heavy armor, costs 6 health if it gets through).
+- Armor: flat reduction per hit, never below 25% of the hit, so big hits beat armor and Rapid struggles.
+- Mixed waves: enemy types are spread evenly through each wave, the same way every time.
+- Distinct shapes per enemy type, frost ring on slowed enemies, upgrade and sell effects.
+- Keyboard shortcuts `1`–`4` for the four towers.
+
+### Changed
+- Build bar shows all four towers; hints cover selecting, upgrading, selling and speed.
+- CI uses current GitHub Actions versions (Node 24); fixes the Node 20 deprecation warning.
+
+### Balance notes
+- Bots using Turret-only, Sniper-heavy and mixed builds with upgrades all reach waves 22–24; Rapid-only
+  reaches ~13 because Brutes punish it. The late-game difficulty cliff is unchanged (Phase 3).
+
 ## [0.1.1] - 2026-10-28
 
 ### Added
