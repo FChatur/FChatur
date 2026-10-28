@@ -43,7 +43,7 @@ The build is a static folder (`dist/`) with relative asset paths, so it works fr
 
 ### GitHub Pages (automatic)
 
-The workflow at `.github/workflows/last-stand.yml` tests and builds on every push that touches `last-stand/`, and deploys when the push is to `main`.
+The workflow at `.github/workflows/last-stand.yml` tests and builds on every push that touches `last-stand/`, and deploys when the push is to `main`. On `main` it also tags each new version as `last-stand-vX.Y.Z` (taken from `package.json`).
 
 One-time setup: in the repository on GitHub, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. After the next push to `main` the game is live at `https://<user>.github.io/<repo>/`.
 

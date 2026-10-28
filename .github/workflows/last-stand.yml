@@ -52,3 +52,31 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Creates the checkpoint tag last-stand-vX.Y.Z for the version in package.json, if it doesn't
+  # exist yet. The tag goes on the commit that set that version (the release commit), so later
+  # unreleased work on main is never included in a checkpoint.
+  tag:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag release commit
+        run: |
+          version=$(node -p "require('./last-stand/package.json').version")
+          tag="last-stand-v$version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists."
+            exit 0
+          fi
+          commit=$(git log -1 --format=%H -G"\"version\": \"$version\"" -- last-stand/package.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" "$commit" -m "Last Stand $version"
+          git push origin "$tag"
+          echo "Created $tag at $commit."

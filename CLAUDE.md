@@ -35,8 +35,11 @@ so keep the repo root free of game files (no root README).
 - Semantic-ish versions in `last-stand/package.json`; the game shows its version in the UI.
   - Minor bump (`0.x.0`) per completed phase or significant feature set.
   - Patch bump (`0.x.y`) for fixes and small tweaks.
-- A checkpoint = release commit + annotated git tag `last-stand-vX.Y.Z` on a passing build.
+- A checkpoint = release commit + git tag `last-stand-vX.Y.Z` on a passing build.
   To release: move `Unreleased` entries under a new version heading in the changelog, bump
-  `package.json` (`npm version X.Y.Z --no-git-tag-version`), commit, then
-  `git tag -a last-stand-vX.Y.Z -m "..."` and push the branch and tag.
+  `package.json` (`npm version X.Y.Z --no-git-tag-version`), commit, push, and get it onto `main`.
+- Tags are created by CI, not by hand: when `main` builds green, the `tag` job in
+  `.github/workflows/last-stand.yml` tags the commit that set the current version, if that tag
+  doesn't exist yet. (Claude sessions can't push tags, only their own branch.)
+- Before a major change, make sure the current version is released and its tag exists on GitHub.
 - To roll back to a checkpoint: `git checkout last-stand-vX.Y.Z` (or branch from it).
