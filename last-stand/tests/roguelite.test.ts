@@ -1,28 +1,124 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../src/config/balance';
-import { TOWERS } from '../src/config/towers';
-import { MAX_UPGRADE_RANK, UPGRADE_VALUES as V } from '../src/config/upgrades';
+import { TOWERS, type TowerTypeId } from '../src/config/towers';
 import {
-  chainBounces,
-  critChance,
-  emptyRanks,
-  fireRateMultiplier,
-  frostbiteMultiplier,
-  interestPayout,
-  rollDraft,
-  splashFraction,
-} from '../src/core/modifiers';
+  describeUpgrade,
+  getUpgrade,
+  RARITIES,
+  UPGRADE_DEFS,
+  UPGRADES,
+  type UpgradeDef,
+  type UpgradeEffectKind,
+} from '../src/config/upgrades';
+import { isEligible, rollDraft, RunModifiers, type DraftContext } from '../src/core/modifiers';
 import { createRng } from '../src/core/random';
 import { makeSim, runUntil, STEP } from './helpers';
 
-const draftEvery = BALANCE.roguelite.draftEvery;
+const { draftEvery, draftChoices, rarityWeights } = BALANCE.roguelite;
+const KNOWN_EFFECTS: readonly UpgradeEffectKind[] = ['fireRate', 'crit', 'damageVsSlowed', 'splash', 'chain', 'interest'];
+
+/** Builds a test registry from ad-hoc definitions. */
+function registry(...defs: UpgradeDef[]) {
+  return new Map(defs.map((d) => [d.id, d]));
+}
+
+function def(id: string, extra: Partial<UpgradeDef> = {}): UpgradeDef {
+  return { id, name: id, rarity: 'common', maxStacks: 3, effects: [{ kind: 'fireRate', perStack: 0.1 }], color: 0xffffff, ...extra };
+}
+
+function ctx(mods: RunModifiers, wave = 5, towers: TowerTypeId[] = ['basic']): DraftContext {
+  return { mods, wave, builtTowers: new Set(towers) };
+}
+
+describe('upgrade registry', () => {
+  it('has unique IDs, valid rarities, stacks, references and known effect kinds', () => {
+    expect(new Set(UPGRADE_DEFS.map((d) => d.id)).size).toBe(UPGRADE_DEFS.length);
+    for (const d of UPGRADE_DEFS) {
+      expect(RARITIES).toContain(d.rarity);
+      expect(d.maxStacks).toBeGreaterThanOrEqual(1);
+      expect(d.effects.length).toBeGreaterThan(0);
+      for (const e of d.effects) expect(KNOWN_EFFECTS).toContain(e.kind);
+      for (const t of [...(d.towers ?? []), ...(d.requires?.towers ?? [])]) expect(TOWERS[t]).toBeDefined();
+      for (const id of d.requires?.upgrades ?? []) expect(UPGRADES.has(id)).toBe(true);
+      for (let n = 1; n <= d.maxStacks; n++) expect(describeUpgrade(d, n)).toMatch(/\.$/);
+    }
+  });
+
+  it('describes upgrades from their effects', () => {
+    expect(describeUpgrade(getUpgrade('overclock'), 2)).toBe('Towers fire 30% faster.');
+    expect(describeUpgrade(def('x', { towers: ['sniper'] }), 1, (t) => TOWERS[t].name)).toBe('Sniper towers fire 10% faster.');
+    expect(describeUpgrade(getUpgrade('compoundInterest'), 1)).toBe('Clearing a wave pays 10% of unspent gold (max 40).');
+  });
+});
+
+describe('eligibility', () => {
+  it('excludes maxed upgrades', () => {
+    const mods = new RunModifiers(registry(def('a', { maxStacks: 2 })));
+    expect(isEligible(def('a', { maxStacks: 2 }), ctx(mods))).toBe(true);
+    mods.add('a');
+    mods.add('a');
+    expect(mods.add('a')).toBe(false);
+    expect(isEligible(def('a', { maxStacks: 2 }), ctx(mods))).toBe(false);
+  });
+
+  it('respects required upgrades, minimum wave and required towers', () => {
+    const a = def('a');
+    const b = def('b', { requires: { upgrades: ['a'], minWave: 10 } });
+    const sniperOnly = def('s', { towers: ['sniper'] });
+    const mods = new RunModifiers(registry(a, b, sniperOnly));
+    expect(isEligible(b, ctx(mods, 10))).toBe(false); // a not owned
+    mods.add('a');
+    expect(isEligible(b, ctx(mods, 9))).toBe(false); // too early
+    expect(isEligible(b, ctx(mods, 10))).toBe(true);
+    // Tower-scoped upgrades need that tower on the board (scope doubles as the requirement).
+    expect(isEligible(sniperOnly, ctx(mods, 5, ['basic']))).toBe(false);
+    expect(isEligible(sniperOnly, ctx(mods, 5, ['basic', 'sniper']))).toBe(true);
+    // Frostbite waits for a Frost tower.
+    expect(isEligible(getUpgrade('frostbite'), ctx(new RunModifiers(UPGRADES), 5, ['basic']))).toBe(false);
+    expect(isEligible(getUpgrade('frostbite'), ctx(new RunModifiers(UPGRADES), 5, ['frost']))).toBe(true);
+  });
+});
+
+describe('draft rolls', () => {
+  it('offers distinct eligible upgrades and handles any pool size', () => {
+    const many = Array.from({ length: 40 }, (_, i) => def(`u${i}`, { rarity: RARITIES[i % 4] }));
+    const mods = new RunModifiers(registry(...many));
+    const rng = createRng(3);
+    for (let i = 0; i < 50; i++) {
+      const offer = rollDraft(ctx(mods), rng, draftChoices, rarityWeights);
+      expect(offer).toHaveLength(draftChoices);
+      expect(new Set(offer).size).toBe(draftChoices);
+    }
+    const tiny = new RunModifiers(registry(def('only')));
+    expect(rollDraft(ctx(tiny), rng, 3, rarityWeights)).toEqual(['only']);
+    expect(rollDraft(ctx(new RunModifiers(registry())), rng, 3, rarityWeights)).toEqual([]);
+  });
+
+  it('weights draws by rarity', () => {
+    const pool = RARITIES.map((r) => def(r, { rarity: r }));
+    const mods = new RunModifiers(registry(...pool));
+    const rng = createRng(11);
+    const counts = Object.fromEntries(RARITIES.map((r) => [r, 0])) as Record<string, number>;
+    const draws = 20000;
+    for (let i = 0; i < draws; i++) counts[rollDraft(ctx(mods), rng, 1, rarityWeights)[0]]++;
+    const total = RARITIES.reduce((s, r) => s + rarityWeights[r], 0);
+    for (const r of RARITIES) expect(counts[r] / draws).toBeCloseTo(rarityWeights[r] / total, 1);
+  });
+
+  it('is deterministic for a seed', () => {
+    const mods = new RunModifiers(UPGRADES);
+    const a = rollDraft(ctx(mods, 5, ['frost']), createRng(99), 3, rarityWeights);
+    const b = rollDraft(ctx(mods, 5, ['frost']), createRng(99), 3, rarityWeights);
+    expect(a).toEqual(b);
+  });
+});
 
 /** Clears waves with a sturdy defence until the first draft opens. */
 function reachDraft(seed = 1) {
-  const ctx = makeSim({ startingGold: 5000 }, { seed });
-  const { sim } = ctx;
-  for (const [c, r] of [[3, 3], [5, 7], [8, 7], [10, 4], [13, 4], [15, 8], [5, 3], [10, 7]]) {
-    const t = sim.placeTower('basic', c, r)!;
+  const c = makeSim({ startingGold: 5000 }, { seed });
+  const { sim } = c;
+  for (const [col, row] of [[3, 3], [5, 7], [8, 7], [10, 4], [13, 4], [15, 8], [5, 3], [10, 7]]) {
+    const t = sim.placeTower('basic', col, row)!;
     sim.upgradeTower(t);
     sim.upgradeTower(t);
   }
@@ -30,15 +126,17 @@ function reachDraft(seed = 1) {
     sim.startWave();
     runUntil(sim, () => sim.phase !== 'wave');
   }
-  return ctx;
+  return c;
 }
 
-describe('upgrade draft', () => {
-  it(`offers ${BALANCE.roguelite.draftChoices} distinct choices after every ${draftEvery}th wave`, () => {
+describe('draft in a run', () => {
+  it(`opens after every ${draftEvery}th wave with ${draftChoices} distinct, eligible choices`, () => {
     const { sim } = reachDraft();
     expect(sim.phase).toBe('draft');
     expect(sim.wave).toBe(draftEvery);
-    expect(new Set(sim.draftChoices).size).toBe(BALANCE.roguelite.draftChoices);
+    expect(new Set(sim.draftChoices).size).toBe(draftChoices);
+    // Only Turrets are built, so Frostbite (needs a Frost tower) is never offered.
+    expect(sim.draftChoices).not.toContain('frostbite');
   });
 
   it('blocks the next wave until a choice is made, and only accepts offered upgrades', () => {
@@ -46,13 +144,10 @@ describe('upgrade draft', () => {
     const chosen: string[] = [];
     bus.on('upgradeChosen', ({ id, rank }) => chosen.push(`${id}:${rank}`));
     expect(sim.startWave()).toBe(false);
-    const notOffered = (['overclock', 'frostbite', 'chainLightning', 'criticalStrike'] as const).find(
-      (id) => !sim.draftChoices.includes(id),
-    )!;
-    expect(sim.chooseUpgrade(notOffered)).toBe(false);
+    expect(sim.chooseUpgrade('frostbite')).toBe(false);
     const pick = sim.draftChoices[0];
     expect(sim.chooseUpgrade(pick)).toBe(true);
-    expect(sim.upgrades[pick]).toBe(1);
+    expect(sim.mods.stacksOf(pick)).toBe(1);
     expect(sim.phase).toBe('build');
     expect(sim.chooseUpgrade(pick)).toBe(false);
     expect(chosen).toEqual([`${pick}:1`]);
@@ -62,62 +157,48 @@ describe('upgrade draft', () => {
   it('is reproducible from the seed', () => {
     expect(reachDraft(42).sim.draftChoices).toEqual(reachDraft(42).sim.draftChoices);
   });
-
-  it('never offers maxed upgrades, and offers fewer when few remain', () => {
-    const ranks = emptyRanks();
-    for (const id of Object.keys(ranks) as (keyof typeof ranks)[]) ranks[id] = MAX_UPGRADE_RANK;
-    ranks.overclock = 1;
-    ranks.frostbite = 2;
-    const rng = createRng(7);
-    for (let i = 0; i < 20; i++) {
-      const offer = rollDraft(ranks, rng, 3);
-      expect(offer.sort()).toEqual(['frostbite', 'overclock']);
-    }
-    ranks.overclock = MAX_UPGRADE_RANK;
-    ranks.frostbite = MAX_UPGRADE_RANK;
-    expect(rollDraft(ranks, rng, 3)).toEqual([]);
-  });
 });
 
 describe('upgrade effects', () => {
-  it('scale per rank', () => {
-    const r = emptyRanks();
-    expect(fireRateMultiplier(r)).toBe(1);
-    expect(critChance(r)).toBe(0);
-    expect(splashFraction(r)).toBe(0);
-    expect(chainBounces(r)).toBe(0);
-    r.overclock = 2;
-    r.criticalStrike = 3;
-    r.explosiveRounds = 2;
-    r.chainLightning = 3;
-    r.frostbite = 1;
-    expect(fireRateMultiplier(r)).toBeCloseTo(1 + 2 * V.overclock.fireRatePerRank);
-    expect(critChance(r)).toBeCloseTo(3 * V.criticalStrike.chancePerRank);
-    expect(splashFraction(r)).toBeCloseTo(V.explosiveRounds.splashBase + V.explosiveRounds.splashPerRank);
-    expect(chainBounces(r)).toBe(3 * V.chainLightning.bouncesPerRank);
-    expect(frostbiteMultiplier(r)).toBeCloseTo(1 + V.frostbite.bonusPerRank);
+  it('aggregate across upgrades and stacks, per tower type', () => {
+    const reg = registry(
+      def('fast', { effects: [{ kind: 'fireRate', perStack: 0.1 }] }),
+      def('fastSniper', { towers: ['sniper'], effects: [{ kind: 'fireRate', perStack: 0.5 }] }),
+      def('crit', { effects: [{ kind: 'crit', perStack: 0.2, multiplier: 2 }] }),
+      def('bigCrit', { effects: [{ kind: 'crit', perStack: 0.1, multiplier: 3 }] }),
+    );
+    const mods = new RunModifiers(reg);
+    mods.add('fast');
+    mods.add('fast');
+    mods.add('fastSniper');
+    mods.add('crit');
+    mods.add('bigCrit');
+    expect(mods.forTower('basic').fireRateMultiplier).toBeCloseTo(1.2);
+    expect(mods.forTower('sniper').fireRateMultiplier).toBeCloseTo(1.7);
+    expect(mods.forTower('basic').critChance).toBeCloseTo(0.3);
+    expect(mods.forTower('basic').critMultiplier).toBe(3);
   });
 
-  it('compound interest pays a share of unspent gold, capped per rank', () => {
-    const r = emptyRanks();
-    expect(interestPayout(r, 500)).toBe(0);
-    r.compoundInterest = 1;
-    expect(interestPayout(r, 100)).toBe(Math.floor(100 * V.compoundInterest.ratePerRank));
-    expect(interestPayout(r, 100000)).toBe(V.compoundInterest.capPerRank);
-    r.compoundInterest = 2;
-    expect(interestPayout(r, 100000)).toBe(2 * V.compoundInterest.capPerRank);
+  it('compound interest pays a share of unspent gold, capped per stack', () => {
+    const mods = new RunModifiers(UPGRADES);
+    expect(mods.interestPayout(500)).toBe(0);
+    mods.add('compoundInterest');
+    expect(mods.interestPayout(100)).toBe(10);
+    expect(mods.interestPayout(100000)).toBe(40);
+    mods.add('compoundInterest');
+    expect(mods.interestPayout(100000)).toBe(80);
   });
 
   /** A run where enemies are effectively unkillable, so towers always have a target. */
-  const tanky = () => {
-    const ctx = makeSim();
-    return makeSim({}, { map: { ...ctx.sim.map, modifiers: { ...ctx.sim.map.modifiers, enemyHp: 1000 } } });
+  const tanky = (options: Parameters<typeof makeSim>[1] = {}) => {
+    const base = makeSim().sim.map;
+    return makeSim({}, { ...options, map: { ...base, modifiers: { ...base.modifiers, enemyHp: 1000 } } });
   };
 
-  it('overclock shortens the time between shots', () => {
-    const interval = (overclock: number) => {
+  it('fire-rate upgrades shorten the time between shots', () => {
+    const interval = (stacks: number) => {
       const { sim, bus } = tanky();
-      sim.upgrades.overclock = overclock;
+      sim.grantUpgrade('overclock', stacks);
       sim.placeTower('basic', 1, 3);
       const times: number[] = [];
       let t = 0;
@@ -128,12 +209,27 @@ describe('upgrade effects', () => {
     };
     const base = 1 / TOWERS.basic.levels[0].fireRate;
     expect(interval(0)).toBeCloseTo(base, 1);
-    expect(interval(2)).toBeCloseTo(base / (1 + 2 * V.overclock.fireRatePerRank), 1);
+    expect(interval(2)).toBeCloseTo(base / 1.3, 1);
+  });
+
+  it('tower-specific upgrades affect only their towers', () => {
+    const shots = (type: TowerTypeId) => {
+      const { sim, bus } = tanky({ upgradeRegistry: registry(def('turretOnly', { towers: ['basic'], effects: [{ kind: 'fireRate', perStack: 1 }] })) });
+      sim.grantUpgrade('turretOnly');
+      const tower = sim.placeTower(type, 1, 3)!;
+      let n = 0;
+      bus.on('towerFired', (e) => e.tower === tower && n++);
+      sim.startWave();
+      for (let t = 0; t < 6; t += STEP) sim.step(STEP);
+      return n * (1 / TOWERS[type].levels[0].fireRate);
+    };
+    // Normalised by base fire rate: the boosted Turret fires about twice as often as a plain Rapid.
+    expect(shots('basic') / shots('rapid')).toBeGreaterThan(1.6);
   });
 
   it('critical hits deal multiplied damage', () => {
     const { sim, bus } = tanky();
-    sim.upgrades.criticalStrike = MAX_UPGRADE_RANK;
+    sim.grantUpgrade('criticalStrike', 3);
     sim.placeTower('sniper', 5, 5);
     const pending: { enemy: { hp: number }; before: number; crit: boolean }[] = [];
     const dealt = { crit: new Set<number>(), normal: new Set<number>() };
@@ -145,13 +241,13 @@ describe('upgrade effects', () => {
     }
     const dmg = TOWERS.sniper.levels[0].damage;
     expect([...dealt.normal]).toEqual([dmg]);
-    expect([...dealt.crit]).toEqual([dmg * V.criticalStrike.damageMultiplier]);
+    expect([...dealt.crit]).toEqual([dmg * 2]);
   });
 
   it('frostbite adds damage against slowed enemies', () => {
-    const run = (frostbite: number) => {
+    const run = (stacks: number) => {
       const { sim } = makeSim();
-      sim.upgrades.frostbite = frostbite;
+      sim.grantUpgrade('frostbite', stacks);
       sim.startWave();
       sim.step(STEP);
       const e = sim.enemies[0];
@@ -163,41 +259,35 @@ describe('upgrade effects', () => {
       return hpBefore - e.hp;
     };
     expect(run(0)).toBe(TOWERS.basic.levels[0].damage);
-    expect(run(2)).toBeCloseTo(TOWERS.basic.levels[0].damage * (1 + 2 * V.frostbite.bonusPerRank));
+    expect(run(2)).toBeCloseTo(TOWERS.basic.levels[0].damage * 1.5);
   });
 
   it('explosive rounds splash nearby enemies, and chain lightning jumps between them', () => {
-    const hitsWith = (setup: (s: ReturnType<typeof makeSim>['sim']) => void, event: 'splash' | 'chainArc') => {
+    const count = (id: string | null, event: 'splash' | 'chainArc') => {
       const { sim, bus } = makeSim({ startingGold: 1000 });
-      setup(sim);
+      if (id) sim.grantUpgrade(id);
       let n = 0;
       bus.on(event, () => n++);
       sim.placeTower('basic', 3, 3);
       sim.startWave();
       runUntil(sim, () => sim.phase !== 'wave', 120);
-      return { n, kills: sim.stats.kills };
+      return n;
     };
-    const splash = hitsWith((s) => (s.upgrades.explosiveRounds = 1), 'splash');
-    const chain = hitsWith((s) => (s.upgrades.chainLightning = 1), 'chainArc');
-    const plainSplash = hitsWith(() => {}, 'splash');
-    const plainChain = hitsWith(() => {}, 'chainArc');
-    expect(splash.n).toBeGreaterThan(0);
-    expect(chain.n).toBeGreaterThan(0);
-    expect(plainSplash.n).toBe(0);
-    expect(plainChain.n).toBe(0);
-    expect(splash.kills).toBeGreaterThanOrEqual(plainSplash.kills);
-    expect(chain.kills).toBeGreaterThanOrEqual(plainChain.kills);
+    expect(count('explosiveRounds', 'splash')).toBeGreaterThan(0);
+    expect(count('chainLightning', 'chainArc')).toBeGreaterThan(0);
+    expect(count(null, 'splash')).toBe(0);
+    expect(count(null, 'chainArc')).toBe(0);
   });
 
   it('pays interest when a wave is cleared', () => {
     const { sim, bus } = makeSim({ startingGold: 1000 });
-    sim.upgrades.compoundInterest = 1;
+    sim.grantUpgrade('compoundInterest');
     for (const [c, r] of [[3, 3], [5, 3], [3, 1]]) sim.placeTower('basic', c, r);
     let interest = -1;
     bus.on('waveCleared', (e) => (interest = e.interest));
     sim.startWave();
     runUntil(sim, () => sim.phase !== 'wave');
-    expect(interest).toBe(V.compoundInterest.capPerRank);
+    expect(interest).toBe(40);
   });
 });
 

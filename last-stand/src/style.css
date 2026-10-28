@@ -518,6 +518,7 @@ kbd {
 
 .draft-card {
   --card-color: var(--accent);
+  --rarity-color: var(--muted);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -525,7 +526,7 @@ kbd {
   min-height: 190px;
   padding: 18px 16px;
   border: 1px solid var(--panel-edge);
-  border-top: 4px solid var(--card-color);
+  border-top: 4px solid var(--rarity-color);
   border-radius: 10px;
   background: var(--panel);
   color: var(--text);
@@ -549,7 +550,16 @@ kbd {
   font-size: 17px;
 }
 
+.draft-rarity {
+  color: var(--rarity-color);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .draft-rank {
+  margin-top: -6px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;

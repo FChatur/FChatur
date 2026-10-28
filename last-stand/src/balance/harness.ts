@@ -99,9 +99,9 @@ export function runStrategy(
     }
   }
 
-  const owned = Object.entries(sim.upgrades)
-    .filter(([, rank]) => rank > 0)
-    .map(([id, rank]) => `${id}${rank}`)
+  const owned = sim.mods
+    .owned()
+    .map(([def, n]) => `${def.id}${n}`)
     .join(' ');
   const finalWaveLeaks = [...finalLeaks].map(([type, hp]) => `${type}:${hp}`).join(' ');
   return {
@@ -131,6 +131,7 @@ function spend(sim: Simulation, s: Strategy, spotsFor: (t: TowerTypeId) => { col
   }
 }
 
+/** Draft preferences name upgrades by ID; unknown or ineligible IDs are simply skipped. */
 const ALL_UPGRADES: readonly UpgradeId[] = [
   'overclock',
   'criticalStrike',

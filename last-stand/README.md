@@ -23,8 +23,10 @@ Built with TypeScript, Phaser 3 and Vite. No backend.
 
 **Towers:** Turret (balanced), Sniper (long range, big hits, targets the toughest enemy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
 
-**Run upgrades:** after every 5th wave you pick 1 of 3 upgrades that last for the rest of the run, each
-stackable to rank III: Chain Lightning, Overclock, Critical Strike, Compound Interest, Frostbite, Explosive Rounds.
+**Run upgrades:** after every 5th wave you pick 1 of 3 random upgrades that last for the rest of the run.
+Upgrades have rarities (Common, Uncommon, Rare, Legendary), stack up to a limit, and some only appear once
+you've built a matching tower. Current pool: Overclock, Critical Strike, Compound Interest, Frostbite,
+Explosive Rounds, Chain Lightning. New upgrades are added as data in `src/config/upgrades.ts`.
 They combine: Frost + Frostbite + Rapid shreds slowed enemies, Sniper + Critical Strike handles bosses.
 
 **Enemies:** Grunt, Runner (fast, from wave 3), Brute (armored, from wave 5), Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Brutes and bosses.

@@ -3,21 +3,11 @@ import { ENEMIES, type EnemyTypeId } from '../config/enemies';
 import { TILE_SIZE } from '../config/map';
 import { DEFAULT_MAP, type MapConfig } from '../config/maps';
 import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
-import { UPGRADE_VALUES, type UpgradeId } from '../config/upgrades';
+import { UPGRADES, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { EventBus } from './EventBus';
 import type { GameEvents } from './events';
 import { inBounds, tileCenter, tileKey } from './grid';
-import {
-  chainBounces,
-  critChance,
-  emptyRanks,
-  fireRateMultiplier,
-  frostbiteMultiplier,
-  interestPayout,
-  rollDraft,
-  splashFraction,
-  type UpgradeRanks,
-} from './modifiers';
+import { rollDraft, RunModifiers, type TowerModifiers } from './modifiers';
 import { Path } from './Path';
 import { createRng, randomSeed, type Rng } from './random';
 import type { Enemy, Phase, PlacementCheck, Projectile, RunStats, Tower, UpgradeCheck } from './types';
@@ -31,6 +21,8 @@ export interface SimulationOptions {
   map?: MapConfig;
   /** Seeds every random roll in the run (upgrade offers, critical hits). Random if omitted. */
   seed?: number;
+  /** The upgrade pool. Defaults to config/upgrades.ts; tests can pass their own. */
+  upgradeRegistry?: ReadonlyMap<UpgradeId, UpgradeDef>;
 }
 
 /**
@@ -41,8 +33,8 @@ export class Simulation {
   readonly path: Path;
   readonly map: MapConfig;
   readonly seed: number;
-  /** Run upgrades owned so far. */
-  readonly upgrades: UpgradeRanks = emptyRanks();
+  /** Run upgrades owned so far, and their combined effects. */
+  readonly mods: RunModifiers;
   /** Upgrades on offer while `phase === 'draft'`. */
   draftChoices: UpgradeId[] = [];
   gold: number;
@@ -73,6 +65,7 @@ export class Simulation {
     this.map = options.map ?? DEFAULT_MAP;
     this.seed = options.seed ?? randomSeed();
     this.rng = createRng(this.seed);
+    this.mods = new RunModifiers(options.upgradeRegistry ?? UPGRADES);
     this.path = Path.fromWaypoints(this.map.waypoints, this.map.grid);
     this.gold = Math.round(this.balance.startingGold * this.map.modifiers.startingGold);
     this.health = this.balance.startingHealth;
@@ -170,11 +163,16 @@ export class Simulation {
   /** Picks one of the offered run upgrades and ends the draft. */
   chooseUpgrade(id: UpgradeId): boolean {
     if (this.phase !== 'draft' || !this.draftChoices.includes(id)) return false;
-    this.upgrades[id]++;
+    this.mods.add(id);
     this.draftChoices = [];
     this.phase = 'build';
-    this.bus.emit('upgradeChosen', { id, rank: this.upgrades[id] });
+    this.bus.emit('upgradeChosen', { id, rank: this.mods.stacksOf(id) });
     return true;
+  }
+
+  /** Adds upgrade stacks outside the draft (tests, balance tools). Respects max stacks. */
+  grantUpgrade(id: UpgradeId, stacks = 1): void {
+    for (let i = 0; i < stacks; i++) this.mods.add(id);
   }
 
   /** Starts the next wave. Only allowed between waves, after any pending upgrade pick. */
@@ -284,7 +282,7 @@ export class Simulation {
       if (t.cooldown > 0) continue;
       if (target) {
         this.fire(t, target);
-        t.cooldown += t.fireInterval / fireRateMultiplier(this.upgrades);
+        t.cooldown += t.fireInterval / this.mods.forTower(t.type).fireRateMultiplier;
       } else {
         // Idle towers stay ready but don't bank shots.
         t.cooldown = 0;
@@ -364,28 +362,29 @@ export class Simulation {
    * explosive splash → chain lightning jumps.
    */
   private resolveHit(p: Projectile, enemy: Enemy): void {
-    const crit = this.upgrades.criticalStrike > 0 && this.rng() < critChance(this.upgrades);
-    const base = crit ? p.damage * UPGRADE_VALUES.criticalStrike.damageMultiplier : p.damage;
+    const m = this.mods.forTower(p.towerType);
+    const crit = m.critChance > 0 && this.rng() < m.critChance;
+    const base = crit ? p.damage * m.critMultiplier : p.damage;
     this.bus.emit('projectileHit', { projectile: p, enemy, crit });
 
-    this.damageEnemy(enemy, this.withFrostbite(enemy, base));
+    this.damageEnemy(enemy, withSlowedBonus(enemy, base, m));
     if (p.slowFactor < 1) applySlow(enemy, p.slowFactor, p.slowDuration);
 
-    const splash = splashFraction(this.upgrades);
+    const splash = m.splashFraction;
     if (splash > 0) {
-      const radius = UPGRADE_VALUES.explosiveRounds.radiusTiles * TILE_SIZE;
+      const radius = m.splashRadius * TILE_SIZE;
       this.bus.emit('splash', { x: p.x, y: p.y, radius });
       for (const e of this.enemies) {
         if (e === enemy || !e.alive) continue;
         if (Math.hypot(e.x - p.x, e.y - p.y) > radius + e.radius) continue;
-        this.damageEnemy(e, this.withFrostbite(e, base * splash));
+        this.damageEnemy(e, withSlowedBonus(e, base * splash, m));
       }
     }
 
-    const bounces = chainBounces(this.upgrades);
+    const bounces = m.chainBounces;
     if (bounces > 0) {
-      const reach = UPGRADE_VALUES.chainLightning.rangeTiles * TILE_SIZE;
-      const jump = base * UPGRADE_VALUES.chainLightning.damageFraction;
+      const reach = m.chainRange * TILE_SIZE;
+      const jump = base * m.chainDamageFraction;
       const hit = new Set<Enemy>([enemy]);
       let from: { x: number; y: number } = { x: p.x, y: p.y };
       for (let i = 0; i < bounces; i++) {
@@ -394,13 +393,9 @@ export class Simulation {
         hit.add(next);
         this.bus.emit('chainArc', { fromX: from.x, fromY: from.y, toX: next.x, toY: next.y });
         from = { x: next.x, y: next.y };
-        this.damageEnemy(next, this.withFrostbite(next, jump));
+        this.damageEnemy(next, withSlowedBonus(next, jump, m));
       }
     }
-  }
-
-  private withFrostbite(e: Enemy, damage: number): number {
-    return e.slowFactor < 1 ? damage * frostbiteMultiplier(this.upgrades) : damage;
   }
 
   private nearestEnemy(x: number, y: number, reach: number, exclude: Set<Enemy>): Enemy | null {
@@ -433,7 +428,7 @@ export class Simulation {
     if (this.phase !== 'wave') return;
     if (this.spawnIndex < this.spawnQueue.length || this.enemies.length > 0) return;
     // Interest is paid on gold held when the wave ends, before the clear bonus arrives.
-    const interest = interestPayout(this.upgrades, this.gold);
+    const interest = this.mods.interestPayout(this.gold);
     const bonus = Math.round(waveClearBonus(this.wave, this.balance.waves) * this.map.modifiers.goldIncome);
     this.gold += bonus + interest;
     this.stats.goldEarned += bonus + interest;
@@ -441,7 +436,9 @@ export class Simulation {
     this.bus.emit('waveCleared', { wave: this.wave, bonus, interest });
 
     if (this.wave % this.balance.roguelite.draftEvery === 0) {
-      const choices = rollDraft(this.upgrades, this.rng, this.balance.roguelite.draftChoices);
+      const { draftChoices, rarityWeights } = this.balance.roguelite;
+      const builtTowers = new Set(this.towers.map((t) => t.type));
+      const choices = rollDraft({ mods: this.mods, wave: this.wave, builtTowers }, this.rng, draftChoices, rarityWeights);
       if (choices.length > 0) {
         this.draftChoices = choices;
         this.phase = 'draft';
@@ -459,6 +456,11 @@ export class Simulation {
 /** Damage after flat armor, never below `minFraction` of the raw hit. */
 export function mitigate(raw: number, armor: number, minFraction: number): number {
   return Math.max(raw * minFraction, raw - armor);
+}
+
+/** Damage bonus against enemies that are currently slowed (e.g. Frostbite). */
+function withSlowedBonus(e: Enemy, damage: number, m: TowerModifiers): number {
+  return e.slowFactor < 1 ? damage * m.slowedDamageMultiplier : damage;
 }
 
 /** The strongest slow wins; reapplying the same strength refreshes its duration. */

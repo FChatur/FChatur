@@ -38,6 +38,13 @@ The current map is a baseline, not the standard. Keep global balance (`config/ba
 assumptions about one map's path length or tower spots; balance tooling must run on any map. Full list:
 `last-stand/docs/PLAN.md` section 6.
 
+## Content direction
+
+Long-term: 60–100+ upgrades with rarities, 12–20 towers, 15–25 enemies, multiple bosses and maps.
+Upgrades are data (`config/upgrades.ts` registry, typed effects); offers are random by rarity weight,
+filtered by eligibility, never steered toward synergies. Don't hardcode anything to the current pool.
+Details: `last-stand/docs/PLAN.md` section 7.
+
 ## Versioning and checkpoints
 
 - Semantic-ish versions in `last-stand/package.json`; the game shows its version in the UI.

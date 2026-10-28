@@ -126,3 +126,49 @@ Set by the owner. The current map ("Switchback") is the **baseline**, not the un
 6. With multiple maps, each is tested and tuned individually (mainly via its modifiers) while keeping
    overall difficulty expectations consistent.
 7. The "strong builds reach waves 30–40" target is a provisional baseline for the current map only.
+
+## 7. Long-term content direction (set by the owner)
+
+Last Stand should offer significant roguelite build diversity and genuine randomness. The six Phase 3
+upgrades are the foundation, not the final pool. Content is added gradually after the MVP; none of these
+targets are scheduled phases yet.
+
+| Content | Now | Long-term target |
+| --- | --- | --- |
+| Roguelite upgrades | 6 | 60–100+, across Common / Uncommon / Rare / Legendary |
+| Tower types | 4 | 12–20 |
+| Enemy types | 4 (incl. 1 boss) | 15–25, with multiple bosses |
+| Maps | 1 | several, each balanced individually (section 6) |
+
+### Upgrade system design principles
+
+1. Data-driven and expandable: adding an upgrade means adding a definition, not changing the engine.
+2. Every upgrade has a unique ID, effects, a rarity, eligibility requirements and a stacking rule.
+3. Both generic upgrades (all towers) and tower-specific upgrades (scoped to tower types).
+4. Nothing assumes a fixed pool size.
+5. Each pick offers three distinct, randomized upgrades.
+6. Weighted rarity probabilities (configurable weights per rarity).
+7. Upgrades whose prerequisites aren't met, or that are at max stacks, are never offered.
+8. No guaranteed perfect synergies: offers are random by rarity weight only, never steered toward the
+   player's build. Adapting to imperfect choices is part of the game.
+9. Upgrades can change mechanics (new behaviours), not only numbers.
+10. Testable, deterministic with seeded randomness, and independent of specific maps.
+
+### How the architecture supports this (in place since 0.3.1)
+
+Adding an upgrade: add an `UpgradeDef` to `UPGRADE_DEFS` (no other file changes for existing effect
+kinds), run `npm test` (registry checks) and `npm run balance`.
+
+- `config/upgrades.ts` is a registry of `UpgradeDef` entries: `id`, `name`, `rarity`, `maxStacks`,
+  optional `towers` scope, optional `requires` (min wave, owned upgrades, built tower types), and a list
+  of `effects`. Descriptions are generated from effects, so new content is pure data.
+- Effects are typed primitives (`fireRate`, `crit`, `damageVsSlowed`, `splash`, `chain`, `interest`, ...).
+  Numeric effects aggregate in one place (`core/modifiers.ts`, cached per tower type). A mechanic-changing
+  upgrade adds a new effect kind plus one handler in the simulation; the draft, UI, stacking and tests
+  handle it with no further changes.
+- The draft filters by eligibility, then samples three distinct upgrades weighted by rarity using the
+  run's seeded RNG.
+- Registry integrity (unique IDs, valid references, known effect kinds) is checked by unit tests, so a bad
+  content entry fails CI instead of breaking a run.
+- Towers and enemies are already keyed registries (`config/towers.ts`, `config/enemies.ts`) and maps are
+  data (`config/maps.ts`); bosses are enemy definitions, so more of each is additive.

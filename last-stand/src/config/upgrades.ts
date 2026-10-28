@@ -1,111 +1,172 @@
-export type UpgradeId =
-  | 'chainLightning'
-  | 'overclock'
-  | 'criticalStrike'
-  | 'compoundInterest'
-  | 'frostbite'
-  | 'explosiveRounds';
+import type { TowerTypeId } from './towers';
 
-/** Every upgrade can be picked up to this many times; each pick raises its rank by one. */
-export const MAX_UPGRADE_RANK = 3;
+/**
+ * Run upgrades ("roguelite upgrades") as data. Adding content means adding an entry to UPGRADE_DEFS;
+ * the draft, stacking, descriptions, UI and tests pick it up automatically.
+ * Design goals: docs/PLAN.md section 7.
+ */
 
-/** Tunable numbers for each run upgrade. Effects apply to all towers. */
-export const UPGRADE_VALUES = {
-  chainLightning: {
-    /** Extra enemies each hit jumps to, per rank. */
-    bouncesPerRank: 1,
-    /** Damage of each jump as a fraction of the original hit. */
-    damageFraction: 0.5,
-    /** Maximum jump distance in tiles. */
-    rangeTiles: 1.75,
-  },
-  overclock: {
-    /** Fire rate bonus per rank (0.15 = +15%). */
-    fireRatePerRank: 0.15,
-  },
-  criticalStrike: {
-    /** Chance per rank that a hit is critical. */
-    chancePerRank: 0.15,
-    damageMultiplier: 2,
-  },
-  compoundInterest: {
-    /** Share of unspent gold paid out when a wave is cleared, per rank. */
-    ratePerRank: 0.1,
-    /** Maximum payout per wave, per rank. */
-    capPerRank: 40,
-  },
-  frostbite: {
-    /** Extra damage taken by slowed enemies, per rank (0.25 = +25%). */
-    bonusPerRank: 0.25,
-  },
-  explosiveRounds: {
-    /** Splash damage as a fraction of the hit at rank 1, plus this much per extra rank. */
-    splashBase: 0.3,
-    splashPerRank: 0.15,
-    /** Splash radius in tiles around the impact. */
-    radiusTiles: 0.9,
-  },
-} as const;
+/** Unique, stable identifier. Never rename one that has shipped. */
+export type UpgradeId = string;
 
-export interface UpgradeInfo {
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
+export const RARITIES: readonly Rarity[] = ['common', 'uncommon', 'rare', 'legendary'];
+
+export const RARITY_INFO: Record<Rarity, { label: string; color: number }> = {
+  common: { label: 'Common', color: 0x9ca3af },
+  uncommon: { label: 'Uncommon', color: 0x4ade80 },
+  rare: { label: 'Rare', color: 0x60a5fa },
+  legendary: { label: 'Legendary', color: 0xf59e0b },
+};
+
+/**
+ * Effect primitives. Numeric ones aggregate in core/modifiers.ts; mechanic ones (splash, chain, ...)
+ * each have one handler in the simulation. To add a new mechanic: add a kind here, aggregate it in
+ * modifiers.ts, handle it in Simulation, describe it in describeEffect below.
+ * "perStack" values are multiplied by how many times the upgrade has been taken.
+ */
+export type UpgradeEffect =
+  /** +perStack fire rate (0.15 = 15% faster). */
+  | { kind: 'fireRate'; perStack: number }
+  /** +perStack chance for hits to deal `multiplier` damage. Chances add up; the highest multiplier applies. */
+  | { kind: 'crit'; perStack: number; multiplier: number }
+  /** +perStack damage against enemies that are currently slowed. */
+  | { kind: 'damageVsSlowed'; perStack: number }
+  /** Hits splash `base` (+perStack per extra stack) of their damage within `radiusTiles`. */
+  | { kind: 'splash'; base: number; perStack: number; radiusTiles: number }
+  /** Hits jump to `bouncesPerStack` more enemies each for `damageFraction` damage, up to `rangeTiles` apart. */
+  | { kind: 'chain'; bouncesPerStack: number; damageFraction: number; rangeTiles: number }
+  /** Clearing a wave pays ratePerStack of unspent gold, at most capPerStack per stack. */
+  | { kind: 'interest'; ratePerStack: number; capPerStack: number };
+
+export type UpgradeEffectKind = UpgradeEffect['kind'];
+
+export interface UpgradeRequirements {
+  /** Not offered before this wave has been cleared. */
+  minWave?: number;
+  /** Every listed upgrade must already be owned. */
+  upgrades?: readonly UpgradeId[];
+  /**
+   * At least one tower of a listed type must currently be built.
+   * Defaults to the upgrade's `towers` scope, so tower-specific upgrades only appear when relevant.
+   */
+  towers?: readonly TowerTypeId[];
+}
+
+export interface UpgradeDef {
   id: UpgradeId;
   name: string;
-  /** What the upgrade does at the given rank (1-based), for the pick screen. */
-  describe: (rank: number) => string;
+  rarity: Rarity;
+  /** How many times it can be taken. 1 = unique. */
+  maxStacks: number;
+  /** Restricts all effects to these tower types. Omit for an upgrade that affects every tower. */
+  towers?: readonly TowerTypeId[];
+  requires?: UpgradeRequirements;
+  effects: readonly UpgradeEffect[];
+  /** Optional extra draft weight multiplier within its rarity (default 1). */
+  weight?: number;
+  /** Optional flavour/override text; descriptions are otherwise generated from effects. */
+  describe?: (stacks: number) => string;
   color: number;
 }
 
-const pct = (n: number) => `${Math.round(n * 100)}%`;
-const V = UPGRADE_VALUES;
-
-export const UPGRADES: Record<UpgradeId, UpgradeInfo> = {
-  chainLightning: {
-    id: 'chainLightning',
-    name: 'Chain Lightning',
-    describe: (r) =>
-      `Hits jump to ${r * V.chainLightning.bouncesPerRank} more nearby ${r === 1 ? 'enemy' : 'enemies'} for ${pct(V.chainLightning.damageFraction)} damage.`,
-    color: 0x93c5fd,
-  },
-  overclock: {
+export const UPGRADE_DEFS: readonly UpgradeDef[] = [
+  {
     id: 'overclock',
     name: 'Overclock',
-    describe: (r) => `All towers fire ${pct(r * V.overclock.fireRatePerRank)} faster.`,
+    rarity: 'common',
+    maxStacks: 3,
+    effects: [{ kind: 'fireRate', perStack: 0.15 }],
     color: 0xfb923c,
   },
-  criticalStrike: {
+  {
     id: 'criticalStrike',
     name: 'Critical Strike',
-    describe: (r) =>
-      `${pct(r * V.criticalStrike.chancePerRank)} chance for hits to deal ${V.criticalStrike.damageMultiplier}x damage.`,
+    rarity: 'common',
+    maxStacks: 3,
+    effects: [{ kind: 'crit', perStack: 0.15, multiplier: 2 }],
     color: 0xfacc15,
   },
-  compoundInterest: {
+  {
     id: 'compoundInterest',
     name: 'Compound Interest',
-    describe: (r) =>
-      `Clearing a wave pays ${pct(r * V.compoundInterest.ratePerRank)} of your unspent gold (max ${r * V.compoundInterest.capPerRank}).`,
+    rarity: 'uncommon',
+    maxStacks: 3,
+    effects: [{ kind: 'interest', ratePerStack: 0.1, capPerStack: 40 }],
     color: 0xffd166,
   },
-  frostbite: {
+  {
     id: 'frostbite',
     name: 'Frostbite',
-    describe: (r) => `Slowed enemies take ${pct(r * V.frostbite.bonusPerRank)} more damage.`,
+    rarity: 'uncommon',
+    maxStacks: 3,
+    // Only slows make it useful, so it waits until a Frost tower is on the board.
+    requires: { towers: ['frost'] },
+    effects: [{ kind: 'damageVsSlowed', perStack: 0.25 }],
     color: 0x7dd3fc,
   },
-  explosiveRounds: {
+  {
     id: 'explosiveRounds',
     name: 'Explosive Rounds',
-    describe: (r) =>
-      `Hits splash ${pct(V.explosiveRounds.splashBase + (r - 1) * V.explosiveRounds.splashPerRank)} damage to nearby enemies.`,
+    rarity: 'rare',
+    maxStacks: 3,
+    effects: [{ kind: 'splash', base: 0.3, perStack: 0.15, radiusTiles: 0.9 }],
     color: 0xf87171,
   },
-};
-
-export const UPGRADE_ORDER: readonly UpgradeId[] = [
-  'chainLightning',
-  'overclock',
-  'criticalStrike',
-  'compoundInterest',
-  'frostbite',
-  'explosiveRounds',
+  {
+    id: 'chainLightning',
+    name: 'Chain Lightning',
+    rarity: 'rare',
+    maxStacks: 3,
+    effects: [{ kind: 'chain', bouncesPerStack: 1, damageFraction: 0.5, rangeTiles: 1.75 }],
+    color: 0x93c5fd,
+  },
 ];
+
+export const UPGRADES: ReadonlyMap<UpgradeId, UpgradeDef> = new Map(UPGRADE_DEFS.map((d) => [d.id, d]));
+
+export function getUpgrade(id: UpgradeId): UpgradeDef {
+  const def = UPGRADES.get(id);
+  if (!def) throw new Error(`Unknown upgrade "${id}"`);
+  return def;
+}
+
+// ---------------------------------------------------------------- descriptions
+
+const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+export function describeEffect(e: UpgradeEffect, stacks: number): string {
+  switch (e.kind) {
+    case 'fireRate':
+      return `fire ${pct(e.perStack * stacks)} faster`;
+    case 'crit':
+      return `have a ${pct(e.perStack * stacks)} chance to deal ${e.multiplier}x damage`;
+    case 'damageVsSlowed':
+      return `deal ${pct(e.perStack * stacks)} more damage to slowed enemies`;
+    case 'splash':
+      return `splash ${pct(e.base + e.perStack * (stacks - 1))} damage to nearby enemies`;
+    case 'chain': {
+      const n = e.bouncesPerStack * stacks;
+      return `have hits jump to ${n} more nearby ${n === 1 ? 'enemy' : 'enemies'} for ${pct(e.damageFraction)} damage`;
+    }
+    case 'interest':
+      return `clearing a wave pays ${pct(e.ratePerStack * stacks)} of unspent gold (max ${e.capPerStack * stacks})`;
+  }
+}
+
+/** Player-facing text for an upgrade at the given stack count (1-based). */
+export function describeUpgrade(def: UpgradeDef, stacks: number, towerNames?: (t: TowerTypeId) => string): string {
+  if (def.describe) return def.describe(stacks);
+  const subject = def.towers
+    ? `${def.towers.map((t) => towerNames?.(t) ?? t).join(' and ')} towers`
+    : 'Towers';
+  const towerEffects = def.effects.filter((e) => e.kind !== 'interest').map((e) => describeEffect(e, stacks));
+  const economy = def.effects.filter((e) => e.kind === 'interest').map((e) => describeEffect(e, stacks));
+  if (towerEffects.length === 0) return economy.map(capitalise).join('. ') + '.';
+  return [`${subject} ${towerEffects.join(' and ')}`, ...economy.map(capitalise)].join('. ') + '.';
+}
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

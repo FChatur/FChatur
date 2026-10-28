@@ -1,8 +1,7 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
 import { MAX_TOWER_LEVEL, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
-import { MAX_UPGRADE_RANK, UPGRADE_ORDER, UPGRADES, type UpgradeId } from '../config/upgrades';
-import { fireRateMultiplier } from '../core/modifiers';
+import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
 
@@ -190,11 +189,11 @@ export class Hud {
   }
 
   private renderUpgradeList(): void {
-    const ranks = this.session.sim.upgrades;
-    el('upgrade-list').innerHTML = UPGRADE_ORDER.filter((id) => ranks[id] > 0)
-      .map((id) => {
-        const info = UPGRADES[id];
-        return `<span class="upgrade-chip" style="--chip-color:${cssColor(info.color)}" title="${info.describe(ranks[id])}">${info.name} ${roman(ranks[id])}</span>`;
+    el('upgrade-list').innerHTML = this.session.sim.mods
+      .owned()
+      .map(([def, n]) => {
+        const stacks = def.maxStacks > 1 ? ` ${roman(n)}` : '';
+        return `<span class="upgrade-chip" style="--chip-color:${cssColor(def.color)}" title="${describe(def, n)}">${def.name}${stacks}</span>`;
       })
       .join('');
   }
@@ -217,16 +216,25 @@ export class Hud {
   }
 
   private draftCard(id: UpgradeId, index: number): HTMLButtonElement {
-    const info = UPGRADES[id];
-    const rank = this.session.sim.upgrades[id];
+    const def = getUpgrade(id);
+    const rank = this.session.sim.mods.stacksOf(id);
+    const rarity = RARITY_INFO[def.rarity];
+    const stacking =
+      def.maxStacks === 1
+        ? 'Unique'
+        : rank === 0
+          ? `New · max ${roman(def.maxStacks)}`
+          : `Rank ${roman(rank)} → ${roman(rank + 1)}${rank + 1 === def.maxStacks ? ' (max)' : ''}`;
     const btn = document.createElement('button');
     btn.className = 'draft-card';
-    btn.style.setProperty('--card-color', cssColor(info.color));
+    btn.style.setProperty('--card-color', cssColor(def.color));
+    btn.style.setProperty('--rarity-color', cssColor(rarity.color));
     btn.innerHTML = `
-      <span class="draft-rank">${rank === 0 ? 'New' : `Rank ${roman(rank)} → ${roman(rank + 1)}`}${rank + 1 === MAX_UPGRADE_RANK ? ' (max)' : ''}</span>
-      <h3>${info.name}</h3>
-      <p class="draft-desc">${info.describe(rank + 1)}</p>
-      ${rank > 0 ? `<p class="draft-now">Now: ${info.describe(rank)}</p>` : ''}
+      <span class="draft-rarity">${rarity.label}</span>
+      <span class="draft-rank">${stacking}</span>
+      <h3>${def.name}</h3>
+      <p class="draft-desc">${describe(def, rank + 1)}</p>
+      ${rank > 0 ? `<p class="draft-now">Now: ${describe(def, rank)}</p>` : ''}
       <kbd>${index}</kbd>`;
     btn.addEventListener('click', () => this.session.chooseUpgrade(id));
     return btn;
@@ -244,7 +252,7 @@ export class Hud {
     this.panel.style.setProperty('--tower-color', cssColor(cfg.color));
     el('tp-name').textContent = cfg.name;
     el('tp-level').textContent = `LV ${tower.level}/${MAX_TOWER_LEVEL}`;
-    el('tp-stats').innerHTML = statRows(tower, current, next, fireRateMultiplier(sim.upgrades))
+    el('tp-stats').innerHTML = statRows(tower, current, next, sim.mods.forTower(tower.type).fireRateMultiplier)
       .map(([label, now, then]) => `<dt>${label}</dt><dd>${now}${then && then !== now ? ` <span class="tp-next">→ ${then}</span>` : ''}</dd>`)
       .join('');
 
@@ -278,6 +286,8 @@ export class Hud {
     el('go-gold').textContent = String(sim.stats.goldEarned);
   }
 }
+
+const describe = (def: UpgradeDef, stacks: number): string => describeUpgrade(def, stacks, (t) => TOWERS[t].name);
 
 const roman = (n: number): string => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
 

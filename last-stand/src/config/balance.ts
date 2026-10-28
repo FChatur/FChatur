@@ -40,11 +40,15 @@ export interface EnemyMix {
   maxShare: number;
 }
 
+import type { Rarity } from './upgrades';
+
 export interface RogueliteBalance {
   /** After clearing every Nth wave, the player picks a run upgrade. */
   draftEvery: number;
-  /** Upgrades offered per pick. */
+  /** Upgrades offered per pick (always distinct). */
   draftChoices: number;
+  /** Relative chance of each rarity per draw (normalised over the eligible pool). */
+  rarityWeights: Record<Rarity, number>;
 }
 
 export interface BalanceConfig {
@@ -82,6 +86,7 @@ export const BALANCE: BalanceConfig = {
   roguelite: {
     draftEvery: 5,
     draftChoices: 3,
+    rarityWeights: { common: 60, uncommon: 28, rare: 10, legendary: 2 },
   },
 };
 
