@@ -6,6 +6,27 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-28 (Phase 4: menus, sound, tutorial, polish)
+
+### Added
+- **Main menu**: Play (Enter), personal best for the map, sound and tutorial toggles, controls summary.
+- **Pause** (P, Esc, or the Pause button) with Resume, Restart run and Main menu. Switching tabs pauses
+  automatically. Time stops completely while paused.
+- **Personal best** per map: best wave, best kills and run count, saved in the browser. The game-over
+  screen shows your best and a "New best!" badge; it also has a Main menu button.
+- **Sound effects**, generated in code (no audio files): distinct shots per tower, kills, leaks, wave start
+  and clear, boss arrival, upgrades, building, selling, critical hits, splash, lightning, game over.
+  Rate-limited so fast towers at 3x stay pleasant. **Mute** with M or the speaker button.
+- **Saved settings**: mute, volume and game speed are remembered between visits. Everything falls back
+  to defaults if browser storage is unavailable (private windows, blocked storage).
+- **First-run tutorial**: five short steps that advance as you do them (build, send a wave, select a tower,
+  clear a wave, pick an upgrade). Skippable; turn it back on from the menu.
+- **Polish**: muzzle flashes, a "Wave N" banner, and a boss entrance (banner, screen shake, sound).
+
+### Changed
+- The game opens on the main menu instead of straight into a run.
+- Esc now resumes if paused, otherwise clears the selection, otherwise pauses.
+
 ## [0.3.1] - 2026-10-28 (Phase 3 complete: expandable upgrade system)
 
 ### Changed
