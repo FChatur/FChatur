@@ -6,6 +6,15 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+### Added
+- Robustness tests: a shared invariant checker (gold, health, towers, enemies, projectiles, phases,
+  drafts, countdown, stacks), seeded fuzz tests that perform thousands of random and invalid actions on
+  the game and the session, and a wave-100 soak test on a maxed-out board (`npm run test:slow`).
+
+### Fixed
+- When a leak ended the run, the enemies that leaked on that final frame were left in the game state
+  (invisible, but stale). Found by the fuzz tests.
+
 ## [0.4.3] - 2026-10-28 (tower tooltips)
 
 ### Added

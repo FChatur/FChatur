@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "balance": "vitest run --config vitest.balance.config.ts"
+    "balance": "vitest run --config vitest.balance.config.ts",
+    "test:slow": "vitest run --config vitest.slow.config.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"

@@ -250,6 +250,8 @@ export class Simulation {
     if (this.phase === 'wave') this.updateSpawning(dt);
     this.updateEnemies(dt);
     if (this.health <= 0) {
+      // Leave a clean final state: the enemies that just leaked are removed like any other.
+      removeDead(this.enemies);
       this.endRun();
       return;
     }
