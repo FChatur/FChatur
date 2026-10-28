@@ -6,10 +6,16 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-28
+
 ### Added
 - In-game version label in the top bar, so it's clear which build is being played.
 - `CHANGELOG.md` and project working rules (`/CLAUDE.md`) for ongoing development.
 - CI creates the `last-stand-vX.Y.Z` checkpoint tag automatically when a new version lands on `main`.
+
+### Notes
+- `last-stand-v0.1.0` could not be auto-tagged: GitHub won't let the CI token tag a commit whose workflow
+  file differs from the current one. 0.1.0 is commit `d64416d`; tag it by hand from the GitHub Releases page if wanted.
 
 ## [0.1.0] - 2026-10-28 (Phase 1: playable prototype)
 

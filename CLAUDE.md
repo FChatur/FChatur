@@ -41,5 +41,8 @@ so keep the repo root free of game files (no root README).
 - Tags are created by CI, not by hand: when `main` builds green, the `tag` job in
   `.github/workflows/last-stand.yml` tags the commit that set the current version, if that tag
   doesn't exist yet. (Claude sessions can't push tags, only their own branch.)
+  GitHub refuses that tag if `.github/workflows/` changed between the release commit and `main`'s
+  head (the CI token has no `workflows` permission), so don't bundle workflow edits after a release
+  commit in the same push. If it happens, release a new patch version instead.
 - Before a major change, make sure the current version is released and its tag exists on GitHub.
 - To roll back to a checkpoint: `git checkout last-stand-vX.Y.Z` (or branch from it).
