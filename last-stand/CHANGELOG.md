@@ -6,6 +6,37 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28 (Phase 3: roguelite upgrades and balance)
+
+### Added
+- **Run upgrades**: after every 5th wave, pick 1 of 3 (click or `1`–`3`); the next wave waits for your pick.
+  Each stacks to rank III and lasts for the rest of the run:
+  - **Chain Lightning**: hits jump to 1/2/3 more nearby enemies for 50% damage.
+  - **Overclock**: all towers fire 15/30/45% faster (shown in the tower panel's fire rate).
+  - **Critical Strike**: 15/30/45% chance for double damage.
+  - **Compound Interest**: clearing a wave pays 10/20/30% of unspent gold (max 40/80/120).
+  - **Frostbite**: slowed enemies take 25/50/75% more damage.
+  - **Explosive Rounds**: hits splash 30/45/60% damage around the target.
+- Pick screen with rank and "Now:" comparison, owned upgrades shown as chips in the top bar.
+- Effects for critical hits, lightning jumps, explosions and interest payouts.
+- Seeded randomness: every run gets a seed, so offers and critical hits are reproducible for testing.
+- **Maps as data** (`config/maps.ts`): each map defines its grid, path and difficulty modifiers
+  (enemy health, speed, count, gold income, starting gold). Switchback is the baseline with no modifiers.
+- **Balance harness** (`npm run balance`): bots play every registered map with six strategies over
+  several seeds and report waves reached, first leak, when health first drops below 75%, and the gap.
+  Bots pick build spots by analysing the map, never from hardcoded tiles.
+
+### Changed
+- **Difficulty curve** (fixes the known late-game cliff): waves cap at 30 regular enemies, and enemy health
+  grows 12% per wave plus 2% linear (was 13% with no cap). Late waves get tougher rather than longer, so a
+  defence that falls behind loses a few health per wave instead of collapsing in one.
+  Baseline map, strong strategies: waves 32–40 (median), 2–8 waves between serious trouble and the end
+  (previously 29–45 with 1–2 waves of warning).
+
+### Docs
+- Multi-map balance principles (PLAN.md section 6, CLAUDE.md); PWA installation and offline support added
+  to the future mobile roadmap.
+
 ## [0.2.0] - 2026-10-28 (Phase 2: core tower defense)
 
 ### Added
@@ -60,4 +91,4 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ### Known issues
 - Difficulty cliff: a strong player holds without losses until about wave 23, then collapses within one wave.
-  Scheduled for Phase 3 balancing.
+  Fixed in 0.3.0.
