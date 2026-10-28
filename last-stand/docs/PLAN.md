@@ -86,8 +86,12 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 
 ### Phase 3: Roguelite system and balance
 - Upgrade pick every 5 waves: Chain Lightning, Overclock, Critical Strike, Compound Interest, Frostbite, Explosive Rounds.
-- Modifier pipeline so upgrades compose predictably; caps where needed.
-- Headless balance harness: scripted builds, waves-survived report; fix the late-game cliff.
+  Each stackable to rank 3; no reroll or skip in this phase.
+- Modifier pipeline so upgrades compose predictably; caps where needed. Seeded RNG for reproducible runs.
+- Headless balance harness (`npm run balance`): scripted builds, waves-survived report per map; fix the
+  late-game cliff. Built map-agnostic per the balance principles below.
+- Provisional target **for the baseline map only**: strong builds reach waves 30–40, with leaks starting
+  several waves before a run ends.
 
 ### Phase 4: UI, effects, sound, QoL
 - Main menu, pause/resume, personal best wave. (Game speed shipped in Phase 2.)
@@ -98,3 +102,24 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - Cross-browser pass (Chrome, Firefox, Edge, Safari), profiling late waves, pooling if needed.
 - Error-free console, tab-switch behaviour, window resizing.
 - GitHub Pages deployment and share link; README polish.
+
+### Future (after the MVP, not scheduled)
+- **Additional maps**, each balanced individually against the shared difficulty expectations (see below).
+- **Mobile**: touch-first controls and layout, then **PWA installation** (web app manifest, icons,
+  "Add to Home Screen") and **offline support** (service worker caching the built game so it runs without
+  a connection; versioned cache so a new release replaces the old one).
+
+## 6. Balance principles (multi-map)
+
+Set by the owner. The current map ("Switchback") is the **baseline**, not the universal standard.
+
+1. Enemy health, armor, speed, wave scaling and economy values stay configurable (`src/config`).
+2. **Global** balance settings (`config/balance.ts`, `config/enemies.ts`, `config/towers.ts`) are kept
+   separate from **map-specific difficulty modifiers** (each map's `modifiers` in `config/maps.ts`).
+3. The balance harness takes a map as input and runs the same strategies on every registered map.
+4. Future maps are expected to differ in path length, build space and strategic challenge.
+5. No balance rule or value may assume the baseline map's path length, layout or tower positions. Bots
+   pick tower spots by analysing whichever map they're given, never from hardcoded tiles.
+6. With multiple maps, each is tested and tuned individually (mainly via its modifiers) while keeping
+   overall difficulty expectations consistent.
+7. The "strong builds reach waves 30–40" target is a provisional baseline for the current map only.

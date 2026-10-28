@@ -30,6 +30,13 @@ so keep the repo root free of game files (no root README).
 8. **Checkpoint before major changes** (new phase, new system, refactor, balance overhaul):
    make sure the current state is committed and tagged (see Versioning) *before* starting.
 
+## Balance principles
+
+The current map is a baseline, not the standard. Keep global balance (`config/balance.ts`,
+`enemies.ts`, `towers.ts`) separate from per-map difficulty modifiers (`config/maps.ts`); never hardcode
+assumptions about one map's path length or tower spots; balance tooling must run on any map. Full list:
+`last-stand/docs/PLAN.md` section 6.
+
 ## Versioning and checkpoints
 
 - Semantic-ish versions in `last-stand/package.json`; the game shows its version in the UI.
