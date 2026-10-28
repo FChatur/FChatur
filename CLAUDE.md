@@ -46,6 +46,9 @@ Upgrades are data (`config/upgrades.ts` registry, typed effects); offers are ran
 filtered by eligibility, never steered toward synergies. Don't hardcode anything to the current pool.
 Details: `last-stand/docs/PLAN.md` section 7.
 
+Audio & Music is a future milestone (`last-stand/docs/PLAN.md` section 8): don't change the current
+audio implementation until it is scheduled.
+
 ## Versioning and checkpoints
 
 - Semantic-ish versions in `last-stand/package.json`; the game shows its version in the UI.

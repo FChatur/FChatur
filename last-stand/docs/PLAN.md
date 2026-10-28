@@ -116,6 +116,8 @@ Each phase ends with a playable build, passing tests, and a browser playtest.
 - **Mobile**: touch-first controls and layout, then **PWA installation** (web app manifest, icons,
   "Add to Home Screen") and **offline support** (service worker caching the built game so it runs without
   a connection; versioned cache so a new release replaces the old one).
+- **Audio & Music**: background music, richer sound effects and separate volume controls. Dedicated
+  milestone with requirements and design notes in section 8.
 
 ## 6. Balance principles (multi-map)
 
@@ -177,3 +179,89 @@ kinds), run `npm test` (registry checks) and `npm run balance`.
   content entry fails CI instead of breaking a run.
 - Towers and enemies are already keyed registries (`config/towers.ts`, `config/enemies.ts`) and maps are
   data (`config/maps.ts`); bosses are enemy definitions, so more of each is additive.
+
+## 8. Future milestone: Audio & Music (set by the owner)
+
+Not scheduled and not part of any current patch. Recorded so the work starts from agreed requirements.
+
+**Priority:** a cohesive soundtrack and satisfying combat feedback matter more than the number of tracks.
+A small, consistent set (for example a build/menu theme, a combat loop with a boss-intensity variant,
+and a game-over sting) beats many unrelated tracks.
+
+### Requirements
+
+- Energetic background music that is **original or properly licensed** for a public web game and a
+  public repository.
+- **Seamless looping** (no audible gap or click at the loop point) and **smooth transitions** between
+  tracks or states.
+- **More intense music during boss waves.**
+- **Distinct sound effects** for towers, enemies, upgrades and UI.
+- Separate **Master, Music and SFX volume sliders** (0–100%).
+- A **global mute** toggle.
+- Audio preferences **saved in LocalStorage**.
+- **Pause or appropriately reduce audio when the game loses focus.**
+- **Respect browser autoplay restrictions**: no sound before the player interacts with the page.
+- A **modular, performant** audio system on desktop and mobile.
+
+### Starting point (as of 0.5.0, unchanged until this milestone)
+
+- `src/audio/Sfx.ts`: procedural Web Audio sound effects driven by game events, with per-sound rate
+  limits and one master gain. No music and no audio files.
+- Settings persist `muted` and a single `volume` (0.6; no control in the UI yet). `M` and the speaker
+  button toggle mute.
+- The audio context starts on the first `pointerdown` or `keydown`. That suits mouse and keyboard, but a
+  touch `pointerdown` doesn't count as a user activation (touch activates on `pointerup`/`touchend`), so
+  on touch devices sound may only start on a later tap.
+- The game auto-pauses when the tab is hidden, which stops new sound effects but leaves the audio context
+  running.
+
+### Design notes
+
+- **Bus structure.** One audio context; Music and SFX buses (gain nodes) feed a Master bus with a limiter
+  (dynamics compressor) so overlapping sounds don't clip. Effective level = master × bus. Sliders map to
+  gain on a perceptual curve (e.g. squared), so 50% sounds about half as loud. Mute silences the master
+  without losing slider values. Volume changes are ramped to avoid clicks.
+- **Gapless music.** Decode tracks to audio buffers and loop them with buffer sources, setting the loop
+  points explicitly (which also skips encoder padding); HTML `<audio>` loops can leave audible gaps.
+  Crossfade between two players with equal-power curves, ideally on bar boundaries so transitions stay in
+  time.
+- **Boss intensity.** Preferably layered stems started together on the audio clock (bring in percussion
+  or a lead layer on boss waves, fade it out after), or a dedicated boss variant crossfaded at a bar line.
+  Driven by game events (boss spawned, boss killed, wave cleared, game over), as the sound effects are
+  today.
+- **Music states.** Menu → build → wave → boss → game over, plus paused (music lowered, not stopped), as a
+  small pure state machine so it can be unit-tested without Web Audio.
+- **Sound effects.** Keep procedural sounds as the base and allow recorded samples through the same SFX
+  bus. Map game events to sounds with a data table, so new towers, enemies and upgrades get sounds by
+  configuration (consistent with the data-driven content direction in section 7). Add small pitch and
+  volume variation, a cap on simultaneous voices with priorities, and brief music ducking for big moments
+  (boss arrival, upgrade pick).
+- **Focus and visibility.** Tab hidden: fade out, then suspend the audio context (saves battery on
+  mobile). Window unfocused but visible: lower the music. Restore with a short fade on return.
+- **Autoplay.** Create or resume the audio context only inside a user-activation event: `keydown`, a
+  mouse `pointerdown` or `click`, or a touch `pointerup`/`touchend`. Music starts when the player presses
+  Play, never on page load.
+- **Assets and licensing.** Original compositions, or tracks with a license that allows redistribution in
+  a public web game and repository (e.g. CC0, or a royalty-free license that permits it). Keep license
+  texts and attributions with the audio files and show credits in the game. Ship Ogg (Opus/Vorbis) with
+  an AAC/M4A fallback for Safari, loudness-matched across tracks. Load music lazily after the first
+  interaction so the first page load stays small (about 355 KB today); budget roughly 1–1.5 MB per
+  compressed track.
+- **Performance.** Decoded audio is large (about 23 MB per stereo minute at 48 kHz), so keep loops short,
+  keep only the current and next track decoded, and release the rest; if mobile memory is still tight,
+  stream music through media elements and hide the loop point with a short crossfade. Cap concurrent
+  voices (lower on mobile) and suspend the audio context while hidden or fully muted. Audio never runs
+  inside the simulation, only as an event listener.
+- **Modules.** `src/audio/` with an engine (context, buses, unlock, focus handling), a music player
+  (states, crossfades, layers), the SFX mapper, and audio settings in `game/persistence.ts`.
+- **Settings and migration.** Add master, music and SFX volumes to the saved settings (stored 0–1, shown
+  as 0–100%). Migrate today's `volume` into Master so sound effects keep their current loudness. Sliders
+  go in the main menu and the pause menu, usable with the keyboard; the existing `M` key and speaker
+  button stay as the global mute.
+
+### Acceptance criteria and tests
+
+- Unit tests: volume maths, settings migration and persistence, music state transitions.
+- End-to-end tests: sliders and mute persist across reloads; no audio before the first interaction.
+- Manual listening checklist: inaudible loop seams, a clean boss transition, no clipping at full volume
+  with a full board at 3x, behaviour on focus loss and return, and mobile Safari and Chrome.

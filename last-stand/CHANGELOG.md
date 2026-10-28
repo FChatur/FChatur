@@ -30,6 +30,10 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 - Build output targets Chrome/Edge 100+, Firefox 100+ and Safari 15+ (newer syntax is downlevelled).
 - Every CSS `color-mix()` has a plain-colour fallback for browsers that lack it.
 
+### Docs
+- Roadmap: a dedicated Audio & Music milestone (PLAN.md section 8) with requirements, design notes and
+  acceptance criteria. Not implemented yet; the current audio is unchanged.
+
 ### Changed
 - **Late-game performance** (measured with Chrome's CPU profiler at wave 40, 3x speed):
   - Static art (board, tower bases, enemy bodies) is baked into textures at the current screen resolution
