@@ -6,6 +6,26 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-28 (tower tooltips)
+
+### Added
+- **Tower tooltips** when hovering a tower in the shop (or focusing it with the keyboard) and on the
+  battlefield. Dark, minimal cards with the tower's name, role, cost, a short description, and its
+  combat stats: damage per hit, attack speed, range ("Global" for the Sniper) and targeting priority.
+- **Mechanics explained in plain English**, generated from tower data: global range, toughest-enemy
+  targeting, slows, and how well each tower copes with armor (e.g. Rapid: "Brutes block 4 damage from
+  every hit. With 5 damage per hit, only 25% gets through.").
+- **Built towers** show their current level and stats including run upgrades (e.g. attack speed
+  "7.8/s +30%"), plus a Run bonuses list naming the upgrades that apply to that tower type.
+- Smart positioning: above shop buttons, beside towers on the board, flipping sides near edges and
+  always inside the window. Tooltips never intercept clicks, and hide while placing a tower, for the
+  selected tower (its panel already shows details), and during pause, upgrade picks and game over.
+
+### Changed
+- Every tower has a role line and a purpose-focused description in `config/towers.ts`; all other card
+  content is derived from stats, so new towers get complete tooltips with no UI code.
+- Tower panel uses the same terms as tooltips ("Attack speed", "Targeting", ranges in tiles).
+
 ## [0.4.2] - 2026-10-28 (Auto Wave)
 
 Builds on 0.4.1 (crisp rendering, smooth motion, global-range Sniper), which shipped just before.
