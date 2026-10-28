@@ -37,8 +37,12 @@ export interface Viewport {
 const MAX_DEVICE_PIXEL_RATIO = 3;
 const MIN_PIXELS_PER_TILE = 8;
 
+export function clampPixelRatio(dpr: number): number {
+  return Math.min(Math.max(dpr || 1, 1), MAX_DEVICE_PIXEL_RATIO);
+}
+
 export function computeViewport(input: ViewportInput): Viewport {
-  const dpr = Math.min(Math.max(input.devicePixelRatio || 1, 1), MAX_DEVICE_PIXEL_RATIO);
+  const dpr = clampPixelRatio(input.devicePixelRatio);
   const availW = Math.max(0, input.cssWidth) * dpr;
   const availH = Math.max(0, input.cssHeight) * dpr;
   const fit = Math.min(availW / input.worldWidth, availH / input.worldHeight);

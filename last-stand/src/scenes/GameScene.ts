@@ -3,7 +3,8 @@ import { SIMULATION } from '../config/balance';
 import { TILE_SIZE, type TileCoord } from '../config/map';
 import { worldToTile } from '../core/grid';
 import type { GameSession } from '../game/GameSession';
-import { drawBoard } from '../render/BoardRenderer';
+import { pruneBakedTextures } from '../render/bake';
+import { drawBoard, type BoardView } from '../render/BoardRenderer';
 import { attachEffects } from '../render/Effects';
 import { EntityRenderer } from '../render/EntityRenderer';
 import { PlacementPreview } from '../render/PlacementPreview';
@@ -21,6 +22,7 @@ export class GameScene extends Phaser.Scene {
   private session!: GameSession;
   private entities!: EntityRenderer;
   private preview!: PlacementPreview;
+  private board: BoardView | null = null;
   private hover: TileCoord | null = null;
   private accumulator = 0;
   /** Timestamp of the previous frame, for measuring real elapsed time. */
@@ -37,9 +39,16 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     const { path, map } = this.session.sim;
     this.applyViewport(this.registry.get('viewport') as Viewport);
-    const onViewport = (v: Viewport) => this.applyViewport(v);
+    const onViewport = (v: Viewport) => {
+      this.applyViewport(v);
+      // Baked art is rasterised for a specific zoom: redraw it crisply at the new one.
+      this.board?.destroy();
+      this.board = drawBoard(this, map.grid, path);
+      this.entities.rescale();
+      pruneBakedTextures(this);
+    };
     this.game.events.on('viewport', onViewport);
-    drawBoard(this, map.grid, path);
+    this.board = drawBoard(this, map.grid, path);
     this.entities = new EntityRenderer(this);
     this.preview = new PlacementPreview(this);
 

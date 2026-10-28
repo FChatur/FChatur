@@ -23,12 +23,14 @@ export class GameSession {
   private readonly settings: Settings;
   /** Result of the last finished run, for the game-over screen. */
   lastRun: { record: MapRecord; newBest: boolean } | null = null;
+  private recordCache: MapRecord | null | undefined;
 
   constructor(private readonly persistence = new Persistence()) {
     this.settings = persistence.loadSettings();
     this._sim = this.newSimulation();
     this.bus.on('gameOver', ({ wave }) => {
       this.lastRun = this.persistence.recordRun(this._sim.map.id, wave, this._sim.stats.kills);
+      this.recordCache = this.lastRun.record;
       this.clearSelection();
     });
     this.bus.on('towerSold', ({ tower }) => {
@@ -94,7 +96,9 @@ export class GameSession {
 
   /** Personal record on the current map, if any runs have finished there. */
   get record(): MapRecord | null {
-    return this.persistence.loadRecords()[this._sim.map.id] ?? null;
+    // Cached: the HUD reads this every refresh, and storage only changes when a run ends.
+    this.recordCache ??= this.persistence.loadRecords()[this._sim.map.id] ?? null;
+    return this.recordCache;
   }
 
   /** Arms a tower type for building (clears any built-tower selection). */
@@ -220,6 +224,7 @@ export class GameSession {
     this._hoveredTowerId = null;
     this._paused = false;
     this.lastRun = null;
+    this.recordCache = undefined;
     this.bus.emit('sessionReset', {});
     this.bus.emit('selectionChanged', { towerType: null, towerId: null });
     this.emitScreen();

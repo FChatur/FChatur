@@ -8,6 +8,49 @@ import type { EntityRenderer } from './EntityRenderer';
 import { DEPTH, FONT_FAMILY, PALETTE, textResolution } from './palette';
 
 /**
+ * Caps on simultaneously alive cosmetic effects. Heavy fire (many towers at 3x) can request thousands
+ * per second; beyond a cap new cosmetic effects are simply skipped until older ones finish, so frame
+ * cost stays bounded. Important feedback (leaks, upgrades, sales, banners) is never capped.
+ */
+export const EFFECT_CAPS = { minor: 120, particle: 160, text: 14 } as const;
+type EffectKind = keyof typeof EFFECT_CAPS;
+
+class EffectBudget {
+  private readonly live: Record<EffectKind, number> = { minor: 0, particle: 0, text: 0 };
+
+  /** Reserves one slot, or returns false when the category is full. */
+  take(kind: EffectKind): boolean {
+    if (this.live[kind] >= EFFECT_CAPS[kind]) return false;
+    this.live[kind]++;
+    return true;
+  }
+
+  release(kind: EffectKind): void {
+    this.live[kind]--;
+  }
+}
+
+/** Creates a short-lived object if the budget allows, and destroys it when its tween ends. */
+function transient<T extends Phaser.GameObjects.GameObject>(
+  scene: Phaser.Scene,
+  budget: EffectBudget,
+  kind: EffectKind,
+  create: () => T,
+  tween: Omit<Phaser.Types.Tweens.TweenBuilderConfig, 'targets'>,
+): void {
+  if (!budget.take(kind)) return;
+  const obj = create();
+  scene.tweens.add({
+    ...tween,
+    targets: obj,
+    onComplete: () => {
+      obj.destroy();
+      budget.release(kind);
+    },
+  });
+}
+
+/**
  * Short-lived visual feedback driven by simulation events. Effects run on real time, so they
  * stay readable at any game speed. Returns an unsubscribe function.
  */
@@ -18,13 +61,54 @@ export function attachEffects(
   exit: { x: number; y: number },
   world: { width: number; height: number },
 ): () => void {
+  const budget = new EffectBudget();
+  const spark = (x: number, y: number, crit: boolean) => {
+    const color = crit ? PALETTE.crit : PALETTE.projectile;
+    transient(scene, budget, 'minor', () => scene.add.circle(x, y, crit ? 5 : 3).setStrokeStyle(crit ? 3 : 2, color, 1).setDepth(DEPTH.effects), {
+      scale: crit ? 3.2 : 2.4,
+      alpha: 0,
+      duration: crit ? 260 : 160,
+    });
+  };
+  const burst = (x: number, y: number, color: number) => {
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = 14 + Math.random() * 14;
+      transient(scene, budget, 'particle', () => scene.add.rectangle(x, y, 4, 4, color).setDepth(DEPTH.effects), {
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        angle: 180,
+        duration: 320 + Math.random() * 120,
+        ease: 'Quad.Out',
+      });
+    }
+  };
+  /** Floating text; `important` ones (upgrades, sales, interest) ignore the cap. */
+  const floatText = (x: number, y: number, text: string, color: number, important = false) => {
+    if (!important && !budget.take('text')) return;
+    const label = makeLabel(scene, x, y, text, color);
+    scene.tweens.add({
+      targets: label,
+      y: y - 22,
+      alpha: 0,
+      duration: 700,
+      ease: 'Quad.Out',
+      onComplete: () => {
+        label.destroy();
+        if (!important) budget.release('text');
+      },
+    });
+  };
+
   const subs = [
     bus.on('towerFired', ({ tower, projectile }) => {
       entities.recoilTower(tower.id);
-      const flash = scene.add
-        .circle(projectile.x, projectile.y, 5, TOWERS[tower.type].color, 0.9)
-        .setDepth(DEPTH.effects);
-      scene.tweens.add({ targets: flash, scale: 1.8, alpha: 0, duration: 90, onComplete: () => flash.destroy() });
+      transient(scene, budget, 'minor', () => scene.add.circle(projectile.x, projectile.y, 5, TOWERS[tower.type].color, 0.9).setDepth(DEPTH.effects), {
+        scale: 1.8,
+        alpha: 0,
+        duration: 90,
+      });
     }),
 
     bus.on('waveStarted', ({ wave }) => banner(scene, world, `WAVE ${wave}`, PALETTE.waveText, 26)),
@@ -37,29 +121,37 @@ export function attachEffects(
 
     bus.on('projectileHit', ({ projectile, enemy, crit }) => {
       entities.flashEnemy(enemy.id);
-      spark(scene, projectile.x, projectile.y, crit);
+      spark(projectile.x, projectile.y, crit);
     }),
 
-    bus.on('chainArc', ({ fromX, fromY, toX, toY }) => lightning(scene, fromX, fromY, toX, toY)),
+    bus.on('chainArc', ({ fromX, fromY, toX, toY }) =>
+      transient(scene, budget, 'minor', () => lightning(scene, fromX, fromY, toX, toY), { alpha: 0, duration: 180 }),
+    ),
 
-    bus.on('splash', ({ x, y, radius }) => {
-      const ring = scene.add
-        .circle(x, y, radius)
-        .setFillStyle(PALETTE.splash, 0.18)
-        .setStrokeStyle(2, PALETTE.splash, 0.8)
-        .setDepth(DEPTH.effects)
-        .setScale(0.4);
-      scene.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 220, ease: 'Quad.Out', onComplete: () => ring.destroy() });
-    }),
+    bus.on('splash', ({ x, y, radius }) =>
+      transient(
+        scene,
+        budget,
+        'minor',
+        () =>
+          scene.add
+            .circle(x, y, radius)
+            .setFillStyle(PALETTE.splash, 0.18)
+            .setStrokeStyle(2, PALETTE.splash, 0.8)
+            .setDepth(DEPTH.effects)
+            .setScale(0.4),
+        { scale: 1, alpha: 0, duration: 220, ease: 'Quad.Out' },
+      ),
+    ),
 
     bus.on('waveCleared', ({ interest }) => {
       if (interest <= 0) return;
-      floatText(scene, world.width / 2, 40, `Interest +${interest}`, PALETTE.gold);
+      floatText(world.width / 2, 40, `Interest +${interest}`, PALETTE.gold, true);
     }),
 
     bus.on('enemyKilled', ({ enemy }) => {
-      burst(scene, enemy.x, enemy.y, ENEMIES[enemy.type].color);
-      floatText(scene, enemy.x, enemy.y - 12, `+${enemy.reward}`, PALETTE.gold);
+      burst(enemy.x, enemy.y, ENEMIES[enemy.type].color);
+      floatText(enemy.x, enemy.y - 12, `+${enemy.reward}`, PALETTE.gold);
     }),
 
     bus.on('towerUpgraded', ({ tower }) => {
@@ -68,12 +160,12 @@ export function attachEffects(
         .setStrokeStyle(3, TOWERS[tower.type].color, 1)
         .setDepth(DEPTH.effects);
       scene.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => ring.destroy() });
-      floatText(scene, tower.x, tower.y - 20, `LV ${tower.level}`, TOWERS[tower.type].color);
+      floatText(tower.x, tower.y - 20, `LV ${tower.level}`, TOWERS[tower.type].color, true);
     }),
 
     bus.on('towerSold', ({ tower, refund }) => {
-      burst(scene, tower.x, tower.y, TOWERS[tower.type].color);
-      floatText(scene, tower.x, tower.y - 12, `+${refund}`, PALETTE.gold);
+      burst(tower.x, tower.y, TOWERS[tower.type].color);
+      floatText(tower.x, tower.y - 12, `+${refund}`, PALETTE.gold, true);
     }),
 
     bus.on('enemyLeaked', () => {
@@ -113,14 +205,8 @@ function banner(scene: Phaser.Scene, world: { width: number; height: number }, t
   });
 }
 
-function spark(scene: Phaser.Scene, x: number, y: number, crit: boolean): void {
-  const color = crit ? PALETTE.crit : PALETTE.projectile;
-  const ring = scene.add.circle(x, y, crit ? 5 : 3).setStrokeStyle(crit ? 3 : 2, color, 1).setDepth(DEPTH.effects);
-  scene.tweens.add({ targets: ring, scale: crit ? 3.2 : 2.4, alpha: 0, duration: crit ? 260 : 160, onComplete: () => ring.destroy() });
-}
-
-/** A jagged bolt between two points that fades quickly. */
-function lightning(scene: Phaser.Scene, x1: number, y1: number, x2: number, y2: number): void {
+/** A jagged bolt between two points (faded out by the caller). */
+function lightning(scene: Phaser.Scene, x1: number, y1: number, x2: number, y2: number): Phaser.GameObjects.Graphics {
   const g = scene.add.graphics().setDepth(DEPTH.effects);
   const segments = 5;
   const nx = -(y2 - y1);
@@ -133,30 +219,11 @@ function lightning(scene: Phaser.Scene, x1: number, y1: number, x2: number, y2: 
     g.lineTo(x1 + (x2 - x1) * t + (nx / len) * jitter, y1 + (y2 - y1) * t + (ny / len) * jitter);
   }
   g.lineTo(x2, y2).strokePath();
-  scene.tweens.add({ targets: g, alpha: 0, duration: 180, onComplete: () => g.destroy() });
+  return g;
 }
 
-function burst(scene: Phaser.Scene, x: number, y: number, color: number): void {
-  const count = 8;
-  for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
-    const dist = 14 + Math.random() * 14;
-    const bit = scene.add.rectangle(x, y, 4, 4, color).setDepth(DEPTH.effects);
-    scene.tweens.add({
-      targets: bit,
-      x: x + Math.cos(angle) * dist,
-      y: y + Math.sin(angle) * dist,
-      alpha: 0,
-      angle: 180,
-      duration: 320 + Math.random() * 120,
-      ease: 'Quad.Out',
-      onComplete: () => bit.destroy(),
-    });
-  }
-}
-
-function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color: number): void {
-  const label = scene.add
+function makeLabel(scene: Phaser.Scene, x: number, y: number, text: string, color: number): Phaser.GameObjects.Text {
+  return scene.add
     .text(x, y, text, {
       resolution: textResolution(scene),
       fontFamily: FONT_FAMILY,
@@ -168,12 +235,4 @@ function floatText(scene: Phaser.Scene, x: number, y: number, text: string, colo
     })
     .setOrigin(0.5)
     .setDepth(DEPTH.effects);
-  scene.tweens.add({
-    targets: label,
-    y: y - 22,
-    alpha: 0,
-    duration: 700,
-    ease: 'Quad.Out',
-    onComplete: () => label.destroy(),
-  });
 }

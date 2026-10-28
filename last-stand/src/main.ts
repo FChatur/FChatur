@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { DEFAULT_MAP } from './config/maps';
 import { GameSession } from './game/GameSession';
 import { PALETTE } from './render/palette';
-import { computeViewport, type Viewport } from './render/viewport';
+import { clampPixelRatio, computeViewport, type Viewport } from './render/viewport';
 import { GameScene, type GameSceneData } from './scenes/GameScene';
 import { Sfx } from './audio/Sfx';
 import { Hud } from './ui/Hud';
@@ -71,10 +71,9 @@ new ResizeObserver(queueResize).observe(container);
 window.addEventListener('resize', queueResize);
 // Browser zoom or moving to a monitor with different display scaling changes devicePixelRatio,
 // sometimes without any resize event. A per-frame comparison is cheap and never misses it.
+// Reads only devicePixelRatio (no layout), so it costs nothing per frame.
 game.events.on(Phaser.Core.Events.PRE_STEP, () => {
-  if (computeViewport({ ...viewportInput(), cssWidth: 0, cssHeight: 0 }).devicePixelRatio !== viewport.devicePixelRatio) {
-    queueResize();
-  }
+  if (clampPixelRatio(window.devicePixelRatio) !== viewport.devicePixelRatio) queueResize();
 });
 /** Places the canvas on whole device pixels, then has Phaser re-read its on-page bounds for input. */
 function positionCanvas(): void {

@@ -4,9 +4,13 @@ import { TILE_SIZE } from '../config/map';
 import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
 import type { Enemy, Projectile, Tower } from '../core/types';
+import { bakedImage, bakeTexture } from './bake';
 import { DEPTH, PALETTE } from './palette';
 
 const HP_BAR_HEIGHT = 4;
+/** Hit flash and barrel recoil durations (real time, ms). Animated in sync(), no tweens needed. */
+const FLASH_MS = 90;
+const RECOIL_MS = 120;
 
 interface EnemyView {
   root: Phaser.GameObjects.Container;
@@ -15,6 +19,8 @@ interface EnemyView {
   hpBack: Phaser.GameObjects.Rectangle;
   hpFill: Phaser.GameObjects.Rectangle;
   barWidth: number;
+  /** Real-time timestamp of the last hit, for the flash. */
+  hitAt: number;
   seen: number;
 }
 
@@ -22,11 +28,15 @@ interface TowerView {
   root: Phaser.GameObjects.Container;
   barrel: Phaser.GameObjects.Container;
   level: number;
+  /** Real-time timestamp of the last shot, for the recoil. */
+  firedAt: number;
   seen: number;
 }
 
 interface ProjectileView {
   root: Phaser.GameObjects.Arc;
+  /** Pool key: projectiles of the same tower type look identical and can be reused. */
+  kind: string;
   seen: number;
 }
 
@@ -39,12 +49,17 @@ export class EntityRenderer {
   private readonly enemies = new Map<number, EnemyView>();
   private readonly towers = new Map<number, TowerView>();
   private readonly projectiles = new Map<number, ProjectileView>();
+  /** Hidden projectile views kept for reuse (one per shot otherwise means constant allocation). */
+  private readonly projectilePool = new Map<string, Phaser.GameObjects.Arc[]>();
   private frame = 0;
+  /** Set after a zoom change: views are being rebuilt, so skip their "pop" entrance. */
+  private rebuilding = false;
 
   constructor(private readonly scene: Phaser.Scene) {}
 
   sync(sim: Simulation, alpha: number): void {
     const frame = ++this.frame;
+    const now = this.scene.time.now;
 
     for (const t of sim.towers) {
       let view = this.towers.get(t.id);
@@ -55,6 +70,8 @@ export class EntityRenderer {
       }
       view ??= this.createTower(t);
       view.barrel.rotation = t.angle;
+      const recoil = (now - view.firedAt) / RECOIL_MS;
+      view.barrel.scaleX = recoil >= 1 ? 1 : 0.7 + 0.3 * (1 - (1 - recoil) ** 2);
       view.seen = frame;
     }
     for (const e of sim.enemies) {
@@ -62,9 +79,12 @@ export class EntityRenderer {
       const view = this.enemies.get(e.id) ?? this.createEnemy(e);
       view.root.setPosition(lerp(e.prevX, e.x, alpha), lerp(e.prevY, e.y, alpha));
       view.frost.setVisible(e.slowFactor < 1);
+      const flash = (now - view.hitAt) / FLASH_MS;
+      view.flash.setAlpha(flash >= 1 ? 0 : 0.85 * (1 - flash));
       this.updateHpBar(view, e);
       view.seen = frame;
     }
+    this.rebuilding = false;
     for (const p of sim.projectiles) {
       if (!p.alive) continue;
       const view = this.projectiles.get(p.id) ?? this.createProjectile(p);
@@ -74,31 +94,40 @@ export class EntityRenderer {
 
     prune(this.towers, frame, (v) => v.root.destroy());
     prune(this.enemies, frame, (v) => v.root.destroy());
-    prune(this.projectiles, frame, (v) => v.root.destroy());
+    prune(this.projectiles, frame, (v) => this.releaseProjectile(v));
+  }
+
+  private releaseProjectile(v: ProjectileView): void {
+    v.root.setVisible(false);
+    const pool = this.projectilePool.get(v.kind) ?? [];
+    pool.push(v.root);
+    this.projectilePool.set(v.kind, pool);
   }
 
   /** Brief white flash when an enemy takes a hit. */
   flashEnemy(id: number): void {
     const view = this.enemies.get(id);
-    if (!view) return;
-    this.scene.tweens.killTweensOf(view.flash);
-    view.flash.setAlpha(0.85);
-    this.scene.tweens.add({ targets: view.flash, alpha: 0, duration: 90 });
+    if (view) view.hitAt = this.scene.time.now;
   }
 
   /** Barrel kick-back when a tower fires. */
   recoilTower(id: number): void {
     const view = this.towers.get(id);
-    if (!view) return;
-    this.scene.tweens.killTweensOf(view.barrel);
-    view.barrel.setScale(0.7, 1);
-    this.scene.tweens.add({ targets: view.barrel, scaleX: 1, duration: 120, ease: 'Quad.Out' });
+    if (view) view.firedAt = this.scene.time.now;
+  }
+
+  /** After a zoom change: rebuild every view so baked art is re-rasterised at the new scale. */
+  rescale(): void {
+    this.clear();
+    this.rebuilding = true;
   }
 
   clear(): void {
     for (const v of this.towers.values()) v.root.destroy();
     for (const v of this.enemies.values()) v.root.destroy();
     for (const v of this.projectiles.values()) v.root.destroy();
+    for (const pool of this.projectilePool.values()) for (const arc of pool) arc.destroy();
+    this.projectilePool.clear();
     this.towers.clear();
     this.enemies.clear();
     this.projectiles.clear();
@@ -110,30 +139,20 @@ export class EntityRenderer {
     const color = TOWERS[t.type].color;
     const ts = TILE_SIZE;
     const half = ts * (0.33 + 0.02 * t.level);
-    const base = this.scene.add.graphics();
-    if (t.level === MAX_TOWER_LEVEL) {
-      base.fillStyle(color, 0.18).fillRoundedRect(-half - 3, -half - 3, half * 2 + 6, half * 2 + 6, 8);
-    }
-    base.fillStyle(PALETTE.towerBase).fillRoundedRect(-half, -half, half * 2, half * 2, 6);
-    base.lineStyle(2, color, 1).strokeRoundedRect(-half, -half, half * 2, half * 2, 6);
-    base.fillStyle(color, 0.22).fillCircle(0, 0, half * 0.7);
-
-    // Level pips along the bottom edge.
-    const pip = 4;
-    const gap = 3;
-    const startX = -((MAX_TOWER_LEVEL * pip + (MAX_TOWER_LEVEL - 1) * gap) / 2);
-    for (let i = 0; i < MAX_TOWER_LEVEL; i++) {
-      base.fillStyle(color, i < t.level ? 1 : 0.2).fillRect(startX + i * (pip + gap), half - pip - 3, pip, pip);
-    }
+    // The base is baked once per tower type and level, one tile in size, centred on the tower.
+    const baseKey = bakeTexture(this.scene, `tower-${t.type}-${t.level}`, ts, ts, (g) => drawTowerBase(g, color, half, t.level), true);
+    const base = bakedImage(this.scene, 0, 0, baseKey);
 
     const barrel = this.scene.add.container(0, 0, this.barrelParts(t.type, color));
     const cap = this.capPart(t.type, color, half);
     const root = this.scene.add.container(t.x, t.y, [base, barrel, cap]).setDepth(DEPTH.towers);
 
-    root.setScale(0.5);
-    this.scene.tweens.add({ targets: root, scale: 1, duration: 220, ease: 'Back.Out' });
+    if (!this.rebuilding) {
+      root.setScale(0.5);
+      this.scene.tweens.add({ targets: root, scale: 1, duration: 220, ease: 'Back.Out' });
+    }
 
-    const view: TowerView = { root, barrel, level: t.level, seen: 0 };
+    const view: TowerView = { root, barrel, level: t.level, firedAt: -Infinity, seen: 0 };
     this.towers.set(t.id, view);
     return view;
   }
@@ -165,8 +184,10 @@ export class EntityRenderer {
   private createEnemy(e: Enemy): EnemyView {
     const cfg = ENEMIES[e.type];
     const r = e.radius;
-    const body = this.scene.add.graphics();
-    drawEnemyShape(body, cfg.shape, r, cfg.color);
+    // Baked once per enemy type; the margin leaves room for outlines and the boss's halo.
+    const size = Math.ceil((r + 6) * 2);
+    const bodyKey = bakeTexture(this.scene, `enemy-${e.type}`, size, size, (g) => drawEnemyShape(g, cfg.shape, r, cfg.color), true);
+    const body = bakedImage(this.scene, 0, 0, bodyKey);
     const flash = this.scene.add.circle(0, 0, r + 1, 0xffffff).setAlpha(0);
     const frost = this.scene.add
       .circle(0, 0, r + 4)
@@ -184,20 +205,27 @@ export class EntityRenderer {
       .container(e.x, e.y, [body, flash, frost, hpBack, hpFill])
       .setDepth(DEPTH.enemies);
 
-    const view: EnemyView = { root, flash, frost, hpBack, hpFill, barWidth, seen: 0 };
+    const view: EnemyView = { root, flash, frost, hpBack, hpFill, barWidth, hitAt: -Infinity, seen: 0 };
     this.updateHpBar(view, e);
     this.enemies.set(e.id, view);
     return view;
   }
 
   private createProjectile(p: Projectile): ProjectileView {
-    const color = TOWERS[p.towerType].color;
-    const radius = p.towerType === 'frost' ? 5 : p.towerType === 'basic' ? 4 : 3;
-    const root = this.scene.add
-      .circle(p.x, p.y, radius, p.towerType === 'frost' ? color : PALETTE.projectile)
-      .setStrokeStyle(2, color, 0.8)
-      .setDepth(DEPTH.projectiles);
-    const view: ProjectileView = { root, seen: 0 };
+    const kind = p.towerType;
+    const pooled = this.projectilePool.get(kind)?.pop();
+    let root: Phaser.GameObjects.Arc;
+    if (pooled) {
+      root = pooled.setPosition(p.x, p.y).setVisible(true);
+    } else {
+      const color = TOWERS[p.towerType].color;
+      const radius = p.towerType === 'frost' ? 5 : p.towerType === 'basic' ? 4 : 3;
+      root = this.scene.add
+        .circle(p.x, p.y, radius, p.towerType === 'frost' ? color : PALETTE.projectile)
+        .setStrokeStyle(2, color, 0.8)
+        .setDepth(DEPTH.projectiles);
+    }
+    const view: ProjectileView = { root, kind, seen: 0 };
     this.projectiles.set(p.id, view);
     return view;
   }
@@ -211,6 +239,23 @@ export class EntityRenderer {
     if (!visible) return;
     view.hpFill.width = view.barWidth * ratio;
     view.hpFill.fillColor = ratio > 0.6 ? PALETTE.hpHigh : ratio > 0.3 ? PALETTE.hpMid : PALETTE.hpLow;
+  }
+}
+
+function drawTowerBase(g: Phaser.GameObjects.Graphics, color: number, half: number, level: number): void {
+  if (level === MAX_TOWER_LEVEL) {
+    g.fillStyle(color, 0.18).fillRoundedRect(-half - 3, -half - 3, half * 2 + 6, half * 2 + 6, 8);
+  }
+  g.fillStyle(PALETTE.towerBase).fillRoundedRect(-half, -half, half * 2, half * 2, 6);
+  g.lineStyle(2, color, 1).strokeRoundedRect(-half, -half, half * 2, half * 2, 6);
+  g.fillStyle(color, 0.22).fillCircle(0, 0, half * 0.7);
+
+  // Level pips along the bottom edge.
+  const pip = 4;
+  const gap = 3;
+  const startX = -((MAX_TOWER_LEVEL * pip + (MAX_TOWER_LEVEL - 1) * gap) / 2);
+  for (let i = 0; i < MAX_TOWER_LEVEL; i++) {
+    g.fillStyle(color, i < level ? 1 : 0.2).fillRect(startX + i * (pip + gap), half - pip - 3, pip, pip);
   }
 }
 

@@ -100,7 +100,8 @@ export class Hud {
     // Losing focus (switching tabs, alt-tab) pauses a run in progress.
     document.addEventListener('visibilitychange', () => document.hidden && this.session.setPaused(true));
     this.startTutorial();
-    for (const type of REFRESH_ON) session.bus.on(type, () => this.refresh());
+    // Many events can fire in one frame (a volley of kills); redraw the HUD at most once per frame.
+    for (const type of REFRESH_ON) session.bus.on(type, () => this.scheduleRefresh());
     this.refresh();
   }
 
@@ -233,6 +234,17 @@ export class Hud {
     if (tower && sim.phase !== 'gameover') this.session.toggleTower(tower);
   }
 
+  private refreshQueued = false;
+
+  private scheduleRefresh(): void {
+    if (this.refreshQueued) return;
+    this.refreshQueued = true;
+    requestAnimationFrame(() => {
+      this.refreshQueued = false;
+      this.refresh();
+    });
+  }
+
   private refresh(): void {
     const sim = this.session.sim;
     this.wave.textContent = String(sim.wave);
@@ -338,14 +350,20 @@ export class Hud {
     el('tutorial-text').textContent = t.current.text;
   }
 
+  private renderedUpgradeList = '';
+
   private renderUpgradeList(): void {
-    el('upgrade-list').innerHTML = this.session.sim.mods
+    const html = this.session.sim.mods
       .owned()
       .map(([def, n]) => {
         const stacks = def.maxStacks > 1 ? ` ${roman(n)}` : '';
         return `<span class="upgrade-chip" style="--chip-color:${cssColor(def.color)}" title="${describe(def, n)}">${def.name}${stacks}</span>`;
       })
       .join('');
+    // Only touch the DOM when the owned upgrades actually change.
+    if (html === this.renderedUpgradeList) return;
+    this.renderedUpgradeList = html;
+    el('upgrade-list').innerHTML = html;
   }
 
   /** Rebuilt only when a new offer appears, so cards don't flicker while the player decides. */

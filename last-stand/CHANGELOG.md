@@ -11,6 +11,20 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   drafts, countdown, stacks), seeded fuzz tests that perform thousands of random and invalid actions on
   the game and the session, and a wave-100 soak test on a maxed-out board (`npm run test:slow`).
 
+### Changed
+- **Late-game performance** (measured with Chrome's CPU profiler at wave 40, 3x speed):
+  - Static art (board, tower bases, enemy bodies) is baked into textures at the current screen resolution
+    instead of being re-tessellated every frame; re-baked when the zoom changes, so it stays crisp.
+  - Hit flashes and barrel recoil are animated directly instead of creating thousands of tweens (and
+    searching all of them on every hit).
+  - Cosmetic effects have per-category caps (sparks, particles, floating text), so heavy fire can't pile
+    up thousands of objects; important feedback is never skipped.
+  - Projectile visuals are pooled and reused.
+  - The HUD redraws at most once per frame, caches personal records, and only rebuilds the upgrade
+    chips when they change; the per-frame display-scaling check no longer forces a layout.
+  - Result on a realistic late-game board: live objects 329 → ~50, tweens 366 → ~2, JavaScript cost per
+    shot about 3.4× lower. On an extreme 203-tower board, throughput rose about 6.8×.
+
 ### Fixed
 - When a leak ended the run, the enemies that leaked on that final frame were left in the game state
   (invisible, but stale). Found by the fuzz tests.
