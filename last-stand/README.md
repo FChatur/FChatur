@@ -34,7 +34,7 @@ They combine: Frost + Frostbite + Rapid shreds slowed enemies, Sniper + Critical
 
 **Enemies:** Grunt, Runner (fast, from wave 3), Brute (armored, from wave 5), Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Brutes and bosses.
 
-Hover a tower to see its range. Enemies that reach the red exit cost health (bosses cost much more); the run ends at 0.
+Hover a tower (in the shop or on the board) for its stats, special mechanics and active bonuses, and to see its range. Enemies that reach the red exit cost health (bosses cost much more); the run ends at 0.
 
 ## Run locally
 

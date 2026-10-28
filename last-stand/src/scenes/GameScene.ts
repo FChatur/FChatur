@@ -64,9 +64,11 @@ export class GameScene extends Phaser.Scene {
     this.input.mouse?.disableContextMenu();
     this.input.on(Phaser.Input.Events.POINTER_MOVE, (p: Phaser.Input.Pointer) => {
       this.hover = worldToTile(p.worldX, p.worldY, TILE_SIZE);
+      this.updateHoveredTower();
     });
     this.input.on(Phaser.Input.Events.GAME_OUT, () => {
       this.hover = null;
+      this.session.setHoveredTower(null);
     });
     this.input.on(Phaser.Input.Events.POINTER_DOWN, (p: Phaser.Input.Pointer) => this.onPointerDown(p));
   }
@@ -96,6 +98,13 @@ export class GameScene extends Phaser.Scene {
     this.preview.update(sim, this.hover, this.session.selectedTower, this.session.selectedTowerInstance);
   }
 
+  /** Tooltips only while inspecting: not while a tower type is armed for building. */
+  private updateHoveredTower(): void {
+    const s = this.session;
+    const inspecting = this.hover && s.screen === 'playing' && !s.paused && !s.selectedTower;
+    s.setHoveredTower(inspecting ? (s.sim.towerAt(this.hover!.col, this.hover!.row) ?? null) : null);
+  }
+
   /** Fits the whole map into the canvas: one world pixel = `scale` device pixels. */
   private applyViewport(v: Viewport): void {
     const { cols, rows, tileSize } = this.session.sim.map.grid;
@@ -119,6 +128,7 @@ export class GameScene extends Phaser.Scene {
       sim.placeTower(buildType, tile.col, tile.row);
       return;
     }
+    this.updateHoveredTower();
     // Nothing armed: clicking a tower selects it, clicking anywhere else deselects.
     this.session.selectBuiltTower(sim.towerAt(tile.col, tile.row) ?? null);
   }

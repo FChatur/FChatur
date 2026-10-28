@@ -34,5 +34,7 @@ export interface GameEvents {
   screenChanged: { screen: Screen; paused: boolean };
   muteChanged: { muted: boolean };
   autoWaveChanged: { on: boolean };
+  /** The built tower under the pointer (for tooltips), or null. */
+  hoverChanged: { towerId: number | null };
   sessionReset: Record<string, never>;
 }

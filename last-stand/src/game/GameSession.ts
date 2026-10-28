@@ -17,6 +17,7 @@ export class GameSession {
   private _sim: Simulation;
   private _buildType: TowerTypeId | null = null;
   private _selectedTowerId: number | null = null;
+  private _hoveredTowerId: number | null = null;
   private _screen: Screen = 'menu';
   private _paused = false;
   private readonly settings: Settings;
@@ -32,6 +33,7 @@ export class GameSession {
     });
     this.bus.on('towerSold', ({ tower }) => {
       if (tower.id === this._selectedTowerId) this.clearSelection();
+      if (tower.id === this._hoveredTowerId) this.setHoveredTower(null);
     });
   }
 
@@ -47,6 +49,18 @@ export class GameSession {
   /** The built tower currently selected for upgrade/sell, if any. */
   get selectedTowerInstance(): Tower | null {
     return this._selectedTowerId === null ? null : (this._sim.towerById(this._selectedTowerId) ?? null);
+  }
+
+  /** The built tower under the pointer, if any (drives tooltips; never affects gameplay). */
+  get hoveredTower(): Tower | null {
+    return this._hoveredTowerId === null ? null : (this._sim.towerById(this._hoveredTowerId) ?? null);
+  }
+
+  setHoveredTower(tower: Tower | null): void {
+    const id = tower?.id ?? null;
+    if (id === this._hoveredTowerId) return;
+    this._hoveredTowerId = id;
+    this.bus.emit('hoverChanged', { towerId: id });
   }
 
   get speed(): GameSpeed {
@@ -203,6 +217,7 @@ export class GameSession {
     this._sim = this.newSimulation();
     this._buildType = null;
     this._selectedTowerId = null;
+    this._hoveredTowerId = null;
     this._paused = false;
     this.lastRun = null;
     this.bus.emit('sessionReset', {});

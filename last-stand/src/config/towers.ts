@@ -26,6 +26,9 @@ export interface TowerLevel {
 export interface TowerConfig {
   id: TowerTypeId;
   name: string;
+  /** Short role line for tooltips, e.g. "All-rounder · Single target". */
+  role: string;
+  /** One or two sentences on what the tower is for. Mechanics are explained automatically from stats. */
   description: string;
   /** Gold to build (level 1). */
   cost: number;
@@ -50,7 +53,8 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   basic: {
     id: 'basic',
     name: 'Turret',
-    description: 'Balanced damage and fire rate.',
+    role: 'All-rounder · Single target',
+    description: 'Reliable, affordable damage. A solid backbone for any defence.',
     cost: 50,
     targeting: 'first',
     levels: [
@@ -64,7 +68,8 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   sniper: {
     id: 'sniper',
     name: 'Sniper',
-    description: 'Huge damage, slow to fire. Global range: shoots the toughest enemy anywhere on the map.',
+    role: 'Global range · Single target',
+    description: 'High-damage precision tower. Picks off the toughest enemy anywhere on the map.',
     cost: 110,
     targeting: 'strongest',
     // Priced for global range: it covers the whole path from anywhere, so it costs more than its
@@ -81,7 +86,8 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   rapid: {
     id: 'rapid',
     name: 'Rapid',
-    description: 'Very fast, weak shots. Struggles against armor.',
+    role: 'Short range · Rapid fire',
+    description: 'Shreds fast, lightly armored enemies with a stream of small hits.',
     cost: 70,
     targeting: 'first',
     levels: [
@@ -95,7 +101,8 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   frost: {
     id: 'frost',
     name: 'Frost',
-    description: 'Light damage. Slows enemies it hits.',
+    role: 'Support · Crowd control',
+    description: 'Slows enemies so the rest of your defence gets more time to hit them.',
     cost: 60,
     targeting: 'first',
     levels: [

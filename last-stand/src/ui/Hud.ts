@@ -5,6 +5,8 @@ import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type Upgrade
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
 import { TUTORIAL_STEPS, TutorialProgress } from './tutorial';
+import { towerInfo } from './towerInfo';
+import { TowerTooltip } from './TowerTooltip';
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -33,6 +35,7 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'muteChanged',
   'countdownChanged',
   'autoWaveChanged',
+  'hoverChanged',
 ];
 
 /**
@@ -55,6 +58,9 @@ export class Hud {
   private readonly gameOver = el('overlay-gameover');
   private lastHealth = 0;
   private tutorial: TutorialProgress | null = null;
+  private readonly tooltip = new TowerTooltip(el('tower-tooltip'));
+  /** Tower type whose shop button is hovered or focused, if any. */
+  private shopHover: TowerTypeId | null = null;
 
   constructor(private readonly session: GameSession) {
     this.buildTowerBar();
@@ -121,7 +127,19 @@ export class Hud {
       const btn = document.createElement('button');
       btn.className = 'tower-btn';
       btn.style.setProperty('--tower-color', cssColor(cfg.color));
-      btn.title = `${cfg.name}: ${cfg.description}`;
+      btn.setAttribute('aria-label', `${cfg.name}, ${cfg.cost} gold. ${cfg.description}`);
+      const showInfo = () => {
+        this.shopHover = id;
+        this.renderTooltip();
+      };
+      const hideInfo = () => {
+        if (this.shopHover === id) this.shopHover = null;
+        this.renderTooltip();
+      };
+      btn.addEventListener('mouseenter', showInfo);
+      btn.addEventListener('focus', showInfo);
+      btn.addEventListener('mouseleave', hideInfo);
+      btn.addEventListener('blur', hideInfo);
       btn.innerHTML = `
         <span class="tower-swatch"></span>
         <span class="tower-name">${cfg.name}</span>
@@ -270,10 +288,43 @@ export class Hud {
 
     this.hint.textContent = this.hintText();
     this.renderTutorial();
+    this.renderTooltip();
     this.renderUpgradeList();
     this.renderDraft();
     this.renderTowerPanel();
     this.renderGameOver();
+  }
+
+  /**
+   * Shop buttons show the base tower; towers on the board show their current level and run bonuses.
+   * Hidden whenever a menu, pause, upgrade pick or game-over screen is up, and for the selected tower
+   * (its panel already shows the details).
+   */
+  private renderTooltip(): void {
+    const s = this.session;
+    const sim = s.sim;
+    const active = s.screen === 'playing' && !s.paused && sim.phase !== 'draft' && sim.phase !== 'gameover';
+    if (active && this.shopHover) {
+      const btn = this.towerButtons.get(this.shopHover)!;
+      this.tooltip.show(towerInfo(this.shopHover), btn.getBoundingClientRect(), ['above', 'right']);
+      return;
+    }
+    const t = s.hoveredTower;
+    if (!active || !t || t === s.selectedTowerInstance) {
+      this.tooltip.hide();
+      return;
+    }
+    this.tooltip.show(towerInfo(t.type, { level: t.level, mods: sim.mods }), this.towerScreenRect(t), ['right', 'left', 'below', 'above']);
+  }
+
+  /** A built tower's tile in page coordinates, from the canvas's on-screen box. */
+  private towerScreenRect(t: Tower): { left: number; top: number; width: number; height: number } {
+    const canvas = document.querySelector<HTMLCanvasElement>('#game-container canvas')!;
+    const box = canvas.getBoundingClientRect();
+    const { cols, rows, tileSize } = this.session.sim.map.grid;
+    const sx = box.width / (cols * tileSize);
+    const sy = box.height / (rows * tileSize);
+    return { left: box.left + t.col * tileSize * sx, top: box.top + t.row * tileSize * sy, width: tileSize * sx, height: tileSize * sy };
   }
 
   private renderTutorial(): void {
@@ -393,7 +444,7 @@ export class Hud {
 
 const describe = (def: UpgradeDef, stacks: number): string => describeUpgrade(def, stacks, (t) => TOWERS[t].name);
 
-const rangeLabel = (l: TowerLevel): string => (isGlobalRange(l.rangeTiles) ? 'Global' : `${l.rangeTiles}`);
+const rangeLabel = (l: TowerLevel): string => (isGlobalRange(l.rangeTiles) ? 'Global' : `${l.rangeTiles} tiles`);
 
 const roman = (n: number): string => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
 
@@ -405,13 +456,13 @@ function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMu
   const rate = (l: TowerLevel) => `${+(l.fireRate * rateMult).toFixed(2)}/s`;
   const rows: [string, string, string | null][] = [
     ['Damage', String(now.damage), next && String(next.damage)],
-    ['Fire rate', rate(now), next && rate(next)],
+    ['Attack speed', rate(now), next && rate(next)],
     ['Range', rangeLabel(now), next && rangeLabel(next)],
   ];
   if (now.slow) {
     const slow = (l: TowerLevel) => `${Math.round((1 - l.slow!.factor) * 100)}% / ${l.slow!.duration}s`;
     rows.push(['Slow', slow(now), next && slow(next)]);
   }
-  rows.push(['Targets', tower.targeting === 'strongest' ? 'Toughest' : 'First', null]);
+  rows.push(['Targeting', tower.targeting === 'strongest' ? 'Toughest' : 'First', null]);
   return rows;
 }

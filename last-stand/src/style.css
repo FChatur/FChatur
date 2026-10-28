@@ -827,3 +827,204 @@ kbd {
   0% { transform: scale(1.35); }
   40% { transform: scale(1); }
 }
+
+/* ---------------------------------------------------------------- tower tooltip */
+
+.tower-tooltip {
+  --tower-color: var(--accent);
+  position: fixed;
+  z-index: 50;
+  width: 300px;
+  padding: 14px 16px;
+  border: 1px solid #263248;
+  border-radius: 10px;
+  background: #0f1522;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  /* Purely informational: never intercepts clicks, so placement and selection work underneath. */
+  pointer-events: none;
+}
+
+.tower-tooltip.hidden {
+  display: none;
+}
+
+.tt-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tt-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #263248;
+  border-radius: 8px;
+  background: #161e2e;
+}
+
+.tt-icon span {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--tower-color);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--tower-color) 35%, transparent);
+}
+
+.tt-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.tt-name-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tt-titles h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.tt-titles p {
+  margin: 1px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tt-cost,
+.tt-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tt-cost {
+  color: var(--gold);
+  font-size: 16px;
+}
+
+.tt-cost svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tt-level {
+  color: var(--tower-color);
+  font-size: 12px;
+}
+
+.tt-desc {
+  margin: 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #1f2a3d;
+}
+
+.tt-rule {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid #1f2a3d;
+}
+
+.tt-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0 0 12px;
+}
+
+.tt-stat dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tt-stat dd {
+  margin: 1px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tt-boost {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tt-trait {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid #1f2a3d;
+  border-radius: 8px;
+  background: #141b29;
+}
+
+.tt-trait p {
+  margin: 0;
+  color: #b4bfd0;
+  font-size: 12px;
+}
+
+.tt-trait .tt-trait-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tt-trait-title span {
+  font-size: 9px;
+}
+
+.tt-good .tt-trait-title span {
+  color: #4ade80;
+}
+
+.tt-bad {
+  border-color: color-mix(in srgb, var(--health) 35%, #1f2a3d);
+}
+
+.tt-bad .tt-trait-title span {
+  color: var(--health);
+}
+
+.tt-neutral .tt-trait-title span {
+  color: var(--muted);
+}
+
+.tt-bonuses {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #1f2a3d;
+}
+
+.tt-section {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tt-section span {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.tt-bonuses ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
