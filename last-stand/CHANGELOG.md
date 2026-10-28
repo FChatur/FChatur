@@ -6,6 +6,8 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-28 (Phase 5: testing, performance, polish; MVP complete)
+
 ### Added
 - Robustness tests: a shared invariant checker (gold, health, towers, enemies, projectiles, phases,
   drafts, countdown, stacks), seeded fuzz tests that perform thousands of random and invalid actions on
