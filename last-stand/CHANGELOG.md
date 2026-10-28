@@ -6,6 +6,35 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-28 (rendering quality, global Sniper)
+
+### Fixed
+- **Blurry, jagged rendering.** The game drew into a fixed 960×576 buffer that the browser then stretched
+  by uneven factors (1.4× at 1080p, about 2× at 1440p, more with display scaling), smearing every edge.
+  The canvas buffer now matches the device pixels it covers at any window size, display scaling or
+  browser zoom, the world is fitted with the camera zoom, each tile spans a whole number of device
+  pixels, and the canvas sits on whole device pixels. Antialiasing is set explicitly (Phaser otherwise
+  switches to pixel-art mode when zoomed), and text renders at the zoomed resolution.
+- **Uneven motion.** The simulation advanced by Phaser's smoothed frame time instead of real elapsed
+  time, so movement surged and lagged whenever frame times varied (and ran slow when frames were long).
+  It now uses real elapsed time: on-screen speed is constant at 1x and 3x. The catch-up limit per frame
+  was raised so 3x stays accurate on slower machines.
+- Mouse input stays aligned after resizing the window or changing display scaling mid-game.
+- Towers no longer shoot enemies that haven't entered the map yet.
+
+### Changed
+- **Sniper: global range** at all three levels, like BTD6's Sniper Monkey. It still targets the toughest
+  enemy (now anywhere on the map), fires slowly and hits hard. The panel shows Range "Global", and
+  placing or selecting a Sniper outlines the whole board instead of drawing a circle.
+- Sniper rebalanced around global range: cost 90 → 110, upgrades 80 → 100 and 140 → 170; faster shots
+  (2400–2800 px/s) so cross-map hits land promptly.
+- **Smarter targeting for all towers**: towers skip enemies that shots already in flight will kill,
+  avoiding wasted overkill (which global range made common when several Snipers picked the same enemy).
+
+### Balance (Switchback, median waves reached; before → after)
+- Turrets + upgrades 33 → 33, Sniper crit 33 → 30, Frost + Rapid 30 → 31, Mixed 40 → 40, Economy 32 → 33.
+  All strong strategies remain in the provisional 30–40 band.
+
 ## [0.4.0] - 2026-10-28 (Phase 4: menus, sound, tutorial, polish)
 
 ### Added
