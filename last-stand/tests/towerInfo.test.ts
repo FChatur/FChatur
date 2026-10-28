@@ -21,10 +21,11 @@ describe('towerInfo', () => {
     }
   });
 
-  it('shows Global range and toughest targeting for the Sniper', () => {
+  it('shows Global range and Strongest targeting for the Sniper', () => {
     const info = towerInfo('sniper');
     expect(stat(info, 'Range').value).toBe('Global');
-    expect(stat(info, 'Targeting').value).toBe('Toughest');
+    expect(stat(info, 'Targeting').value).toBe('Strongest');
+    expect(stat(towerInfo('sniper', { targeting: 'last' }), 'Targeting').value).toBe('Last');
     expect(trait(info, 'Global range')).toBeDefined();
     expect(trait(info, 'Strong vs armor')?.tone).toBe('good');
   });

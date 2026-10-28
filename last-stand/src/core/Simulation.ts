@@ -2,7 +2,7 @@ import { BALANCE, type BalanceConfig } from '../config/balance';
 import { ENEMIES, type EnemyTypeId } from '../config/enemies';
 import { TILE_SIZE } from '../config/map';
 import { DEFAULT_MAP, type MapConfig } from '../config/maps';
-import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
+import { MAX_TOWER_LEVEL, TOWERS, type TargetingMode, type TowerTypeId } from '../config/towers';
 import { UPGRADES, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { EventBus } from './EventBus';
 import type { GameEvents } from './events';
@@ -25,6 +25,11 @@ export interface SimulationOptions {
   upgradeRegistry?: ReadonlyMap<UpgradeId, UpgradeDef>;
   /** Start each next wave automatically after a countdown. Off unless asked for. */
   autoWave?: boolean;
+  /**
+   * Analysis hook for balance tools: called whenever a tower damages an enemy, with the health it
+   * actually removed (overkill excluded) and the overkill. Not used by the game.
+   */
+  onDamage?: (towerType: TowerTypeId, dealt: number, overkill: number) => void;
 }
 
 /**
@@ -64,6 +69,7 @@ export class Simulation {
   private nextId = 1;
   private readonly balance: BalanceConfig;
   private readonly rng: Rng;
+  private readonly onDamage: SimulationOptions['onDamage'];
 
   constructor(
     private readonly bus: EventBus<GameEvents>,
@@ -75,6 +81,7 @@ export class Simulation {
     this.rng = createRng(this.seed);
     this.mods = new RunModifiers(options.upgradeRegistry ?? UPGRADES);
     this._autoWave = options.autoWave ?? false;
+    this.onDamage = options.onDamage;
     this.path = Path.fromWaypoints(this.map.waypoints, this.map.grid);
     this.gold = Math.round(this.balance.startingGold * this.map.modifiers.startingGold);
     this.health = this.balance.startingHealth;
@@ -166,6 +173,14 @@ export class Simulation {
     this.gold += refund;
     this.stats.towersSold++;
     this.bus.emit('towerSold', { tower, refund });
+    return true;
+  }
+
+  /** Changes how a built tower picks its targets. Allowed at any time during a run, including waves. */
+  setTargeting(tower: Tower, mode: TargetingMode): boolean {
+    if (this.phase === 'gameover' || !this.towers.includes(tower) || tower.targeting === mode) return false;
+    tower.targeting = mode;
+    this.bus.emit('towerTargetingChanged', { tower });
     return true;
   }
 
@@ -340,8 +355,7 @@ export class Simulation {
   }
 
   /**
-   * "first": the enemy in range furthest along the path.
-   * "strongest": the enemy in range with the most health, ties broken by "first".
+   * Picks the best enemy in range for the tower's targeting mode (see isBetterTarget).
    * Only enemies on the map can be targeted; global-range towers consider every one of them.
    * Enemies that shots already in flight will kill are skipped (no wasted overkill), unless every
    * candidate is covered, in which case the tower fires at its normal pick anyway.
@@ -358,8 +372,8 @@ export class Simulation {
         const dy = e.y - t.y;
         if (dx * dx + dy * dy > r2) continue;
       }
-      if (!best || isBetterTarget(t, e, best)) best = e;
-      if (e.incomingDamage < e.hp && (!bestUncovered || isBetterTarget(t, e, bestUncovered))) bestUncovered = e;
+      if (!best || isBetterTarget(t.targeting, e, best)) best = e;
+      if (e.incomingDamage < e.hp && (!bestUncovered || isBetterTarget(t.targeting, e, bestUncovered))) bestUncovered = e;
     }
     return bestUncovered ?? best;
   }
@@ -434,7 +448,7 @@ export class Simulation {
     const base = crit ? p.damage * m.critMultiplier : p.damage;
     this.bus.emit('projectileHit', { projectile: p, enemy, crit });
 
-    this.damageEnemy(enemy, withSlowedBonus(enemy, base, m));
+    this.damageEnemy(enemy, withSlowedBonus(enemy, base, m), p.towerType);
     if (p.slowFactor < 1) applySlow(enemy, p.slowFactor, p.slowDuration);
 
     const splash = m.splashFraction;
@@ -444,7 +458,7 @@ export class Simulation {
       for (const e of this.enemies) {
         if (e === enemy || !e.alive) continue;
         if (Math.hypot(e.x - p.x, e.y - p.y) > radius + e.radius) continue;
-        this.damageEnemy(e, withSlowedBonus(e, base * splash, m));
+        this.damageEnemy(e, withSlowedBonus(e, base * splash, m), p.towerType);
       }
     }
 
@@ -460,7 +474,7 @@ export class Simulation {
         hit.add(next);
         this.bus.emit('chainArc', { fromX: from.x, fromY: from.y, toX: next.x, toY: next.y });
         from = { x: next.x, y: next.y };
-        this.damageEnemy(next, withSlowedBonus(next, jump, m));
+        this.damageEnemy(next, withSlowedBonus(next, jump, m), p.towerType);
       }
     }
   }
@@ -479,9 +493,11 @@ export class Simulation {
     return best;
   }
 
-  private damageEnemy(e: Enemy, raw: number): void {
+  private damageEnemy(e: Enemy, raw: number, source: TowerTypeId): void {
     if (!e.alive) return;
-    e.hp -= mitigate(raw, e.armor, this.balance.armorMinDamageFraction);
+    const damage = mitigate(raw, e.armor, this.balance.armorMinDamageFraction);
+    this.onDamage?.(source, Math.min(damage, e.hp), Math.max(0, damage - e.hp));
+    e.hp -= damage;
     if (e.hp > 0) return;
     e.hp = 0;
     e.alive = false;
@@ -543,8 +559,26 @@ function applySlow(e: Enemy, factor: number, duration: number): void {
   }
 }
 
-function isBetterTarget(t: Tower, candidate: Enemy, current: Enemy): boolean {
-  if (t.targeting === 'strongest' && candidate.hp !== current.hp) return candidate.hp > current.hp;
+/**
+ * Whether `candidate` beats `current` as a target:
+ * "first": further along the path. "last": less far along the path.
+ * "strongest": more health left. "fastest": higher current speed (slows included).
+ * Ties in "strongest" and "fastest" go to the enemy further along the path.
+ */
+export function isBetterTarget(mode: TargetingMode, candidate: Enemy, current: Enemy): boolean {
+  switch (mode) {
+    case 'last':
+      return candidate.distance < current.distance;
+    case 'strongest':
+      if (candidate.hp !== current.hp) return candidate.hp > current.hp;
+      break;
+    case 'fastest': {
+      const a = candidate.speed * candidate.slowFactor;
+      const b = current.speed * current.slowFactor;
+      if (a !== b) return a > b;
+      break;
+    }
+  }
   return candidate.distance > current.distance;
 }
 

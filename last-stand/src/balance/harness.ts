@@ -6,7 +6,7 @@
  */
 import { BALANCE, type BalanceConfig } from '../config/balance';
 import type { MapConfig } from '../config/maps';
-import { isGlobalRange, TOWERS, type TowerTypeId } from '../config/towers';
+import { isGlobalRange, TOWER_ORDER, TOWERS, type TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
 import { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
@@ -20,6 +20,8 @@ export interface Strategy {
   upgradeAfter: number;
   /** Draft picks, most wanted first. */
   draftPreference: readonly UpgradeId[];
+  /** Never picked while anything else is on offer (for with/without comparisons). */
+  draftAvoid?: readonly UpgradeId[];
 }
 
 export interface RunResult {
@@ -35,7 +37,18 @@ export interface RunResult {
   /** Health lost to each enemy type during the final wave, e.g. "basic:12 boss:6". */
   finalWaveLeaks: string;
   upgrades: string;
+  /** Enemy health removed by each tower type over the run (overkill excluded). */
+  damageByTower: Record<TowerTypeId, number>;
+  /** Overkill (damage beyond what the target had left) by tower type. */
+  overkillByTower: Record<TowerTypeId, number>;
+  /** Gold spent on each tower type (builds and upgrades) by the end of the run. */
+  investedByTower: Record<TowerTypeId, number>;
+  /** Health left when the run ended (0 unless it stopped at `maxWave`). */
+  healthLeft: number;
 }
+
+const perTower = (): Record<TowerTypeId, number> =>
+  Object.fromEntries(TOWER_ORDER.map((t) => [t, 0])) as Record<TowerTypeId, number>;
 
 const STEP = 1 / 60;
 
@@ -67,7 +80,17 @@ export function runStrategy(
 ): RunResult {
   const maxWave = options.maxWave ?? 80;
   const bus = new EventBus<GameEvents>();
-  const sim = new Simulation(bus, { map, seed, balance: options.balance ?? BALANCE });
+  const damageByTower = perTower();
+  const overkillByTower = perTower();
+  const sim = new Simulation(bus, {
+    map,
+    seed,
+    balance: options.balance ?? BALANCE,
+    onDamage: (type, dealt, overkill) => {
+      damageByTower[type] += dealt;
+      overkillByTower[type] += overkill;
+    },
+  });
   let firstLeakWave: number | null = null;
   let troubleWave: number | null = null;
   const startHealth = sim.health;
@@ -91,7 +114,11 @@ export function runStrategy(
 
   while (sim.phase !== 'gameover' && sim.wave < maxWave) {
     if (sim.phase === 'draft') {
-      const pick = strategy.draftPreference.find((id) => sim.draftChoices.includes(id)) ?? sim.draftChoices[0];
+      const avoid = strategy.draftAvoid ?? [];
+      const pick =
+        strategy.draftPreference.find((id) => sim.draftChoices.includes(id) && !avoid.includes(id)) ??
+        sim.draftChoices.find((id) => !avoid.includes(id)) ??
+        sim.draftChoices[0];
       sim.chooseUpgrade(pick);
     }
     spend(sim, strategy, spotsFor);
@@ -108,6 +135,8 @@ export function runStrategy(
     .map(([def, n]) => `${def.id}${n}`)
     .join(' ');
   const finalWaveLeaks = [...finalLeaks].map(([type, hp]) => `${type}:${hp}`).join(' ');
+  const investedByTower = perTower();
+  for (const t of sim.towers) investedByTower[t.type] += t.invested;
   return {
     map: map.name,
     strategy: strategy.name,
@@ -117,6 +146,10 @@ export function runStrategy(
     troubleWave,
     finalWaveLeaks,
     upgrades: owned,
+    damageByTower,
+    overkillByTower,
+    investedByTower,
+    healthLeft: sim.health,
   };
 }
 

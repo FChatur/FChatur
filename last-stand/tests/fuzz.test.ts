@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BALANCE } from '../src/config/balance';
-import { TOWER_ORDER } from '../src/config/towers';
+import { TARGETING_MODES, TOWER_ORDER } from '../src/config/towers';
 import { UPGRADE_DEFS } from '../src/config/upgrades';
 import { createRng } from '../src/core/random';
 import { GameSession } from '../src/game/GameSession';
@@ -49,6 +49,12 @@ describe('fuzz: random actions never reach an invalid state', () => {
           expect(sim.chooseUpgrade(id), ctx).toBe(offered);
         } else if (roll < 0.6) {
           sim.setAutoWave(!sim.autoWave);
+        } else if (roll < 0.63 && sim.towers.length) {
+          const t = pick(rng, sim.towers);
+          const mode = pick(rng, TARGETING_MODES);
+          const before = t.targeting;
+          expect(sim.setTargeting(t, mode), ctx).toBe(before !== mode);
+          expect(t.targeting, ctx).toBe(mode);
         } else {
           const frames = 1 + Math.floor(rng() * 240);
           for (let f = 0; f < frames && (sim.phase as string) !== 'gameover'; f++) sim.step(STEP);
@@ -81,6 +87,8 @@ describe('fuzz: session commands in any order', () => {
       () => s.selectBuiltTower(s.sim.towers.length ? pick(rng, s.sim.towers) : null),
       () => s.upgradeSelected(),
       () => s.sellSelected(),
+      () => s.setTargetingSelected(pick(rng, TARGETING_MODES)),
+      () => s.cycleTargetingSelected(),
       () => s.startWave(),
       () => s.sim.placeTower(pick(rng, TOWER_ORDER), Math.floor(rng() * 20), Math.floor(rng() * 12)),
       () => {
