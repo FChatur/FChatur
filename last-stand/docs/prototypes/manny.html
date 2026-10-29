@@ -1,0 +1,478 @@
+<title>Manny Style Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: two stage panels side by side (stacked on phones), controls and notes below. Single dark look. */
+  :root {
+    --bg: #1a1424; --panel: #2c2438; --edge: #5c4a3a; --text: #f4efe4; --muted: #b4aec4;
+    --accent: #f2c94c; --a: #6cbcf0; --b: #de5d4f;
+    --font: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { background: var(--bg); color: var(--text); font-family: var(--font); }
+  body { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px 28px; }
+  h1 { margin: 0 0 4px; font-size: 1.5rem; letter-spacing: .02em; text-wrap: balance; }
+  .lede { margin: 0 0 14px; color: var(--muted); max-width: 70ch; line-height: 1.45; }
+  .stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+  figure { margin: 0; background: var(--panel); border: 2px solid var(--edge); border-radius: 6px; overflow: hidden; min-width: 0; }
+  figure canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #2b5a2a; }
+  #pix { image-rendering: pixelated; }
+  figcaption { padding: 10px 12px 12px; display: grid; gap: 4px; }
+  figcaption b { font-size: 1rem; }
+  figcaption .tag { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+  figcaption span { color: var(--muted); font-size: .88rem; line-height: 1.4; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; align-items: center; }
+  button { font: inherit; font-weight: 700; padding: 8px 14px; border-radius: 4px; border: 2px solid var(--edge); background: var(--panel); color: var(--text); cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--accent); color: var(--bg); border-color: #fbe7a1; }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .scrub { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; flex: 1 1 260px; min-width: 0; }
+  .scrub input { flex: 1; min-width: 0; }
+  .beats { display: flex; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: .8rem; }
+  .beats span { padding: 2px 8px; border: 1px solid var(--edge); border-radius: 999px; }
+  .beats span.on { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+</style>
+
+<h1>Manny the Manhandler: style test</h1>
+<p class="lede">One animation rig, drawn two ways at the same in-game scale (a tile is 64 px at 1600 × 900). Left: higher-resolution pixel art, twice today's detail, snapped to the game's palette. Right: illustrated 2D with smooth shapes, squash and stretch, smears, hit-stop and screen shake. Manny is a concept only, not a playable tower.</p>
+
+<div class="stages">
+  <figure><canvas id="pix" width="640" height="360" aria-label="Pixel art version of Manny's attack"></canvas>
+    <figcaption><span class="tag" style="color:var(--a)">A · Enhanced pixel art</span><b>32 art pixels per tile (today: 16)</b><span>Crisp at whole-number scales, matches the current game. Alpha effects become dithered pixels.</span></figcaption></figure>
+  <figure><canvas id="ill" width="640" height="360" aria-label="Illustrated version of Manny's attack"></canvas>
+    <figcaption><span class="tag" style="color:var(--b)">B · Illustrated 2D</span><b>Smooth vector shapes at full screen resolution</b><span>Soft shading, motion smears, translucent dust and glows; sharp on any screen.</span></figcaption></figure>
+</div>
+
+<div class="controls">
+  <button id="play" aria-pressed="true">Playing</button>
+  <button id="slow" aria-pressed="false">Slow motion</button>
+  <button id="replay">Replay the punch</button>
+  <label class="scrub">Time <input id="scrub" type="range" min="0" max="6.4" step="0.01" value="0"> <output id="clock">0.00 s</output></label>
+</div>
+<div class="beats" id="beats"></div>
+
+<script>
+(() => {
+  const W = 640, H = 360, ROAD = 262, P = 6.4;
+  const BEATS = [['Idle', 0], ['Wind-up', 1.6], ['Punch', 2.05], ['Launch', 2.2], ['Landing', 2.9], ['Dust-off', 3.05], ['Dazed', 4.3]];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Colours. Style A snaps every pixel to the game's palette (src/art/palette.ts).
+  const C = {
+    ink: '#2a1d2e', skin: '#e8a77f', skinHi: '#ffd2b0', skinSh: '#b86f52', pants: '#f39c34', pantsSh: '#c76a1c', pantsHi: '#ffc56b',
+    sash: '#c0392b', sashSh: '#8e2620', bead: '#7c4e33', wrap: '#f4efe4', wrapSh: '#c7c8d4', brow: '#4a2a1e', mouth: '#7a2032',
+    gob: '#b3ac3f', gobSh: '#7f7a2a', gobHi: '#dfd76a', gobEye: '#de5d4f', blade: '#aab6cc', dust: '#e6c389', dustSh: '#c99a5e', star: '#f2c94c', white: '#ffffff',
+  };
+  const PALETTE = ['1a1424','2c2438','3b3950','565670','77788f','9c9db0','c7c8d4','3d2421','5c3628','7c4e33','a06b42','c8945d','5a3a26','7e5432','a57446','c99a5e','e6c389','1e4527','2b6131','3c7f38','529e40','72ba4c','a3d765','cfe88a','4f4a1f','7f7a2a','b3ac3f','dfd76a','6b3f33','a3664e','d6987a','f0c4a3','2f3446','4d5670','7884a0','aab6cc','e1e8f2','4a1628','7a2032','b03440','de5d4f','f59a73','6b3f12','a3631c','d9972f','f2c94c','fbe7a1','1d2b55','28509a','3b82d6','6cbcf0','b8e8ff','f4efe4'].map((h) => [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4), 16)]);
+
+  // ---------------------------------------------------------------- timeline (a pure function of time)
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const easeOut = (k) => 1 - (1 - k) ** 3;
+  const easeIn = (k) => k * k * k;
+  const backOut = (k) => { const s = 1.9; return 1 + (s + 1) * (k - 1) ** 3 + s * (k - 1) ** 2; };
+  const seg = (t, a, b) => clamp((t - a) / (b - a));
+  function rnd(seed) { let s = seed * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
+
+  const MANNY_X = 470, MANNY_Y = 252;
+  const T_WIND = 1.6, T_PUNCH = 2.05, T_HIT = 2.15, T_STOP = 2.23, T_RECOVER = 2.8, T_CLAP = [3.15, 3.5, 3.85], T_IDLE = 4.3;
+
+  // Keyframed poses: arm angles (shoulder, elbow) for the front and back arm, body squash, lean, lunge.
+  const POSES = {
+    idle:   { fa: [1.15, -2.35], ba: [1.0, -2.2], sx: 1, sy: 1, lean: 0, dx: 0, fist: 1, face: 'grin' },
+    wind:   { fa: [3.3, -1.2], ba: [0.55, -1.9], sx: 1.1, sy: 0.9, lean: -0.22, dx: 10, fist: 1.2, face: 'focus' },
+    punch:  { fa: [0.78, -0.05], ba: [1.9, -1.6], sx: 1.14, sy: 0.86, lean: 0.24, dx: -30, fist: 1.45, face: 'focus' },
+    clap:   { fa: [0.85, -1.95], ba: [0.75, -1.85], sx: 1, sy: 1.02, lean: 0.03, dx: 0, fist: 1, face: 'smug' },
+  };
+  const mix = (a, b, k) => ({ fa: [lerp(a.fa[0], b.fa[0], k), lerp(a.fa[1], b.fa[1], k)], ba: [lerp(a.ba[0], b.ba[0], k), lerp(a.ba[1], b.ba[1], k)],
+    sx: lerp(a.sx, b.sx, k), sy: lerp(a.sy, b.sy, k), lean: lerp(a.lean, b.lean, k), dx: lerp(a.dx, b.dx, k), fist: lerp(a.fist, b.fist, k), face: k < 0.5 ? a.face : b.face });
+
+  function mannyAt(t) {
+    let p;
+    if (t < T_WIND) p = { ...POSES.idle };
+    else if (t < T_PUNCH) p = mix(POSES.idle, POSES.wind, easeOut(seg(t, T_WIND, T_PUNCH)));
+    else if (t < T_HIT) p = mix(POSES.wind, POSES.punch, easeIn(seg(t, T_PUNCH, T_HIT)) * 0.6 + seg(t, T_PUNCH, T_HIT) * 0.4);
+    else if (t < T_STOP) p = { ...POSES.punch };
+    else if (t < T_RECOVER) p = mix(POSES.punch, POSES.idle, backOut(seg(t, T_STOP, T_RECOVER)));
+    else if (t < 3.05) p = { ...POSES.idle };
+    else if (t < T_IDLE - 0.25) {
+      // Dusting off: hands meet three times, a little bounce each time.
+      p = mix(POSES.idle, POSES.clap, easeOut(seg(t, 3.0, 3.12)));
+      for (const c of T_CLAP) { const k = clamp(1 - Math.abs(t - c) / 0.12); p.fa[0] -= 0.25 * k; p.ba[0] -= 0.25 * k; p.sy -= 0.03 * k; }
+      p.face = 'smug';
+    } else p = mix(POSES.clap, POSES.idle, easeOut(seg(t, T_IDLE - 0.25, T_IDLE)));
+    // Breathing, a flex of the shoulders and an eyebrow waggle while idle.
+    const idleK = t < T_WIND ? 1 : t > T_IDLE ? 1 : t > T_RECOVER && t < 3.05 ? 0.6 : 0;
+    p.sy += Math.sin(t * 3.9) * 0.018 * idleK;
+    p.sx -= Math.sin(t * 3.9) * 0.012 * idleK;
+    p.brow = idleK && (t % 3.2) > 2.6 ? Math.sin((t % 3.2 - 2.6) * 20) * 2.5 : 0;
+    p.glow = t > T_WIND && t < T_HIT ? seg(t, T_WIND, T_PUNCH) : 0;
+    p.smear = t > T_PUNCH && t < T_RECOVER ? clamp(1 - seg(t, T_STOP, T_STOP + 0.25)) : 0;
+    p.hop = t > T_STOP && t < T_RECOVER ? Math.sin(seg(t, T_STOP, T_RECOVER) * Math.PI) * 6 : 0;
+    return p;
+  }
+
+  // Goblins: walk in, get punched up and back along the road, bounce, lie dazed, then fade.
+  const GOBS = [0, 1, 2, 3, 4].map((i) => {
+    const r = rnd(i + 3);
+    return { off: i * 25 + r() * 4, dy: [-7, 9, -1, 11, -9][i], vx: -(170 + r() * 110), vy: -(560 + r() * 120), spin: (r() < 0.5 ? -1 : 1) * (11 + r() * 7), delay: i * 0.018, size: 0.92 + r() * 0.16 };
+  });
+  const WALK = 165, G = 1500, LEAD_HIT_X = 380;
+  function goblinAt(g, t) {
+    const leadX = (tt) => LEAD_HIT_X - WALK * (T_HIT - tt);
+    const groundY = ROAD + g.dy;
+    const hitT = T_HIT + g.delay;
+    if (t < hitT) {
+      const x = leadX(t) - g.off;
+      return { x, y: groundY, rot: 0, walk: t * 9 + g.off, flash: 0, state: 'walk', alpha: 1, stars: 0 };
+    }
+    const x0 = leadX(hitT) - g.off;
+    const frozen = t < T_STOP ? (T_STOP - t) : 0;
+    let dt = Math.max(0, t - Math.max(hitT, T_STOP));
+    // First arc.
+    const land1 = (-2 * g.vy) / G;
+    let x, y, rot, state = 'air', dust = [];
+    if (dt < land1) { x = x0 + g.vx * dt; y = groundY + g.vy * dt + 0.5 * G * dt * dt; rot = g.spin * dt; }
+    else {
+      const xL = x0 + g.vx * land1; dust.push({ t0: Math.max(hitT, T_STOP) + land1, x: xL, y: groundY, big: 1 });
+      const d2 = dt - land1, vy2 = g.vy * -0.28 * -1, vx2 = g.vx * 0.35, land2 = (-2 * -Math.abs(vy2) * -1) / G;
+      const bounce = Math.abs(g.vy) * 0.28;
+      const l2 = (2 * bounce) / G;
+      if (d2 < l2) { x = xL + vx2 * d2; y = groundY - bounce * d2 + 0.5 * G * d2 * d2; rot = g.spin * land1 + g.spin * 0.4 * d2; }
+      else {
+        const xL2 = xL + vx2 * l2; dust.push({ t0: Math.max(hitT, T_STOP) + land1 + l2, x: xL2, y: groundY, big: 0.55 });
+        const d3 = d2 - l2, slide = Math.min(d3, 0.25);
+        x = xL2 + vx2 * 0.5 * (slide - slide * slide * 2); y = groundY;
+        const target = (g.spin > 0 ? 1 : -1) * Math.PI / 2;
+        rot = lerp(g.spin * (land1 + l2 * 0.4), target, easeOut(clamp(d3 / 0.2)));
+        state = 'down';
+      }
+      void land2; void vy2;
+    }
+    const alpha = clamp(1 - seg(t, 5.6, 6.2));
+    return { x, y, rot, walk: 0, flash: t < T_STOP + 0.06 ? 1 : 0, state, alpha, stars: state === 'down' ? clamp(seg(t, 3.0, 3.3)) : 0, dust, frozen };
+  }
+
+  function sceneAt(t) {
+    const manny = mannyAt(t);
+    const gobs = GOBS.map((g) => ({ g, s: goblinAt(g, t) }));
+    const shake = !reduced && t > T_HIT && t < T_HIT + 0.3 ? (1 - seg(t, T_HIT, T_HIT + 0.3)) * 7 : 0;
+    const sx = shake ? Math.sin(t * 173) * shake : 0, sy = shake ? Math.cos(t * 211) * shake * 0.6 : 0;
+    return { t, manny, gobs, sx, sy };
+  }
+
+  // ---------------------------------------------------------------- drawing (shared by both styles)
+  // `px` is true for style A: no strokes (an outline pass adds them), fewer gradients, hard shapes.
+  function ell(ctx, x, y, rx, ry, rot = 0) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(0.1, rx), Math.max(0.1, ry), rot, 0, Math.PI * 2); }
+  function shape(ctx, px, fill, stroke = true, lw = 2.6) {
+    ctx.fillStyle = fill; ctx.fill();
+    if (!px && stroke) { ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke(); }
+  }
+  let SHADOWS = null;
+  function shadow(ctx, x, y, rx, ry, a = 0.32) { if (SHADOWS) { SHADOWS.push([x, y, rx, ry]); return; } ctx.save(); ell(ctx, x, y, rx, ry); ctx.fillStyle = `rgba(26,20,36,${a})`; ctx.fill(); ctx.restore(); }
+  function grad(ctx, px, x0, y0, r, hi, base) {
+    if (px) return base;
+    const g = ctx.createRadialGradient(x0, y0, 1, x0, y0, r); g.addColorStop(0, hi); g.addColorStop(1, base); return g;
+  }
+
+  function capsule(ctx, x1, y1, x2, y2, w) {
+    const a = Math.atan2(y2 - y1, x2 - x1), nx = Math.cos(a + Math.PI / 2) * w / 2, ny = Math.sin(a + Math.PI / 2) * w / 2;
+    ctx.beginPath(); ctx.moveTo(x1 + nx, y1 + ny); ctx.lineTo(x2 + nx, y2 + ny); ctx.arc(x2, y2, w / 2, a + Math.PI / 2, a - Math.PI / 2, true); ctx.lineTo(x1 - nx, y1 - ny); ctx.arc(x1, y1, w / 2, a - Math.PI / 2, a + Math.PI / 2, true); ctx.closePath();
+  }
+
+  function arm(ctx, px, sx, sy, ang, fistScale, front, glow) {
+    const [a1, a2] = ang, L1 = 20, L2 = 19;
+    const ex = sx + Math.cos(a1) * L1, ey = sy + Math.sin(a1) * L1;
+    const hx = ex + Math.cos(a1 + a2) * L2, hy = ey + Math.sin(a1 + a2) * L2;
+    capsule(ctx, sx, sy, ex, ey, 15); shape(ctx, px, grad(ctx, px, sx - 3, sy - 4, 16, C.skinHi, front ? C.skin : C.skinSh));
+    capsule(ctx, ex, ey, hx, hy, 12); shape(ctx, px, front ? C.skin : C.skinSh);
+    // The fist: huge, wrapped, with knuckles.
+    const r = 12.5 * fistScale;
+    if (glow > 0) { ctx.save(); ell(ctx, hx, hy, r + 6 + glow * 6, r + 6 + glow * 6); ctx.fillStyle = px ? C.star : `rgba(255,214,90,${0.35 * glow})`; if (!px || glow > 0.6) ctx.fill(); ctx.restore(); }
+    ell(ctx, hx, hy, r, r * 0.92, a1 + a2); shape(ctx, px, grad(ctx, px, hx - r * 0.35, hy - r * 0.4, r * 1.3, C.skinHi, front ? C.skin : C.skinSh));
+    ctx.save(); ctx.translate(hx, hy); ctx.rotate(a1 + a2);
+    ctx.fillStyle = C.wrap; ctx.fillRect(-r * 0.95, -r * 0.62, r * 0.42, r * 1.24);
+    ctx.fillStyle = C.wrapSh; ctx.fillRect(-r * 0.95, r * 0.25, r * 0.42, r * 0.37);
+    ctx.fillStyle = C.skinSh; for (let k = -1; k <= 1; k++) ctx.fillRect(r * 0.45, k * r * 0.36 - 1, r * 0.4, 2);
+    ctx.restore();
+    return [hx, hy, r];
+  }
+
+  function drawManny(ctx, px, p) {
+    ctx.save();
+    ctx.translate(MANNY_X + p.dx, MANNY_Y - p.hop);
+    shadow(ctx, 0, 2 + p.hop, 40 * p.sx, 8);
+    ctx.scale(-1, 1); // faces left, toward the road's entrance
+    ctx.rotate(p.lean);
+    ctx.scale(p.sx, p.sy);
+    // Back arm (behind the body).
+    const shBack = [-16, -76], shFront = [20, -78];
+    arm(ctx, px, shBack[0], shBack[1], p.ba, 1, false, 0);
+    // Legs: baggy monk trousers and bare feet in a wide stance.
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(s * 4, -42); ctx.quadraticCurveTo(s * 25, -30, s * 21, -8); ctx.lineTo(s * 9, -6); ctx.quadraticCurveTo(s * 6, -24, s * 2, -40); ctx.closePath();
+      shape(ctx, px, s < 0 ? C.pantsSh : grad(ctx, px, s * 14, -30, 20, C.pantsHi, C.pants));
+      ell(ctx, s * 17, -3, 10, 4.5); shape(ctx, px, C.skin);
+    }
+    // Torso: an absurd V of muscle on a tiny waist.
+    ctx.beginPath(); ctx.moveTo(-11, -42); ctx.bezierCurveTo(-24, -58, -36, -74, -30, -84); ctx.quadraticCurveTo(0, -94, 33, -86);
+    ctx.bezierCurveTo(38, -74, 26, -56, 12, -42); ctx.closePath();
+    shape(ctx, px, grad(ctx, px, 8, -76, 34, C.skinHi, C.skin));
+    // Pecs, abs, and a shadow under the chest.
+    ctx.strokeStyle = C.skinSh; ctx.lineWidth = px ? 2 : 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-18, -66); ctx.quadraticCurveTo(-4, -60, 1, -68); ctx.moveTo(4, -68); ctx.quadraticCurveTo(12, -59, 24, -67); ctx.stroke();
+    for (const [y, w] of [[-58, 7], [-52, 6]]) { ctx.beginPath(); ctx.moveTo(1 - w, y); ctx.lineTo(1 + w, y); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(1, -64); ctx.lineTo(1, -47); ctx.stroke();
+    // Prayer beads across the chest.
+    for (let k = 0; k < 9; k++) { const a = Math.PI * (0.15 + k * 0.088); ell(ctx, 2 + Math.cos(a) * 21, -88 + Math.sin(a) * 18, 2.6, 2.6); shape(ctx, px, C.bead, !px, 1.4); }
+    // Red sash with tails.
+    ctx.beginPath(); ctx.moveTo(-12, -45); ctx.lineTo(13, -45); ctx.lineTo(12, -38); ctx.lineTo(-12, -38); ctx.closePath(); shape(ctx, px, C.sash);
+    ctx.beginPath(); ctx.moveTo(-10, -39); ctx.quadraticCurveTo(-16, -30, -14 + Math.sin(performance.now() / 300) * 0, -24); ctx.lineTo(-9, -26); ctx.closePath(); shape(ctx, px, C.sashSh);
+    // Head: small, bald, delighted.
+    ctx.save(); ctx.translate(4, -96 + (p.face === 'focus' ? 2 : 0));
+    ell(ctx, 0, 0, 11, 12); shape(ctx, px, grad(ctx, px, -4, -5, 13, C.skinHi, C.skin));
+    ell(ctx, 10, 1, 3, 4); shape(ctx, px, C.skinSh, !px, 1.6);
+    ctx.fillStyle = C.star; ctx.fillRect(-2, -9, 3, 3); ctx.fillRect(2, -9, 3, 3);
+    ctx.strokeStyle = C.brow; ctx.lineWidth = px ? 2.4 : 2.6; ctx.lineCap = 'round';
+    const by = -4 - (p.brow || 0), angry = p.face === 'focus';
+    ctx.beginPath(); ctx.moveTo(-5, by + (angry ? -1 : 0)); ctx.lineTo(0, by + (angry ? 2 : -1)); ctx.moveTo(4, by + (angry ? 2 : -1)); ctx.lineTo(9, by + (angry ? -1 : 0)); ctx.stroke();
+    ctx.fillStyle = C.ink;
+    if (p.face === 'grin') { ctx.lineWidth = 2; ctx.strokeStyle = C.ink; ctx.beginPath(); ctx.arc(-2, 0, 2, Math.PI * 1.1, Math.PI * 1.9); ctx.moveTo(5, 0); ctx.arc(7, 0, 2, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+    else if (p.face === 'smug') { ctx.fillRect(-3, -1, 3, 2); ctx.lineWidth = 2; ctx.strokeStyle = C.ink; ctx.beginPath(); ctx.arc(7, 0, 2, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+    else { ctx.fillRect(-3, -1, 3, 3); ctx.fillRect(5, -1, 3, 3); }
+    // Mouth.
+    ctx.beginPath();
+    if (p.face === 'focus') { ctx.moveTo(-1, 6); ctx.lineTo(7, 5); ctx.lineWidth = 2.2; ctx.strokeStyle = C.mouth; ctx.stroke(); }
+    else { ctx.moveTo(-3, 4); ctx.quadraticCurveTo(3, 11, 9, 4); ctx.closePath(); ctx.fillStyle = C.mouth; ctx.fill(); ctx.fillStyle = C.white; ctx.fillRect(-1, 4, 8, 2); }
+    ctx.restore();
+    // Front arm and the giant fist, with a smear on the punch.
+    if (p.smear > 0) {
+      ctx.save(); ctx.beginPath(); ctx.moveTo(shFront[0], shFront[1] - 14); ctx.lineTo(shFront[0] + 92, shFront[1] - 18); ctx.lineTo(shFront[0] + 92, shFront[1] + 16); ctx.lineTo(shFront[0], shFront[1] + 10); ctx.closePath();
+      if (px) { ctx.fillStyle = C.white; if (p.smear > 0.3) for (const [dy, len] of [[-12, 70], [0, 92], [12, 60]]) ctx.fillRect(shFront[0] + 92 - len * p.smear, shFront[1] + dy + 10, len * p.smear, 2); }
+      else { const g = ctx.createLinearGradient(shFront[0], 0, shFront[0] + 92, 0); g.addColorStop(0, 'rgba(255,230,190,0)'); g.addColorStop(1, `rgba(255,236,200,${0.85 * p.smear})`); ctx.fillStyle = g; ctx.fill(); }
+      ctx.restore();
+    }
+    arm(ctx, px, shFront[0], shFront[1], p.fa, p.fist, true, p.glow);
+    ctx.restore();
+  }
+
+  function drawGoblin(ctx, px, s, size) {
+    if (s.alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha = px ? 1 : s.alpha;
+    if (s.state !== 'air') shadow(ctx, s.x, s.y + 1, 13 * size, 4);
+    else shadow(ctx, s.x, ROAD + 2, 9 * size * clamp(1 - (ROAD - s.y) / 200, 0.3), 3, 0.2);
+    ctx.translate(s.x, s.y);
+    ctx.scale(size, size);
+    ctx.translate(0, -15); ctx.rotate(s.rot); ctx.translate(0, 15);
+    const f = s.flash ? C.white : null;
+    const step = Math.sin(s.walk);
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.rect(k * 4 - 2 + (s.state === 'walk' ? k * step * 3 : 0), -7, 4.5, 7); shape(ctx, px, f || C.gobSh, true, 2); }
+    ell(ctx, 0, -14, 9, 9.5); shape(ctx, px, f || grad(ctx, px, -3, -18, 12, C.gobHi, C.gob));
+    ctx.beginPath(); ctx.moveTo(-8, -10); ctx.lineTo(8, -10); ctx.lineTo(7, -6); ctx.lineTo(-7, -6); ctx.closePath(); shape(ctx, px, f || C.bead, false);
+    // Head with big ears.
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(k * 5, -30); ctx.lineTo(k * 15, -36); ctx.lineTo(k * 7, -25); ctx.closePath(); shape(ctx, px, f || C.gobSh, true, 2); }
+    ell(ctx, 1, -28, 8, 7.5); shape(ctx, px, f || grad(ctx, px, -2, -31, 9, C.gobHi, C.gob));
+    if (!f) {
+      if (s.state === 'down') { ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6; for (const ex of [-2, 4]) { ctx.beginPath(); ctx.moveTo(ex - 1.5, -30); ctx.lineTo(ex + 1.5, -27); ctx.moveTo(ex + 1.5, -30); ctx.lineTo(ex - 1.5, -27); ctx.stroke(); } }
+      else { ctx.fillStyle = C.gobEye; ctx.fillRect(-3, -30, 3, 3); ctx.fillRect(3, -30, 3, 3); }
+      ctx.fillStyle = C.ink; ctx.fillRect(-1, -24, 6, 1.6);
+    }
+    // A little dagger.
+    ctx.beginPath(); ctx.moveTo(9, -16); ctx.lineTo(19, -20); ctx.lineTo(10, -13); ctx.closePath(); shape(ctx, px, f || C.blade, true, 1.6);
+    ctx.restore();
+    // Dizzy stars circling the head.
+    if (s.stars > 0 && s.alpha > 0) {
+      for (let k = 0; k < 3; k++) {
+        const a = performance.now() / 260 + k * 2.1;
+        const sx = s.x + Math.cos(a) * 10, sy = s.y - 12 + Math.sin(a) * 3.5;
+        starShape(ctx, sx, sy, 3.2 * s.stars, 5); ctx.fillStyle = C.star; ctx.globalAlpha = px ? 1 : s.alpha; ctx.fill(); ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function starShape(ctx, x, y, r, n, inner = 0.45) {
+    ctx.beginPath();
+    for (let i = 0; i < n * 2; i++) { const a = -Math.PI / 2 + (i * Math.PI) / n, rr = i % 2 ? r * inner : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath();
+  }
+
+  // Dust puffs: born at an event, expand, rise a little, fade. `alpha(a)` lets style A dither them.
+  function dustPuff(ctx, px, x, y, age, big, seed) {
+    const r = rnd(seed);
+    for (let i = 0; i < 7; i++) {
+      const life = 0.55 + r() * 0.35, k = age / life;
+      if (k < 0 || k >= 1) { r(); r(); continue; }
+      const dir = (i / 7) * Math.PI + Math.PI + (r() - 0.5) * 0.4;
+      const dist = (10 + r() * 26) * big * easeOut(k);
+      const rad = (5 + r() * 6) * big * (0.6 + k * 0.8);
+      ell(ctx, x + Math.cos(dir) * dist * 1.4, y - 3 + Math.sin(dir) * dist * 0.5 - k * 8, rad, rad * 0.8);
+      ctx.fillStyle = px ? (i % 2 ? C.dust : C.dustSh) : `rgba(230,195,137,${0.75 * (1 - k)})`;
+      if (px) ctx.globalAlpha = 1 - k; ctx.fill(); ctx.globalAlpha = 1;
+    }
+  }
+
+  function drawFx(ctx, px, sc) {
+    const t = sc.t;
+    // Impact: a burst, a flash and an expanding ring where the fist lands.
+    const ix = LEAD_HIT_X + 8, iy = ROAD - 22;
+    if (t > T_HIT - 0.01 && t < T_HIT + 0.45) {
+      const k = seg(t, T_HIT, T_HIT + 0.45);
+      starShape(ctx, ix, iy, (px ? 22 : 34) * backOut(clamp(k * 3)) * (1 - k * 0.5), 10, 0.42);
+      ctx.fillStyle = px ? (k < 0.35 ? C.white : C.star) : `rgba(255,${Math.round(250 - 60 * k)},${Math.round(200 - 150 * k)},${1 - k})`;
+      if (px) ctx.globalAlpha = 1 - k; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(ix, iy, 12 + 80 * easeOut(k), 0, Math.PI * 2);
+      ctx.lineWidth = px ? 3 : 4 * (1 - k); ctx.strokeStyle = px ? C.white : `rgba(255,255,255,${0.9 * (1 - k)})`;
+      if (px) ctx.globalAlpha = 1 - k; ctx.stroke(); ctx.globalAlpha = 1;
+      if (!px) { for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + 0.3, r0 = 26 + 70 * easeOut(k), r1 = r0 + 18 * (1 - k); ctx.beginPath(); ctx.moveTo(ix + Math.cos(a) * r0, iy + Math.sin(a) * r0 * 0.7); ctx.lineTo(ix + Math.cos(a) * r1, iy + Math.sin(a) * r1 * 0.7); ctx.lineWidth = 3 * (1 - k); ctx.strokeStyle = `rgba(255,236,170,${1 - k})`; ctx.stroke(); } }
+    }
+    // Speed lines behind airborne goblins (style B), landing dust for both.
+    for (const { g, s } of sc.gobs) {
+      if (!px && s.state === 'air' && t > T_STOP) { ctx.beginPath(); ctx.moveTo(s.x + 12, s.y - 16); ctx.lineTo(s.x + 44, s.y - 4); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.stroke(); }
+      for (const d of s.dust || []) dustPuff(ctx, px, d.x, d.y, t - d.t0, d.big, Math.round(d.t0 * 1000) + g.off);
+    }
+    // Clap dust off Manny's hands.
+    for (const c of T_CLAP) if (t > c && t < c + 0.6) {
+      const cx = MANNY_X - 22, cy = MANNY_Y - 66;
+      const r = rnd(Math.round(c * 100));
+      for (let i = 0; i < 6; i++) {
+        const k = (t - c) / 0.6, a = -Math.PI / 2 + (r() - 0.5) * 2.6, d = 10 + 30 * easeOut(k) * (0.6 + r() * 0.6);
+        ell(ctx, cx + Math.cos(a) * d, cy + Math.sin(a) * d - k * 10, 3.5 + k * 5, 3.5 + k * 5);
+        ctx.fillStyle = px ? C.dust : `rgba(240,220,180,${0.8 * (1 - k)})`; if (px) ctx.globalAlpha = 1 - k; ctx.fill(); ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  function drawUnits(ctx, px, sc) {
+    // Painter's order: things further up the screen first.
+    const items = sc.gobs.map(({ g, s }) => ({ y: s.state === 'air' ? ROAD + g.dy : s.y, draw: () => drawGoblin(ctx, px, s, g.size) }));
+    items.push({ y: MANNY_Y, draw: () => drawManny(ctx, px, sc.manny) });
+    items.sort((a, b) => a.y - b.y).forEach((i) => i.draw());
+    drawFx(ctx, px, sc);
+  }
+
+  // ---------------------------------------------------------------- backgrounds
+  function paintGround(ctx, px, w, h, k) {
+    // k: logical units -> canvas pixels.
+    const r = rnd(7);
+    ctx.save(); ctx.scale(k, k);
+    if (px) {
+      ctx.fillStyle = '#529e40'; ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 900; i++) { ctx.fillStyle = ['#3c7f38', '#72ba4c', '#529e40', '#a3d765'][Math.floor(r() * 4)]; ctx.fillRect(Math.floor(r() * W / 2) * 2, Math.floor(r() * H / 2) * 2, 2, 2); }
+      ctx.fillStyle = '#a57446'; ctx.fillRect(0, ROAD - 34, W, 70);
+      ctx.fillStyle = '#7e5432'; ctx.fillRect(0, ROAD - 36, W, 2); ctx.fillRect(0, ROAD + 36, W, 2);
+      for (let i = 0; i < 500; i++) { ctx.fillStyle = ['#c99a5e', '#7e5432', '#a57446'][Math.floor(r() * 3)]; ctx.fillRect(Math.floor(r() * W / 2) * 2, ROAD - 34 + Math.floor(r() * 35) * 2, 2, 2); }
+    } else {
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#6fbf4f'); g.addColorStop(1, '#4b9a3c'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 40; i++) { ell(ctx, r() * W, r() * H, 30 + r() * 60, 12 + r() * 20); ctx.fillStyle = `rgba(${r() < 0.5 ? '255,255,180' : '20,60,20'},0.08)`; ctx.fill(); }
+      for (let i = 0; i < 160; i++) { const x = r() * W, y = r() * H; if (Math.abs(y - ROAD) < 44) continue; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 2, y - 7, x + 4 + r() * 2, y - 9); ctx.strokeStyle = 'rgba(30,80,30,0.45)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(0, ROAD - 36); for (let x = 0; x <= W; x += 40) ctx.quadraticCurveTo(x + 20, ROAD - 38 + Math.sin(x) * 3, x + 40, ROAD - 36); ctx.lineTo(W, ROAD + 36); for (let x = W; x >= 0; x -= 40) ctx.quadraticCurveTo(x - 20, ROAD + 38 + Math.cos(x) * 3, x - 40, ROAD + 36); ctx.closePath();
+      const rg = ctx.createLinearGradient(0, ROAD - 36, 0, ROAD + 36); rg.addColorStop(0, '#b98552'); rg.addColorStop(0.5, '#cfa06a'); rg.addColorStop(1, '#a87445'); ctx.fillStyle = rg; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(90,58,38,0.55)'; ctx.stroke();
+      for (let i = 0; i < 70; i++) { ell(ctx, r() * W, ROAD - 30 + r() * 60, 1.5 + r() * 2.5, 1 + r() * 1.5); ctx.fillStyle = 'rgba(110,75,45,0.5)'; ctx.fill(); }
+      for (let i = 0; i < 18; i++) { const x = r() * W, y = r() < 0.5 ? 20 + r() * 170 : 310 + r() * 40; for (let p = 0; p < 5; p++) { ell(ctx, x + Math.cos(p * 1.26) * 3, y + Math.sin(p * 1.26) * 3, 2.2, 2.2); ctx.fillStyle = ['#f59ab6', '#fbe7a1', '#ffffff'][i % 3]; ctx.fill(); } ell(ctx, x, y, 1.6, 1.6); ctx.fillStyle = '#f2c94c'; ctx.fill(); }
+    }
+    ctx.restore();
+  }
+
+  // ---------------------------------------------------------------- style A: render low-res, snap to palette, dither, outline
+  const LOW = 2; // logical units per art pixel
+  const low = document.createElement('canvas'); low.width = W / LOW; low.height = H / LOW;
+  const lowCtx = low.getContext('2d', { willReadFrequently: true });
+  const bgA = document.createElement('canvas'); bgA.width = W / LOW; bgA.height = H / LOW; paintGround(bgA.getContext('2d'), true, bgA.width, bgA.height, 1 / LOW);
+  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
+  const nearest = new Map();
+  function snap(r, g, b) {
+    const key = (r >> 2) << 12 | (g >> 2) << 6 | (b >> 2);
+    let c = nearest.get(key);
+    if (!c) { let best = 1e9; for (const p of PALETTE) { const d = (p[0] - r) ** 2 * 0.3 + (p[1] - g) ** 2 * 0.59 + (p[2] - b) ** 2 * 0.11; if (d < best) { best = d; c = p; } } nearest.set(key, c); }
+    return c;
+  }
+  const ground = document.createElement('canvas'); ground.width = W / LOW; ground.height = H / LOW;
+  const groundCtx = ground.getContext('2d');
+  function renderPixel(canvas, sc) {
+    lowCtx.setTransform(1, 0, 0, 1, 0, 0); lowCtx.clearRect(0, 0, low.width, low.height);
+    lowCtx.imageSmoothingEnabled = false;
+    lowCtx.setTransform(1 / LOW, 0, 0, 1 / LOW, Math.round(sc.sx / LOW), Math.round(sc.sy / LOW));
+    SHADOWS = [];
+    drawUnits(lowCtx, true, sc);
+    // Shadows go on the ground as a solid darker tone (no outline), snapped to whole art pixels.
+    groundCtx.setTransform(1, 0, 0, 1, 0, 0); groundCtx.drawImage(bgA, 0, 0);
+    for (const [x, y, rx, ry] of SHADOWS) {
+      const cx = Math.round((x + sc.sx) / LOW), cy = Math.round((y + sc.sy) / LOW), ax = Math.max(1, rx / LOW), ay = Math.max(1, ry / LOW);
+      for (let yy = -Math.ceil(ay); yy <= Math.ceil(ay); yy++) for (let xx = -Math.ceil(ax); xx <= Math.ceil(ax); xx++) {
+        if ((xx / ax) ** 2 + (yy / ay) ** 2 > 1) continue;
+        groundCtx.fillStyle = cy + yy > ROAD / LOW - 18 && cy + yy < ROAD / LOW + 18 ? '#7e5432' : '#3c7f38';
+        groundCtx.fillRect(cx + xx, cy + yy, 1, 1);
+      }
+    }
+    SHADOWS = null;
+    const img = lowCtx.getImageData(0, 0, low.width, low.height), d = img.data, w = low.width, h = low.height;
+    const solid = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, a = d[i + 3] / 255;
+      // Translucent pixels become an ordered dither of solid ones: the classic pixel-art fade.
+      if (a < BAYER[(y & 3) * 4 + (x & 3)]) { d[i + 3] = 0; continue; }
+      const c = snap(d[i] / a, d[i + 1] / a, d[i + 2] / a);
+      d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255; solid[y * w + x] = 1;
+    }
+    // A one-pixel ink outline around everything drawn.
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (solid[y * w + x]) continue;
+      if ((x > 0 && solid[y * w + x - 1]) || (x < w - 1 && solid[y * w + x + 1]) || (y > 0 && solid[(y - 1) * w + x]) || (y < h - 1 && solid[(y + 1) * w + x])) {
+        const i = (y * w + x) * 4; d[i] = 0x1a; d[i + 1] = 0x14; d[i + 2] = 0x24; d[i + 3] = 255;
+      }
+    }
+    lowCtx.putImageData(img, 0, 0);
+    const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(ground, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(low, 0, 0, canvas.width, canvas.height);
+  }
+
+  // ---------------------------------------------------------------- style B: full resolution
+  const bgB = document.createElement('canvas');
+  function renderIllustrated(canvas, sc) {
+    const k = canvas.width / W;
+    if (bgB.width !== canvas.width) { bgB.width = canvas.width; bgB.height = canvas.height; paintGround(bgB.getContext('2d'), false, canvas.width, canvas.height, k); }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bgB, 0, 0);
+    ctx.setTransform(k, 0, 0, k, sc.sx * k, sc.sy * k);
+    drawUnits(ctx, false, sc);
+    // A white flash on the frame of impact.
+    if (sc.t > T_HIT && sc.t < T_HIT + 0.05) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = 'rgba(255,255,240,0.35)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  }
+
+  // ---------------------------------------------------------------- loop and controls
+  const pix = document.getElementById('pix'), ill = document.getElementById('ill');
+  function sizeCanvases() {
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const cssW = ill.getBoundingClientRect().width || W;
+    // Style A: a whole number of screen pixels per art pixel; style B: native resolution.
+    const artPx = Math.max(1, Math.round((cssW * dpr) / (W / LOW)));
+    pix.width = (W / LOW) * artPx; pix.height = (H / LOW) * artPx;
+    ill.width = Math.round(cssW * dpr); ill.height = Math.round(ill.width * H / W);
+  }
+  sizeCanvases(); addEventListener('resize', sizeCanvases);
+
+  let playing = true, slow = false, t = 0, last = performance.now();
+  const scrub = document.getElementById('scrub'), clock = document.getElementById('clock'), beats = document.getElementById('beats');
+  beats.innerHTML = BEATS.map(([n]) => `<span>${n}</span>`).join('');
+  function draw() {
+    const sc = sceneAt(t);
+    renderPixel(pix, sc); renderIllustrated(ill, sc);
+    scrub.value = t.toFixed(2); clock.textContent = `${t.toFixed(2)} s`;
+    let on = 0; BEATS.forEach(([, b], i) => { if (t >= b) on = i; });
+    [...beats.children].forEach((el, i) => el.classList.toggle('on', i === on));
+  }
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (playing) t = (t + dt * (slow ? 0.25 : 1)) % P;
+    draw(); requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  const play = document.getElementById('play'), slowBtn = document.getElementById('slow');
+  play.onclick = () => { playing = !playing; play.setAttribute('aria-pressed', String(playing)); play.textContent = playing ? 'Playing' : 'Paused'; };
+  slowBtn.onclick = () => { slow = !slow; slowBtn.setAttribute('aria-pressed', String(slow)); };
+  document.getElementById('replay').onclick = () => { t = T_WIND - 0.4; if (!playing) play.click(); };
+  scrub.oninput = () => { t = +scrub.value; if (playing) play.click(); draw(); };
+  // For capturing stills: renderAt(seconds) pauses and draws that moment.
+  window.renderAt = (s) => { if (playing) play.click(); t = s; draw(); };
+})();
+</script>
