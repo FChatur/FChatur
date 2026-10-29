@@ -1,12 +1,16 @@
 import Phaser from 'phaser';
+import { frameKey } from '../art/atlas';
+import { TOWER_ART } from '../art/catalog';
+import { COLORS } from '../art/palette';
+import { explosionFrames } from '../art/sprites/effects';
 import { ENEMIES } from '../config/enemies';
 import { TILE_SIZE } from '../config/map';
-import { TOWERS } from '../config/towers';
 import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import type { EntityRenderer } from './EntityRenderer';
 import { prefersReducedMotion } from './motion';
-import { DEPTH, FONT_FAMILY, PALETTE, textResolution } from './palette';
+import { DEPTH, PALETTE } from './palette';
+import { ART_SCALE, ATLAS_KEY, bitmapCanvas, frameCount, textTexture } from './pixel';
 
 /**
  * Caps on simultaneously alive cosmetic effects. Heavy fire (many towers at 3x) can request thousands
@@ -31,29 +35,33 @@ class EffectBudget {
   }
 }
 
-/** Creates a short-lived object if the budget allows, and destroys it when its tween ends. */
-function transient<T extends Phaser.GameObjects.GameObject>(
-  scene: Phaser.Scene,
-  budget: EffectBudget,
-  kind: EffectKind,
-  create: () => T,
-  tween: Omit<Phaser.Types.Tweens.TweenBuilderConfig, 'targets'>,
-): void {
-  if (!budget.take(kind)) return;
-  const obj = create();
-  scene.tweens.add({
-    ...tween,
-    targets: obj,
-    onComplete: () => {
-      obj.destroy();
-      budget.release(kind);
-    },
-  });
+/** A frame animation playing once at a fixed spot (real time). */
+interface Flipbook {
+  img: Phaser.GameObjects.Image;
+  frames: string[];
+  texture: string;
+  start: number;
+  frameMs: number;
+  /** Rises this many world units over its life (coins). */
+  rise: number;
+  y0: number;
+  kind: EffectKind | null;
+}
+
+/** Explosion frames per splash radius, as separate textures (created on first use). */
+function explosionTextures(scene: Phaser.Scene, radiusArt: number): string[] {
+  const r = Math.round(radiusArt);
+  const key = (i: number) => `boom:${r}:${i}`;
+  if (!scene.textures.exists(key(0))) {
+    explosionFrames(r).forEach((f, i) => scene.textures.addCanvas(key(i), bitmapCanvas(f))!.setFilter(Phaser.Textures.FilterMode.NEAREST));
+  }
+  return [0, 1, 2, 3, 4].map(key);
 }
 
 /**
- * Short-lived visual feedback driven by simulation events. Effects run on real time, so they
- * stay readable at any game speed. Returns an unsubscribe function.
+ * Short-lived visual feedback driven by simulation events: impacts, deaths, coins, level-ups, banners.
+ * Effects run on real time, so they stay readable at any game speed. Returns an update function (call
+ * every frame) and an unsubscribe function.
  */
 export function attachEffects(
   scene: Phaser.Scene,
@@ -61,39 +69,42 @@ export function attachEffects(
   entities: EntityRenderer,
   exit: { x: number; y: number },
   world: { width: number; height: number },
-): () => void {
+): { update: () => void; detach: () => void } {
   const budget = new EffectBudget();
-  const spark = (x: number, y: number, crit: boolean) => {
-    const color = crit ? PALETTE.crit : PALETTE.projectile;
-    transient(scene, budget, 'minor', () => scene.add.circle(x, y, crit ? 5 : 3).setStrokeStyle(crit ? 3 : 2, color, 1).setDepth(DEPTH.effects), {
-      scale: crit ? 3.2 : 2.4,
-      alpha: 0,
-      duration: crit ? 260 : 160,
-    });
+  const playing: Flipbook[] = [];
+  const pool: Phaser.GameObjects.Image[] = [];
+
+  /** Plays an atlas animation once at (x, y). Cosmetic ones (with a kind) respect the budget. */
+  const play = (animation: string, x: number, y: number, frameMs: number, kind: EffectKind | null, rise = 0) => {
+    if (kind && !budget.take(kind)) return;
+    const frames = Array.from({ length: frameCount(animation) }, (_, i) => frameKey(animation, i));
+    const img = (pool.pop() ?? scene.add.image(0, 0, ATLAS_KEY, frames[0]).setScale(ART_SCALE))
+      .setTexture(ATLAS_KEY, frames[0])
+      .setPosition(x, y)
+      .setAlpha(1)
+      .setVisible(true)
+      .setDepth(DEPTH.effects);
+    playing.push({ img, frames, texture: ATLAS_KEY, start: scene.time.now, frameMs, rise, y0: y, kind });
   };
-  const burst = (x: number, y: number, color: number) => {
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
-      const dist = 14 + Math.random() * 14;
-      transient(scene, budget, 'particle', () => scene.add.rectangle(x, y, 4, 4, color).setDepth(DEPTH.effects), {
-        x: x + Math.cos(angle) * dist,
-        y: y + Math.sin(angle) * dist,
-        alpha: 0,
-        angle: 180,
-        duration: 320 + Math.random() * 120,
-        ease: 'Quad.Out',
-      });
-    }
+
+  const playTextures = (textures: string[], x: number, y: number, frameMs: number, kind: EffectKind | null) => {
+    if (kind && !budget.take(kind)) return;
+    const img = scene.add.image(x, y, textures[0]).setScale(ART_SCALE).setDepth(DEPTH.effects);
+    playing.push({ img, frames: textures, texture: '', start: scene.time.now, frameMs, rise: 0, y0: y, kind });
   };
-  /** Floating text; `important` ones (upgrades, sales, interest) ignore the cap. */
+
+  /** Floating pixel text; `important` ones (upgrades, sales, interest) ignore the cap. */
   const floatText = (x: number, y: number, text: string, color: number, important = false) => {
     if (!important && !budget.take('text')) return;
-    const label = makeLabel(scene, x, y, text, color);
+    const label = scene.add
+      .image(Math.round(x / ART_SCALE) * ART_SCALE, y, textTexture(scene, text, color))
+      .setScale(ART_SCALE)
+      .setDepth(DEPTH.text);
     scene.tweens.add({
       targets: label,
-      y: y - 22,
+      y: y - 8 * ART_SCALE,
       alpha: 0,
-      duration: 700,
+      duration: 750,
       ease: 'Quad.Out',
       onComplete: () => {
         label.destroy();
@@ -102,138 +113,149 @@ export function attachEffects(
     });
   };
 
-  const subs = [
-    bus.on('towerFired', ({ tower, projectile }) => {
-      entities.recoilTower(tower.id);
-      transient(scene, budget, 'minor', () => scene.add.circle(projectile.x, projectile.y, 5, TOWERS[tower.type].color, 0.9).setDepth(DEPTH.effects), {
-        scale: 1.8,
-        alpha: 0,
-        duration: 90,
-      });
-    }),
+  const shake = (ms: number, intensity: number) => {
+    if (!prefersReducedMotion()) scene.cameras.main.shake(ms, intensity);
+  };
 
-    bus.on('waveStarted', ({ wave }) => banner(scene, world, `WAVE ${wave}`, PALETTE.waveText, 26)),
+  const subs = [
+    bus.on('towerFired', ({ tower }) => entities.recoilTower(tower.id)),
+
+    bus.on('waveStarted', ({ wave }) => banner(scene, world, `WAVE ${wave}`, PALETTE.waveText)),
 
     bus.on('enemySpawned', ({ enemy }) => {
       if (enemy.type !== 'boss') return;
-      banner(scene, world, `${ENEMIES.boss.name.toUpperCase()} APPROACHES`, PALETTE.exit, 30);
-      if (!prefersReducedMotion()) scene.cameras.main.shake(400, 0.006);
+      banner(scene, world, `${ENEMIES.boss.name.toUpperCase()} APPROACHES!`, PALETTE.bossText);
+      shake(450, 0.006);
     }),
 
-    bus.on('projectileHit', ({ projectile, enemy, crit }) => {
+    bus.on('projectileHit', ({ projectile, enemy, crit, damage }) => {
       entities.flashEnemy(enemy.id);
-      spark(projectile.x, projectile.y, crit);
+      const at = entities.enemyCenter(enemy);
+      const art = TOWER_ART[projectile.towerType];
+      play(crit ? 'crit-spark' : art.impact, at.x, at.y, art.impact === 'heavy-impact' ? 55 : 50, 'minor');
+      // Ballista hits are big and rare: show how much they did (red for a critical hit). Other towers hit
+      // too often for numbers to stay readable, so they rely on sparks and health bars.
+      if (art.defender === 'ballista') {
+        floatText(at.x, at.y - 7 * ART_SCALE, crit ? `${Math.round(damage)}!` : `${Math.round(damage)}`, crit ? COLORS.red3 : COLORS.white0);
+      }
     }),
 
-    bus.on('chainArc', ({ fromX, fromY, toX, toY }) =>
-      transient(scene, budget, 'minor', () => lightning(scene, fromX, fromY, toX, toY), { alpha: 0, duration: 180 }),
-    ),
+    bus.on('chainArc', ({ fromX, fromY, toX, toY }) => {
+      if (!budget.take('minor')) return;
+      const g = lightning(scene, fromX, fromY, toX, toY);
+      scene.tweens.add({ targets: g, alpha: 0, duration: 180, onComplete: () => (g.destroy(), budget.release('minor')) });
+    }),
 
-    bus.on('splash', ({ x, y, radius }) =>
-      transient(
-        scene,
-        budget,
-        'minor',
-        () =>
-          scene.add
-            .circle(x, y, radius)
-            .setFillStyle(PALETTE.splash, 0.18)
-            .setStrokeStyle(2, PALETTE.splash, 0.8)
-            .setDepth(DEPTH.effects)
-            .setScale(0.4),
-        { scale: 1, alpha: 0, duration: 220, ease: 'Quad.Out' },
-      ),
-    ),
+    bus.on('splash', ({ x, y, radius }) => playTextures(explosionTextures(scene, radius / ART_SCALE), x, y, 55, 'minor')),
 
     bus.on('waveCleared', ({ interest }) => {
       if (interest <= 0) return;
-      floatText(world.width / 2, 40, `Interest +${interest}`, PALETTE.gold, true);
+      floatText(world.width / 2, 14 * ART_SCALE, `+${interest} INTEREST`, PALETTE.gold, true);
     }),
 
     bus.on('enemyKilled', ({ enemy }) => {
-      burst(enemy.x, enemy.y, ENEMIES[enemy.type].color);
-      floatText(enemy.x, enemy.y - 12, `+${enemy.reward}`, PALETTE.gold);
+      const at = entities.enemyCenter(enemy);
+      play('death-dust', at.x, at.y, 60, 'particle');
+      play('coin', at.x, at.y - 3 * ART_SCALE, 70, 'particle', 7 * ART_SCALE);
+      floatText(at.x + 5 * ART_SCALE, at.y - 6 * ART_SCALE, `+${enemy.reward}`, PALETTE.gold);
     }),
 
+    bus.on('towerPlaced', ({ tower }) => play('build-dust', tower.x, tower.y + TILE_SIZE * 0.35, 60, null)),
+
     bus.on('towerUpgraded', ({ tower }) => {
-      const ring = scene.add
-        .circle(tower.x, tower.y, TILE_SIZE * 0.45)
-        .setStrokeStyle(3, TOWERS[tower.type].color, 1)
-        .setDepth(DEPTH.effects);
-      scene.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 420, ease: 'Quad.Out', onComplete: () => ring.destroy() });
-      floatText(tower.x, tower.y - 20, `LV ${tower.level}`, TOWERS[tower.type].color, true);
+      for (const [dx, dy] of [[-5, -10], [5, -14], [0, -20], [-6, -2], [6, -6]]) {
+        play('sparkle', tower.x + dx * ART_SCALE, tower.y + dy * ART_SCALE, 90, null);
+      }
+      floatText(tower.x, tower.y - 22 * ART_SCALE, `LV ${tower.level}`, COLORS.gold4, true);
     }),
 
     bus.on('towerSold', ({ tower, refund }) => {
-      burst(tower.x, tower.y, TOWERS[tower.type].color);
-      floatText(tower.x, tower.y - 12, `+${refund}`, PALETTE.gold, true);
+      play('build-dust', tower.x, tower.y + TILE_SIZE * 0.35, 60, null);
+      floatText(tower.x, tower.y - 8 * ART_SCALE, `+${refund}`, PALETTE.gold, true);
     }),
 
     bus.on('enemyLeaked', () => {
-      if (!prefersReducedMotion()) scene.cameras.main.shake(140, 0.004);
+      shake(160, 0.004);
       const flash = scene.add
-        .rectangle(exit.x, exit.y, 16, TILE_SIZE * 1.4, PALETTE.exit, 0.8)
+        .rectangle(exit.x, exit.y, 6 * ART_SCALE, TILE_SIZE * 1.2, PALETTE.leak, 0.75)
         .setDepth(DEPTH.effects);
-      scene.tweens.add({ targets: flash, alpha: 0, scaleX: 3, duration: 350, onComplete: () => flash.destroy() });
+      scene.tweens.add({ targets: flash, alpha: 0, duration: 380, onComplete: () => flash.destroy() });
     }),
   ];
-  return () => subs.forEach((off) => off());
+
+  const update = () => {
+    const now = scene.time.now;
+    for (let i = playing.length - 1; i >= 0; i--) {
+      const f = playing[i];
+      const index = Math.floor((now - f.start) / f.frameMs);
+      if (index >= f.frames.length) {
+        if (f.kind) budget.release(f.kind);
+        if (f.texture) {
+          f.img.setVisible(false);
+          pool.push(f.img);
+        } else {
+          f.img.destroy();
+        }
+        playing.splice(i, 1);
+        continue;
+      }
+      if (f.texture) f.img.setFrame(f.frames[index]);
+      else f.img.setTexture(f.frames[index]);
+      if (f.rise) {
+        const t = (now - f.start) / (f.frameMs * f.frames.length);
+        f.img.setY(f.y0 - Math.round((f.rise * t) / ART_SCALE) * ART_SCALE);
+      }
+    }
+  };
+
+  return {
+    update,
+    detach: () => {
+      subs.forEach((off) => off());
+      for (const f of playing) f.img.destroy();
+      for (const img of pool) img.destroy();
+    },
+  };
 }
 
-/** A short centred title that fades in and out over the board. */
-function banner(scene: Phaser.Scene, world: { width: number; height: number }, text: string, color: number, size: number): void {
+/** A pixel-text title that drops in, holds, and fades over the top of the board. */
+function banner(scene: Phaser.Scene, world: { width: number; height: number }, text: string, color: number): void {
+  const reduced = prefersReducedMotion();
+  const y = world.height * 0.22;
   const label = scene.add
-    .text(world.width / 2, world.height * 0.3, text, {
-      resolution: textResolution(scene),
-      fontFamily: FONT_FAMILY,
-      fontSize: `${size}px`,
-      fontStyle: 'bold',
-      color: Phaser.Display.Color.IntegerToColor(color).rgba,
-      stroke: '#000000',
-      strokeThickness: 6,
-    })
-    .setOrigin(0.5)
-    .setDepth(DEPTH.effects + 5)
-    .setAlpha(0)
-    .setScale(prefersReducedMotion() ? 1 : 0.9);
+    .image(world.width / 2, reduced ? y : y - 6 * ART_SCALE, textTexture(scene, text, color, 2))
+    .setScale(ART_SCALE)
+    .setDepth(DEPTH.banner)
+    .setAlpha(0);
   scene.tweens.chain({
     targets: label,
     tweens: [
-      { alpha: 1, scale: 1, duration: 220, ease: prefersReducedMotion() ? 'Linear' : 'Back.Out' },
-      { alpha: 0, duration: 400, delay: 800 },
+      { alpha: 1, y, duration: 220, ease: reduced ? 'Linear' : 'Back.Out' },
+      { alpha: 0, duration: 400, delay: 900 },
     ],
     onComplete: () => label.destroy(),
   });
 }
 
-/** A jagged bolt between two points (faded out by the caller). */
+/** A jagged pixel bolt between two points (corners snapped to the art grid), faded out by the caller. */
 function lightning(scene: Phaser.Scene, x1: number, y1: number, x2: number, y2: number): Phaser.GameObjects.Graphics {
   const g = scene.add.graphics().setDepth(DEPTH.effects);
+  const snap = (v: number) => Math.round(v / ART_SCALE) * ART_SCALE;
   const segments = 5;
   const nx = -(y2 - y1);
   const ny = x2 - x1;
   const len = Math.hypot(nx, ny) || 1;
-  g.lineStyle(2, PALETTE.lightning, 1).beginPath().moveTo(x1, y1);
+  const points: [number, number][] = [[snap(x1), snap(y1)]];
   for (let i = 1; i < segments; i++) {
     const t = i / segments;
-    const jitter = (Math.random() - 0.5) * 12;
-    g.lineTo(x1 + (x2 - x1) * t + (nx / len) * jitter, y1 + (y2 - y1) * t + (ny / len) * jitter);
+    const jitter = (Math.random() - 0.5) * 4 * ART_SCALE;
+    points.push([snap(x1 + (x2 - x1) * t + (nx / len) * jitter), snap(y1 + (y2 - y1) * t + (ny / len) * jitter)]);
   }
-  g.lineTo(x2, y2).strokePath();
+  points.push([snap(x2), snap(y2)]);
+  for (const [width, color] of [[ART_SCALE * 3, PALETTE.lightningGlow], [ART_SCALE, PALETTE.lightning]] as const) {
+    g.lineStyle(width, color, width > ART_SCALE ? 0.5 : 1).beginPath().moveTo(points[0][0], points[0][1]);
+    for (const [px, py] of points.slice(1)) g.lineTo(px, py);
+    g.strokePath();
+  }
   return g;
-}
-
-function makeLabel(scene: Phaser.Scene, x: number, y: number, text: string, color: number): Phaser.GameObjects.Text {
-  return scene.add
-    .text(x, y, text, {
-      resolution: textResolution(scene),
-      fontFamily: FONT_FAMILY,
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: Phaser.Display.Color.IntegerToColor(color).rgba,
-      stroke: '#000000',
-      strokeThickness: 3,
-    })
-    .setOrigin(0.5)
-    .setDepth(DEPTH.effects);
 }

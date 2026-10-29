@@ -1,28 +1,35 @@
 import Phaser from 'phaser';
+import { ART_TILE } from './art/terrain';
 import { DEFAULT_MAP } from './config/maps';
+import type { TileCoord } from './config/map';
 import { GameSession } from './game/GameSession';
 import { PALETTE } from './render/palette';
-import { clampPixelRatio, computeViewport, type Viewport } from './render/viewport';
+import { clampPixelRatio, computeViewport, mapScreenRect, type Viewport } from './render/viewport';
 import { GameScene, type GameSceneData } from './scenes/GameScene';
 import { Sfx } from './audio/Sfx';
-import { Hud } from './ui/Hud';
+import { Hud, type BoardGeometry } from './ui/Hud';
 import { hideNotice, showNotice, watchForCrashes } from './ui/notice';
+import '@fontsource/pixelify-sans/latin-400.css';
+import '@fontsource/pixelify-sans/latin-600.css';
 import './style.css';
 
 watchForCrashes();
 const session = new GameSession();
 
-// Rendering: the canvas buffer matches the device pixels it covers (see render/viewport.ts), so the
-// browser never stretches it. The world is fitted in with the camera zoom (GameScene.applyViewport).
+// Rendering: the canvas fills the stage and its buffer matches the device pixels it covers (see
+// render/viewport.ts), so the browser never stretches it. The map is drawn at a whole number of device
+// pixels per art pixel and centred; scenery fills the rest.
 const container = document.getElementById('game-container')!;
 const { grid } = DEFAULT_MAP;
+const worldWidth = grid.cols * grid.tileSize;
+const worldHeight = grid.rows * grid.tileSize;
 const viewportInput = () => ({
   cssWidth: container.clientWidth,
   cssHeight: container.clientHeight,
   devicePixelRatio: window.devicePixelRatio,
-  worldWidth: grid.cols * grid.tileSize,
-  worldHeight: grid.rows * grid.tileSize,
-  tileSize: grid.tileSize,
+  mapArtWidth: grid.cols * ART_TILE,
+  mapArtHeight: grid.rows * ART_TILE,
+  worldPerArt: grid.tileSize / ART_TILE,
 });
 const measure = (): Viewport => computeViewport(viewportInput());
 let viewport = measure();
@@ -33,9 +40,8 @@ const game = new Phaser.Game({
   width: viewport.bufferWidth,
   height: viewport.bufferHeight,
   backgroundColor: PALETTE.background,
-  // Smooth vector art: Phaser switches to pixel-art mode (no antialiasing, snapped positions) whenever
-  // the canvas zoom isn't 1, so these are set explicitly.
-  render: { antialias: true, antialiasGL: true, pixelArt: false, roundPixels: false },
+  // Pixel art: nearest-neighbour sampling and whole-pixel positions everywhere.
+  render: { antialias: false, antialiasGL: false, pixelArt: true, roundPixels: true },
   scale: { mode: Phaser.Scale.NONE, zoom: 1 / viewport.devicePixelRatio },
   banner: false,
 });
@@ -43,13 +49,14 @@ game.registry.set('viewport', viewport);
 
 function applyViewport(): void {
   const next = measure();
-  if (
+  const same =
     next.bufferWidth === viewport.bufferWidth &&
     next.bufferHeight === viewport.bufferHeight &&
     next.devicePixelRatio === viewport.devicePixelRatio &&
-    next.offsetX === viewport.offsetX &&
-    next.offsetY === viewport.offsetY
-  ) {
+    next.mapX === viewport.mapX &&
+    next.mapY === viewport.mapY;
+  if (same) {
+    positionCanvas();
     return;
   }
   viewport = next;
@@ -77,12 +84,46 @@ window.addEventListener('resize', queueResize);
 game.events.on(Phaser.Core.Events.PRE_STEP, () => {
   if (clampPixelRatio(window.devicePixelRatio) !== viewport.devicePixelRatio) queueResize();
 });
-/** Places the canvas on whole device pixels, then has Phaser re-read its on-page bounds for input. */
+
+/**
+ * Places the canvas on whole device pixels (an off-pixel position makes the browser resample, i.e. blur,
+ * the whole image), then has Phaser re-read its on-page bounds for input. Also publishes where the map
+ * is, for the interface and for tests.
+ */
 function positionCanvas(): void {
-  game.canvas.style.marginLeft = `${viewport.offsetX}px`;
-  game.canvas.style.marginTop = `${viewport.offsetY}px`;
+  const dpr = viewport.devicePixelRatio;
+  const box = container.getBoundingClientRect();
+  const snap = (v: number) => (Math.ceil(v * dpr - 1e-6) - v * dpr) / dpr;
+  game.canvas.style.marginLeft = `${snap(box.left)}px`;
+  game.canvas.style.marginTop = `${snap(box.top)}px`;
   game.scale.refresh();
+  const tile = (grid.tileSize * viewport.scale) / dpr;
+  container.dataset.mapLeft = String(viewport.mapX / dpr);
+  container.dataset.mapTop = String(viewport.mapY / dpr);
+  container.dataset.tile = String(tile);
 }
+
+/** Converts between the page and the map, for drag and drop and tooltips. */
+const geometry: BoardGeometry = {
+  tileAt(clientX: number, clientY: number): TileCoord | null {
+    const rect = mapScreenRect(viewport, game.canvas.getBoundingClientRect(), worldWidth, worldHeight);
+    const col = Math.floor(((clientX - rect.left) / rect.width) * grid.cols);
+    const row = Math.floor(((clientY - rect.top) / rect.height) * grid.rows);
+    return col >= 0 && row >= 0 && col < grid.cols && row < grid.rows ? { col, row } : null;
+  },
+  tileRect(col: number, row: number) {
+    const rect = mapScreenRect(viewport, game.canvas.getBoundingClientRect(), worldWidth, worldHeight);
+    const w = rect.width / grid.cols;
+    const h = rect.height / grid.rows;
+    return { left: rect.left + col * w, top: rect.top + row * h, width: w, height: h };
+  },
+  overBoard(clientX: number, clientY: number): boolean {
+    const box = game.canvas.getBoundingClientRect();
+    const hit = document.elementFromPoint(clientX, clientY);
+    return clientX >= box.left && clientX < box.right && clientY >= box.top && clientY < box.bottom && hit === game.canvas;
+  },
+};
+
 game.events.once(Phaser.Core.Events.READY, () => {
   positionCanvas();
   // The browser can reset the GPU context (driver hiccup, sleep/wake, too many tabs). Phaser restores
@@ -91,7 +132,7 @@ game.events.once(Phaser.Core.Events.READY, () => {
   if (renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
     renderer.on(Phaser.Renderer.Events.LOSE_WEBGL, () => {
       session.setPaused(true);
-      showNotice('graphics', 'Your browser reset the game\u2019s graphics. Waiting for them to come back\u2026', [
+      showNotice('graphics', 'Your browser reset the game’s graphics. Waiting for them to come back…', [
         { label: 'Reload', run: () => location.reload() },
       ]);
     });
@@ -108,7 +149,7 @@ game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
 
 // Dev-server only (stripped from production builds): lets automated playtests drive the game.
 if (import.meta.env.DEV) Object.assign(window, { __lastStand: { session, game } });
-new Hud(session);
+new Hud(session, geometry);
 new Sfx(session);
 
 const versionLabel = document.getElementById('version');

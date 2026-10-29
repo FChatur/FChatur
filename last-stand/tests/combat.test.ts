@@ -14,6 +14,24 @@ describe('armor', () => {
   });
 });
 
+describe('hit events', () => {
+  it('report the damage each hit deals its target', () => {
+    const { sim, bus } = makeSim({ startingGold: 1000 });
+    sim.placeTower('basic', 3, 3);
+    let checked = 0;
+    bus.on('projectileHit', ({ enemy, damage }) => {
+      // The event fires just before the damage lands, so `hp` is still the health before the hit.
+      if (enemy.hp > damage) {
+        expect(damage).toBe(mitigate(TOWERS.basic.levels[0].damage, enemy.armor, BALANCE.armorMinDamageFraction));
+        checked++;
+      }
+    });
+    sim.startWave();
+    runUntil(sim, () => sim.phase !== 'wave');
+    expect(checked).toBeGreaterThan(3);
+  });
+});
+
 describe('frost', () => {
   it('slows enemies it hits, and the slow wears off', () => {
     const { sim } = makeSim();

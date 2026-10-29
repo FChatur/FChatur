@@ -25,7 +25,7 @@ export interface EnemyConfig {
 export const ENEMIES: Record<EnemyTypeId, EnemyConfig> = {
   basic: {
     id: 'basic',
-    name: 'Grunt',
+    name: 'Goblin',
     maxHp: 30,
     speedTiles: 1.5,
     armor: 0,
@@ -37,7 +37,7 @@ export const ENEMIES: Record<EnemyTypeId, EnemyConfig> = {
   },
   runner: {
     id: 'runner',
-    name: 'Runner',
+    name: 'Wolf',
     maxHp: 16,
     speedTiles: 2.6,
     armor: 0,
@@ -49,7 +49,7 @@ export const ENEMIES: Record<EnemyTypeId, EnemyConfig> = {
   },
   armored: {
     id: 'armored',
-    name: 'Brute',
+    name: 'Armored Orc',
     maxHp: 70,
     speedTiles: 1.0,
     armor: 4,
@@ -61,7 +61,7 @@ export const ENEMIES: Record<EnemyTypeId, EnemyConfig> = {
   },
   boss: {
     id: 'boss',
-    name: 'Warlord',
+    name: 'Ogre Warlord',
     maxHp: 500,
     speedTiles: 0.75,
     armor: 6,

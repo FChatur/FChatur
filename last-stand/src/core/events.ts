@@ -16,7 +16,8 @@ export interface GameEvents {
   /** The player changed a tower's targeting mode. */
   towerTargetingChanged: { tower: Tower };
   towerFired: { tower: Tower; projectile: Projectile };
-  projectileHit: { projectile: Projectile; enemy: Enemy; crit: boolean };
+  /** `damage`: what the hit deals its target after crits, bonuses and armor (before overkill is capped). */
+  projectileHit: { projectile: Projectile; enemy: Enemy; crit: boolean; damage: number };
   /** Chain Lightning jumped between two points. */
   chainArc: { fromX: number; fromY: number; toX: number; toY: number };
   /** Explosive Rounds splashed around a point (radius in pixels). */
@@ -38,5 +39,7 @@ export interface GameEvents {
   autoWaveChanged: { on: boolean };
   /** The built tower under the pointer (for tooltips), or null. */
   hoverChanged: { towerId: number | null };
+  /** A tower started or stopped being dragged from the shop. */
+  dragChanged: { towerType: TowerTypeId | null };
   sessionReset: Record<string, never>;
 }
