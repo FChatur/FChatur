@@ -1,3 +1,4 @@
+import type { VolumeChannel } from '../config/audio';
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
 import type { TileCoord } from '../config/map';
 import { TARGETING_MODES, type TargetingMode, type TowerTypeId } from '../config/towers';
@@ -7,6 +8,8 @@ import type { GameEvents, Screen } from '../core/events';
 import { Simulation } from '../core/Simulation';
 import type { Tower } from '../core/types';
 import { Persistence, type MapRecord, type Settings } from './persistence';
+
+const VOLUME_KEYS = { master: 'masterVolume', music: 'musicVolume', sfx: 'sfxVolume' } as const satisfies Record<VolumeChannel, keyof Settings>;
 
 /**
  * Owns the current run and the player's UI-level state: which screen is showing, pause, the tower
@@ -88,8 +91,9 @@ export class GameSession {
     return this.settings.muted;
   }
 
-  get volume(): number {
-    return this.settings.volume;
+  /** Volume slider position (0..1) of one channel. */
+  volume(channel: VolumeChannel): number {
+    return this.settings[VOLUME_KEYS[channel]];
   }
 
   get tutorialDone(): boolean {
@@ -207,6 +211,15 @@ export class GameSession {
 
   toggleMute(): void {
     this.setMuted(!this.settings.muted);
+  }
+
+  setVolume(channel: VolumeChannel, value: number): void {
+    const v = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
+    const key = VOLUME_KEYS[channel];
+    if (v === this.settings[key]) return;
+    this.settings[key] = v;
+    this.saveSettings();
+    this.bus.emit('volumeChanged', { channel, value: v });
   }
 
   completeTutorial(): void {

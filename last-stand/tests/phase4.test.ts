@@ -20,8 +20,9 @@ describe('persistence', () => {
   it('returns defaults when nothing is stored, and round-trips settings', () => {
     const p = new Persistence(new MemoryStore());
     expect(p.loadSettings()).toEqual(DEFAULT_SETTINGS);
-    p.saveSettings({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false, shopCollapsed: true });
-    expect(p.loadSettings()).toEqual({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false, shopCollapsed: true });
+    const saved = { muted: true, masterVolume: 0.3, musicVolume: 0, sfxVolume: 0.55, speed: 3, tutorialDone: true, autoWave: false, shopCollapsed: true } as const;
+    p.saveSettings(saved);
+    expect(p.loadSettings()).toEqual(saved);
   });
 
   it('settings saved before the shop could collapse load with the shop expanded', () => {
@@ -37,7 +38,7 @@ describe('persistence', () => {
     const p = new Persistence(store);
     expect(p.loadSettings()).toEqual(DEFAULT_SETTINGS);
     expect(p.loadRecords()).toEqual({});
-    store.setItem('lastStand.v1.settings', JSON.stringify({ muted: 'yes', volume: 7, speed: 5 }));
+    store.setItem('lastStand.v1.settings', JSON.stringify({ muted: 'yes', volume: 7, speed: 5, masterVolume: -1, musicVolume: '50', sfxVolume: 2 }));
     expect(p.loadSettings()).toEqual(DEFAULT_SETTINGS);
   });
 

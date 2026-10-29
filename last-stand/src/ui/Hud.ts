@@ -18,6 +18,7 @@ import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type Upgrade
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
 import { heroPortrait, showPortrait } from './portraits';
+import { AudioSettings } from './AudioSettings';
 import { TUTORIAL_STEPS, TutorialProgress } from './tutorial';
 import { towerInfo } from './towerInfo';
 import { TowerTooltip } from './TowerTooltip';
@@ -140,6 +141,8 @@ export class Hud {
       this.refresh();
     });
     this.click('tutorial-skip', () => this.tutorial?.skip());
+    new AudioSettings(session, el('menu-audio'), 'vol-menu', false);
+    new AudioSettings(session, el('pause-audio'), 'vol-pause', true);
     window.addEventListener('keydown', (e) => this.onKey(e));
     // Losing focus (switching tabs, alt-tab) pauses a run in progress.
     document.addEventListener('visibilitychange', () => document.hidden && this.session.setPaused(true));

@@ -1,3 +1,4 @@
+import type { VolumeChannel } from '../config/audio';
 import type { GameSpeed } from '../config/balance';
 import type { TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
@@ -36,6 +37,8 @@ export interface GameEvents {
   /** Main menu shown/hidden, or game paused/resumed. */
   screenChanged: { screen: Screen; paused: boolean };
   muteChanged: { muted: boolean };
+  /** A volume slider moved (value 0..1). */
+  volumeChanged: { channel: VolumeChannel; value: number };
   autoWaveChanged: { on: boolean };
   /** The built tower under the pointer (for tooltips), or null. */
   hoverChanged: { towerId: number | null };

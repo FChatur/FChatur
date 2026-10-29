@@ -1014,6 +1014,8 @@ kbd {
 }
 
 .overlay-menu {
+  overflow-y: auto;
+  align-items: safe center;
   background:
     radial-gradient(ellipse at 50% 35%, rgba(79, 209, 197, 0.12), transparent 60%),
     rgba(5, 8, 15, 0.86);
@@ -1059,6 +1061,103 @@ kbd {
   justify-content: center;
   gap: 10px;
   margin-bottom: 24px;
+}
+
+/* Volume sliders (main menu and pause menu). */
+.audio-settings {
+  display: grid;
+  gap: 6px;
+  width: min(360px, 100%);
+  margin: 0 auto 22px;
+}
+
+.vol-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.vol-row label {
+  color: var(--muted);
+  text-align: right;
+}
+
+.vol-row output {
+  text-align: right;
+  color: var(--text);
+}
+
+.vol-row.muted input,
+.vol-row.muted output {
+  opacity: 0.45;
+}
+
+.vol-row input[type='range'] {
+  --fill: 50%;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.vol-row input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--bg) var(--fill));
+}
+
+.vol-row input[type='range']::-moz-range-track {
+  height: 6px;
+  border: 1px solid var(--panel-edge);
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--bg) var(--fill));
+}
+
+.vol-row input[type='range']::-webkit-slider-thumb {
+  width: 14px;
+  height: 18px;
+  margin-top: -7px;
+  border: 1px solid var(--accent-ink);
+  border-radius: 3px;
+  background: var(--text);
+  -webkit-appearance: none;
+}
+
+.vol-row input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 18px;
+  border: 1px solid var(--accent-ink);
+  border-radius: 3px;
+  background: var(--text);
+}
+
+.vol-row input[type='range']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#pause-audio {
+  margin: 22px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--panel-edge);
+}
+
+#pause-audio .btn {
+  justify-self: center;
+  min-width: 160px;
+  margin-top: 6px;
+}
+
+.menu-credits {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .menu-controls {

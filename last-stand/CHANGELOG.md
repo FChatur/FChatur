@@ -6,8 +6,35 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release.
+
+### Added
+- Background music: "Picnic at the Tower Gate" (AI-generated with Google Gemini, credited in the main
+  menu). The intro plays once, then a 48-bar section loops seamlessly for as long as the run lasts. The
+  music starts with a run, dips during the upgrade draft, is muffled in the pause menu, fades out on game
+  over and on return to the menu, and starts over with a new run.
+- Master, Music and Effects volume sliders (0–100%) in the main menu and the pause menu, plus a Sound
+  on/off button in the pause menu. Saved with the other settings; the old single volume carries over as
+  Master at the same loudness.
+- docs/AUDIO.md: the audio system, the soundtrack's technical edits, the memory approach, and provenance
+  and licensing (with points for the owner to confirm before public release).
+
+### Changed
+- Music streams as short Opus chunks (AAC fallback) that download as the music reaches them. Only ~11 MB
+  is held as decoded audio, against ~51 MB for the whole track.
+- Sound starts on the first tap on phones and tablets (before, only a later tap started it). Audio pauses
+  (the audio context is suspended) while the tab is hidden or the game is muted, and resumes with a fade.
+  A limiter keeps stacked sounds from clipping.
+- The soundtrack master is kept unmodified in assets-src/; tools/prepare-music.py rebuilds the game files
+  (loop, trim, one gain change; no creative changes).
+- Roadmap: Audio & Music is Phase 7 (v0.7.0); maps, stars and Freeplay (issue #4) move to Phase 8 (v0.8.0)
+  with their features unchanged.
+
+### Fixed
+- Phaser opened its own, unused audio context on page load, before any interaction. It is now disabled.
+
 ### Docs
-- Phase 7 (v0.7.0) design proposal for maps, stars and Freeplay (issue #4): docs/PROGRESSION.md, with
+- Phase 8 (v0.8.0, renumbered from v0.7.0) design proposal for maps, stars and Freeplay (issue #4): docs/PROGRESSION.md, with
   bot evidence on wave-50 reachability, four candidate maps (`npm run art` renders them) and mockups
   (docs/mockups/progression.html). Not implemented yet; awaiting the owner's approval.
 - Art direction study (docs/ART_DIRECTION.md): one animated rig of a concept character (Manny the
