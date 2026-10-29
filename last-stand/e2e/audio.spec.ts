@@ -213,3 +213,31 @@ test('soundtrack chunks join seamlessly with this browser’s own decoders', asy
     }
   }
 });
+
+test('mute and a hidden tab suspend audio; unmute and returning resume it, with the music holding its place', async ({ page }) => {
+  test.skip(!soundtrackPresent, WITHHELD);
+  const errors = trackErrors(page);
+  await startRun(page);
+  const body = page.locator('body');
+  await expect(body).toHaveAttribute('data-music', 'playing');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+
+  await page.keyboard.press('m');
+  await expect(body).toHaveAttribute('data-audio', 'suspended');
+  await expect(body).toHaveAttribute('data-music', 'playing');
+  await page.keyboard.press('m');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+
+  const setHidden = (hidden: boolean) =>
+    page.evaluate((hidden) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  await setHidden(true);
+  await expect(body).toHaveAttribute('data-audio', 'suspended');
+  await expect(page.locator('#overlay-pause')).toBeVisible(); // the game pauses too, as before
+  await setHidden(false);
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  await expect(body).toHaveAttribute('data-music', 'playing');
+  expect(errors).toEqual([]);
+});
