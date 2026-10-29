@@ -32,7 +32,8 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
   collapse button for a narrow rail that is remembered between visits (compact cards on short screens).
 - Tower panel: hero portrait and rank, an upgrade preview (next level's look and stats), and targeting
   buttons (`T` cycles).
-- Interface restyled with the art palette and the Pixelify Sans pixel font.
+- Interface restyled with the art palette and the Pixelify Sans pixel font. Numbers use Jersey 10's digits, since
+  Pixelify's 5 looks like an S and its 8 is hard to read.
 - Late-wave declutter: heroes fade while an enemy is behind them; creatures spread across the road
   instead of stacking (drawing only); no "+gold" numbers in crowds; lower caps on cosmetic effects.
   Crowded wave 50: 16.5 → 20 fps in the same environment. Details: docs/VISUAL_PROTOTYPE.md section 9.1.
