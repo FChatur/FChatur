@@ -25,10 +25,13 @@ test('build, inspect, upgrade and sell a tower', async ({ page }) => {
   await expect(page.locator('#tower-tooltip')).toBeVisible();
   await expect(page.locator('#tower-tooltip h3')).toHaveText('Archer Tower');
 
-  // Build with the hotkey and a click; building costs gold.
+  // Build with the hotkey and a click. The run's first Archer is free; the shop then shows the full price.
+  const archerCost = page.locator('.tower-btn').first().locator('.tower-cost-value');
+  await expect(archerCost).toHaveText('Free');
   await page.keyboard.press('1');
   await clickTile(page, 3, 3);
-  await expect.poll(() => stat(page, 'gold')).toBe(gold0 - 50);
+  await expect(archerCost).toHaveText('50');
+  expect(await stat(page, 'gold')).toBe(gold0);
   await page.keyboard.press('Escape');
 
   // Hovering the built tower shows its card; clicking it opens the panel.
@@ -39,13 +42,25 @@ test('build, inspect, upgrade and sell a tower', async ({ page }) => {
   await expect(page.locator('#tower-panel')).toBeVisible();
   await expect(page.locator('#tp-name')).toHaveText('Archer Tower');
 
-  // Upgrade (45g) then sell.
+  // The free Archer sells for nothing, even after an upgrade (45g).
+  await expect(page.locator('#tp-sell-value')).toHaveText('+0g');
   await page.locator('#tp-upgrade').click();
   await expect(page.locator('#tp-level')).toHaveText('LV 2/3');
+  await expect(page.locator('#tp-sell-value')).toHaveText('+0g');
   const before = await stat(page, 'gold');
   await page.keyboard.press('s');
   await expect(page.locator('#tower-panel')).toBeHidden();
-  await expect.poll(() => stat(page, 'gold')).toBeGreaterThan(before);
+  expect(await stat(page, 'gold')).toBe(before);
+  // Selling it doesn't give the free build back: the next Archer costs 50 and sells normally (70%).
+  await expect(archerCost).toHaveText('50');
+  await page.keyboard.press('1');
+  await clickTile(page, 3, 3);
+  await expect.poll(() => stat(page, 'gold')).toBe(before - 50);
+  await page.keyboard.press('Escape');
+  await clickTile(page, 3, 3);
+  await expect(page.locator('#tp-sell-value')).toHaveText('+35g');
+  await page.keyboard.press('s');
+  await expect.poll(() => stat(page, 'gold')).toBe(before - 50 + 35);
   expect(errors).toEqual([]);
 });
 
@@ -119,7 +134,9 @@ test('resizing keeps the board sharp and clicks on the right tile', async ({ pag
   await page.keyboard.press('1');
   await clickTile(page, 3, 3);
   await page.keyboard.press('Escape');
-  await expect.poll(() => stat(page, 'gold')).toBe(gold0 - 50);
+  // The first Archer is free; the shop's price changing to 50 shows it was built.
+  await expect(page.locator('.tower-btn').first().locator('.tower-cost-value')).toHaveText('50');
+  expect(await stat(page, 'gold')).toBe(gold0);
   // Clicking the same tile now selects that tower: the click landed where intended.
   await clickTile(page, 3, 3);
   await expect(page.locator('#tp-name')).toHaveText('Archer Tower');
@@ -175,7 +192,9 @@ test('the left shop shows each hero, and a tower can be dragged from it onto the
   await page.mouse.move(x, y, { steps: 6 });
   await expect(page.locator('.tower-btn').first()).toHaveClass(/selected/);
   await page.mouse.up();
-  await expect.poll(() => stat(page, 'gold')).toBe(gold0 - 50);
+  // Built: the free first Archer leaves gold unchanged and the shop now shows the full price.
+  await expect(page.locator('.tower-btn').first().locator('.tower-cost-value')).toHaveText('50');
+  expect(await stat(page, 'gold')).toBe(gold0);
 
   // Dropped back on the shop: nothing is built.
   await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
@@ -184,7 +203,8 @@ test('the left shop shows each hero, and a tower can be dragged from it onto the
   await page.mouse.move(card.x + card.width / 2, card.y + card.height + 40, { steps: 4 });
   await page.mouse.up();
   await expect(page.locator('.tower-btn').first()).not.toHaveClass(/selected/);
-  expect(await stat(page, 'gold')).toBe(gold0 - 50);
+  expect(await stat(page, 'gold')).toBe(gold0);
+  await expect(page.locator('.tower-btn').first().locator('.tower-cost-value')).toHaveText('50');
   expect(errors).toEqual([]);
 });
 

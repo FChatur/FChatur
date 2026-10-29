@@ -6,8 +6,9 @@ import { makeSim, runUntil, STEP } from './helpers';
 const turretCost = TOWERS.basic.cost;
 
 describe('tower placement', () => {
+  // These check list prices, so the run's free starter Archer is switched off (see economy.test.ts).
   it('deducts gold and occupies the tile', () => {
-    const { sim } = makeSim();
+    const { sim } = makeSim({ freeStarterTower: null });
     const tower = sim.placeTower('basic', 2, 4);
     expect(tower).not.toBeNull();
     expect(sim.gold).toBe(BALANCE.startingGold - turretCost);
@@ -16,7 +17,7 @@ describe('tower placement', () => {
   });
 
   it('rejects path tiles, out-of-bounds tiles and unaffordable towers', () => {
-    const { sim } = makeSim({ startingGold: turretCost - 1 });
+    const { sim } = makeSim({ startingGold: turretCost - 1, freeStarterTower: null });
     expect(sim.canPlaceTower('basic', 0, 2)).toEqual({ ok: false, reason: 'path' });
     expect(sim.canPlaceTower('basic', -1, 0)).toEqual({ ok: false, reason: 'out-of-bounds' });
     expect(sim.canPlaceTower('basic', 0, 12)).toEqual({ ok: false, reason: 'out-of-bounds' });

@@ -52,10 +52,11 @@ function armorYardstick() {
  * @param level     1-based level; the shop shows level 1.
  * @param mods      The run's upgrades, for built towers; omitted in the shop.
  * @param targeting A built tower's current targeting mode; the shop shows the default.
+ * @param cost      What building it costs now (the run's free starter costs 0); defaults to the list price.
  */
 export function towerInfo(
   type: TowerTypeId,
-  opts: { level?: number; mods?: RunModifiers; targeting?: TargetingMode } = {},
+  opts: { level?: number; mods?: RunModifiers; targeting?: TargetingMode; cost?: number } = {},
 ): TowerInfo {
   const cfg = TOWERS[type];
   const level = opts.level ?? 1;
@@ -71,7 +72,7 @@ export function towerInfo(
     role: cfg.role,
     description: cfg.description,
     color: cfg.color,
-    badge: opts.mods ? { kind: 'level', level, max: MAX_TOWER_LEVEL } : { kind: 'cost', gold: cfg.cost },
+    badge: opts.mods ? { kind: 'level', level, max: MAX_TOWER_LEVEL } : { kind: 'cost', gold: opts.cost ?? cfg.cost },
     stats: [
       { label: 'Damage', value: `${stats.damage}` },
       {

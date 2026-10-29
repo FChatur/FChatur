@@ -42,6 +42,8 @@ export interface Tower {
   level: number;
   /** Total gold spent on this tower (build + upgrades); the basis for its sell refund. */
   invested: number;
+  /** The run's free starter tower: it sells for nothing, whatever was spent upgrading it. */
+  free: boolean;
   targeting: TargetingMode;
   damage: number;
   /** Seconds between shots. */

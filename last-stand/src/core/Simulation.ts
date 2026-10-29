@@ -55,6 +55,8 @@ export class Simulation {
   /** The most recently started wave (0 before the first). */
   wave = 0;
   phase: Phase = 'build';
+  /** Whether this run's free starter tower has been built (see BalanceConfig.freeStarterTower). */
+  private freeStarterUsed = false;
   readonly stats: RunStats = { kills: 0, leaks: 0, towersBuilt: 0, towersSold: 0, goldEarned: 0 };
 
   readonly enemies: Enemy[] = [];
@@ -94,13 +96,24 @@ export class Simulation {
     if (!inBounds(col, row, this.map.grid)) return { ok: false, reason: 'out-of-bounds' };
     if (this.path.isPathTile(col, row)) return { ok: false, reason: 'path' };
     if (this.towerByTile.has(tileKey(col, row))) return { ok: false, reason: 'occupied' };
-    if (this.gold < TOWERS[type].cost) return { ok: false, reason: 'insufficient-gold' };
+    if (this.gold < this.buildCost(type)) return { ok: false, reason: 'insufficient-gold' };
     return { ok: true };
+  }
+
+  /** What building this tower type costs right now (0 for the run's free starter, until it's built). */
+  buildCost(type: TowerTypeId): number {
+    return this.isFreeStarter(type) ? 0 : TOWERS[type].cost;
+  }
+
+  private isFreeStarter(type: TowerTypeId): boolean {
+    return !this.freeStarterUsed && type === this.balance.freeStarterTower;
   }
 
   placeTower(type: TowerTypeId, col: number, row: number): Tower | null {
     if (!this.canPlaceTower(type, col, row).ok) return null;
     const cfg = TOWERS[type];
+    const free = this.isFreeStarter(type);
+    const cost = this.buildCost(type);
     const { x, y } = tileCenter(col, row, TILE_SIZE);
     const tower: Tower = {
       id: this.nextId++,
@@ -110,7 +123,8 @@ export class Simulation {
       x,
       y,
       level: 1,
-      invested: cfg.cost,
+      invested: cost,
+      free,
       targeting: cfg.targeting,
       damage: 0,
       fireInterval: 0,
@@ -122,7 +136,9 @@ export class Simulation {
       angle: -Math.PI / 2,
     };
     applyLevelStats(tower);
-    this.gold -= cfg.cost;
+    this.gold -= cost;
+    // Used for the rest of the run: selling the free tower doesn't give it back.
+    if (free) this.freeStarterUsed = true;
     this.towers.push(tower);
     this.towerByTile.set(tileKey(col, row), tower);
     this.stats.towersBuilt++;
@@ -157,8 +173,9 @@ export class Simulation {
     return true;
   }
 
-  /** Gold returned if this tower were sold now. */
+  /** Gold returned if this tower were sold now (nothing for the free starter, even after upgrades). */
   sellValue(tower: Tower): number {
+    if (tower.free) return 0;
     return Math.floor(tower.invested * this.balance.sellRefundRatio);
   }
 
