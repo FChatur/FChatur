@@ -67,6 +67,18 @@ prepared, and its provenance and licensing.
   SHA-256 `c1007df19380a31ad3276916370a55a53d6001764889bac9e47c408cdc9ffb6b`).
 - Game files: `public/audio/music/picnic-at-the-tower-gate/`, built by `tools/prepare-music.py`, which
   needs Python 3 with numpy, and ffmpeg.
+- **Both are currently withheld from the repository** (section 4). Both paths are listed in
+  `.gitignore`, so a local copy can't be committed by accident. The owner keeps them, with checksums
+  and restore steps, in a private archive outside the repository.
+- **Without the files:**
+  - the build notices (`__SOUNDTRACK_AVAILABLE__` in `vite.config.ts`);
+  - the game runs with sound effects, the volume settings and the music state machine, but no music:
+    `data-music="unavailable"`, no requests and no errors;
+  - the menu credit is hidden;
+  - the e2e music tests skip, with a note saying so.
+- **Restoring:** put the files back at those paths (or rebuild the game files from the master with the
+  script), delete the two lines from `.gitignore`, and commit. Everything switches back on with no code
+  changes.
 
 **Technical edits only.** The melody, instruments, arrangement and mix are untouched; no remixing,
 regeneration, EQ, compression or limiting.
@@ -186,7 +198,11 @@ or the public site without the owner's approval.
 
 **The composition is preserved.** Only the technical edits in section 2 are allowed.
 
-**Exposure so far:** this repository is public. The development branch
-(`claude/last-stand-tower-defense-h0g381`) already contains the master MP3 and the game's music
-files, so they can be downloaded from GitHub, though nothing links to them. The public game site
-(`main`) does not have them. The hosted preview is private to the owner.
+**Withheld from the repository (owner's decision, 2026-10-29).** This repository is public.
+- The master MP3 and the game's music files were removed from the development branch
+  (`claude/last-stand-tower-defense-h0g381`) in a normal commit; history was not rewritten.
+- They no longer appear in the branch, but stay downloadable from its earlier commits (from 81924c7 up
+  to the removal) for anyone who looks them up.
+- The public game site (`main`) never had them.
+- The copies kept outside the repository are a private archive page and the private hosted preview,
+  both visible only to the owner.

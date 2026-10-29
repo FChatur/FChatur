@@ -1,6 +1,11 @@
+import { existsSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { SOUNDTRACK, type SoundtrackManifest } from '../src/config/audio';
 import { startRun, trackErrors } from './helpers';
+
+/** The soundtrack files can be withheld from the repository while licensing is checked (docs/AUDIO.md). */
+const soundtrackPresent = existsSync(`public/audio/music/${SOUNDTRACK.id}/${SOUNDTRACK.chunks[0].file}.ogg`);
+const WITHHELD = 'Soundtrack files withheld from the repository pending licensing (docs/AUDIO.md section 4).';
 
 /** Counts audio contexts the page creates, and remembers which audio files it requests. */
 async function watchAudio(page: Page): Promise<string[]> {
@@ -48,6 +53,18 @@ test('no audio before the first interaction; Play starts the music', async ({ pa
   expect(await page.evaluate(() => (window as unknown as { __contexts: number }).__contexts)).toBe(0);
   await expect(page.locator('body')).toHaveAttribute('data-audio', 'locked');
   expect(requests).toEqual([]);
+
+  if (!soundtrackPresent) {
+    // Without the music files the game still unlocks audio (sound effects) and never requests music.
+    await expect(page.locator('#menu-credits')).toBeHidden();
+    await page.locator('#btn-play').click();
+    await expect(page.locator('body')).not.toHaveAttribute('data-audio', 'locked');
+    await expect(page.locator('body')).toHaveAttribute('data-music', 'unavailable');
+    await page.waitForTimeout(1000);
+    expect(requests).toEqual([]);
+    expect(errors).toEqual([]);
+    return;
+  }
 
   const formats = await decodableFormats(page, SOUNDTRACK);
   test.skip(
@@ -109,6 +126,7 @@ test('volume sliders and mute persist across reloads, in the menu and the pause 
 });
 
 test('soundtrack chunks join seamlessly with this browser’s own decoders', async ({ page, browserName }) => {
+  test.skip(!soundtrackPresent, WITHHELD);
   await page.goto('/');
   const formats = await decodableFormats(page, SOUNDTRACK);
   test.skip(browserName === 'webkit' && formats.length === 0, 'No Opus or AAC decoder in this WebKit build.');

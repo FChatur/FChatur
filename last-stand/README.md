@@ -46,7 +46,9 @@ heavy), Ranger, Fen the elf (fast weak shots, poor against armor), Frost Mage, O
 **Run upgrades:** after every 5th wave you pick 1 of 3 random upgrades that last for the rest of the run.
 
 **Music:** "Picnic at the Tower Gate", AI-generated with Google Gemini. It loops for as long as a run lasts
-and quietens while paused. Details, provenance and licensing: [docs/AUDIO.md](docs/AUDIO.md).
+and quietens while paused. The music files are withheld from this repository until licensing is
+verified, so a build from it has sound effects but no music. Details, provenance and licensing:
+[docs/AUDIO.md](docs/AUDIO.md).
 Upgrades have rarities (Common, Uncommon, Rare, Legendary), stack up to a limit, and some only appear once
 you've built a matching tower. Current pool: Overclock, Critical Strike, Compound Interest, Frostbite,
 Explosive Rounds, Chain Lightning. New upgrades are added as data in `src/config/upgrades.ts`.
@@ -126,7 +128,7 @@ src/ui       HTML HUD, tooltips, tutorial, notices, keyboard shortcuts
 tests        Vitest tests (unit, fuzz, soak)
 e2e          Playwright end-to-end tests
 public       Static files copied as-is (link-preview image, music chunks)
-assets-src   Source media not served to players (the soundtrack master)
+assets-src   Source media not served to players (the soundtrack master; withheld for now, see docs/AUDIO.md)
 tools        Asset scripts (tools/prepare-music.py builds the music chunks)
 ```
 

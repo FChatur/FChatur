@@ -158,7 +158,10 @@ if (import.meta.env.DEV) Object.assign(window, { __lastStand: { session, game } 
 const audio = new AudioEngine(session);
 new Hud(session, geometry);
 new Sfx(session, audio);
-new Music(session, audio);
+// Without the soundtrack files (withheld while licensing is checked) the game runs without music.
+if (__SOUNDTRACK_AVAILABLE__) new Music(session, audio);
+else document.body.dataset.music = 'unavailable';
+document.getElementById('menu-credits')?.toggleAttribute('hidden', !__SOUNDTRACK_AVAILABLE__);
 
 const versionLabel = document.getElementById('version');
 if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;
