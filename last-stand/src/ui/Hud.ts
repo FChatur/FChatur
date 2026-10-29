@@ -1,4 +1,5 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
+import type { TileCoord } from '../config/map';
 import { isGlobalRange, MAX_TOWER_LEVEL, TARGETING, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
 import type { GameEvents } from '../core/events';
 import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
@@ -7,6 +8,16 @@ import type { GameSession } from '../game/GameSession';
 import { TUTORIAL_STEPS, TutorialProgress } from './tutorial';
 import { towerInfo } from './towerInfo';
 import { TowerTooltip } from './TowerTooltip';
+
+/** Converts between page coordinates and map tiles (provided by main.ts, which owns the canvas). */
+export interface BoardGeometry {
+  /** The map tile under a page point, or null when it's off the map. */
+  tileAt(clientX: number, clientY: number): TileCoord | null;
+  /** A tile's rectangle in page coordinates. */
+  tileRect(col: number, row: number): { left: number; top: number; width: number; height: number };
+  /** True when the page point is over the battlefield (not covered by interface). */
+  overBoard(clientX: number, clientY: number): boolean;
+}
 
 function el<T extends HTMLElement = HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -62,7 +73,10 @@ export class Hud {
   /** Tower type whose shop button is hovered or focused, if any. */
   private shopHover: TowerTypeId | null = null;
 
-  constructor(private readonly session: GameSession) {
+  constructor(
+    private readonly session: GameSession,
+    private readonly board: BoardGeometry,
+  ) {
     this.buildTowerBar();
     this.buildSpeedControl();
     this.panelUpgrade.addEventListener('click', () => {
@@ -333,14 +347,9 @@ export class Hud {
     );
   }
 
-  /** A built tower's tile in page coordinates, from the canvas's on-screen box. */
+  /** A built tower's tile in page coordinates. */
   private towerScreenRect(t: Tower): { left: number; top: number; width: number; height: number } {
-    const canvas = document.querySelector<HTMLCanvasElement>('#game-container canvas')!;
-    const box = canvas.getBoundingClientRect();
-    const { cols, rows, tileSize } = this.session.sim.map.grid;
-    const sx = box.width / (cols * tileSize);
-    const sy = box.height / (rows * tileSize);
-    return { left: box.left + t.col * tileSize * sx, top: box.top + t.row * tileSize * sy, width: tileSize * sx, height: tileSize * sy };
+    return this.board.tileRect(t.col, t.row);
   }
 
   private renderTutorial(): void {

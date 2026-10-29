@@ -1,60 +1,86 @@
 import Phaser from 'phaser';
-import { ENEMIES, type EnemyShape } from '../config/enemies';
+import { frameKey } from '../art/atlas';
+import { CREATURE_ART, TOWER_ART, type CreatureArt } from '../art/catalog';
+import { directionIndex, PROJECTILE_DIRECTIONS } from '../art/sprites/projectiles';
+import { BALLISTA_DIRECTIONS, DEFENDER_SINK, towerArt } from '../art/sprites/towers';
 import { TILE_SIZE } from '../config/map';
-import { MAX_TOWER_LEVEL, TOWERS, type TowerTypeId } from '../config/towers';
+import type { TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
 import type { Enemy, Projectile, Tower } from '../core/types';
-import { bakedImage, bakeTexture } from './bake';
 import { prefersReducedMotion } from './motion';
-import { DEPTH, PALETTE } from './palette';
+import { DEPTH, PALETTE, unitDepth } from './palette';
+import { ART_SCALE, ATLAS_KEY, frameSize, pixelImage, shadowTexture } from './pixel';
 
-const HP_BAR_HEIGHT = 4;
-/** Hit flash and barrel recoil durations (real time, ms). Animated in sync(), no tweens needed. */
-const FLASH_MS = 90;
-const RECOIL_MS = 120;
+/** Real-time durations (ms). Animated in sync(), so no tweens are needed. */
+const FLASH_MS = 70;
+/** How long a defender shows its "just shot" pose. */
+const SHOT_POSE_MS = 150;
+/** Drop-in when a tower is built. */
+const BUILD_DROP_MS = 160;
+const SHARD_FRAME_MS = 110;
 
 interface EnemyView {
-  root: Phaser.GameObjects.Container;
-  flash: Phaser.GameObjects.Arc;
-  frost: Phaser.GameObjects.Arc;
-  hpBack: Phaser.GameObjects.Rectangle;
-  hpFill: Phaser.GameObjects.Rectangle;
-  barWidth: number;
-  /** Real-time timestamp of the last hit, for the flash. */
+  shadow: Phaser.GameObjects.Image;
+  body: Phaser.GameObjects.Image;
+  barBack: Phaser.GameObjects.Rectangle;
+  barFill: Phaser.GameObjects.Rectangle;
+  art: CreatureArt;
+  /** Body height in world units, for placing the health bar. */
+  height: number;
+  facing: 1 | -1;
+  /** Real-time timestamp of the last hit, for the white flash. */
   hitAt: number;
   seen: number;
 }
 
 interface TowerView {
-  root: Phaser.GameObjects.Container;
-  barrel: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Image;
+  base: Phaser.GameObjects.Image;
+  defender: Phaser.GameObjects.Image;
   level: number;
-  /** Real-time timestamp of the last shot, for the recoil. */
+  /** Real-time timestamp of the last shot, for the shooting pose. */
   firedAt: number;
+  builtAt: number;
   seen: number;
 }
 
 interface ProjectileView {
-  root: Phaser.GameObjects.Arc;
+  img: Phaser.GameObjects.Image;
   /** Pool key: projectiles of the same tower type look identical and can be reused. */
-  kind: string;
+  kind: TowerTypeId;
+  startX: number;
+  startY: number;
+  /** Length of the shot when fired, for the arc. */
+  span: number;
+  lastX: number;
+  lastY: number;
+  bornAt: number;
   seen: number;
 }
 
+/** Where each tower level's defender stands, in art pixels from the base's top. */
+const BASE_TOPS: Record<TowerTypeId, number[]> = (() => {
+  const art = towerArt();
+  return {
+    basic: art.basic.bases.map((b) => b.top),
+    sniper: art.sniper.bases.map((b) => b.top),
+    rapid: art.rapid.bases.map((b) => b.top),
+    frost: art.frost.bases.map((b) => b.top),
+  };
+})();
+
 /**
- * Mirrors simulation entities as Phaser objects. Views are created when an entity first appears
- * and destroyed when it disappears, keyed by entity id. Positions are interpolated between
- * simulation steps using `alpha` so movement stays smooth on high-refresh displays.
+ * Mirrors simulation entities as pixel-art sprites. Views are created when an entity first appears and
+ * destroyed when it disappears, keyed by entity id. Positions are interpolated between simulation steps
+ * using `alpha` so movement stays smooth on high-refresh displays.
  */
 export class EntityRenderer {
   private readonly enemies = new Map<number, EnemyView>();
   private readonly towers = new Map<number, TowerView>();
   private readonly projectiles = new Map<number, ProjectileView>();
-  /** Hidden projectile views kept for reuse (one per shot otherwise means constant allocation). */
-  private readonly projectilePool = new Map<string, Phaser.GameObjects.Arc[]>();
+  /** Hidden projectile images kept for reuse (one per shot otherwise means constant allocation). */
+  private readonly projectilePool = new Map<TowerTypeId, Phaser.GameObjects.Image[]>();
   private frame = 0;
-  /** Set after a zoom change: views are being rebuilt, so skip their "pop" entrance. */
-  private rebuilding = false;
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -64,45 +90,27 @@ export class EntityRenderer {
 
     for (const t of sim.towers) {
       let view = this.towers.get(t.id);
-      if (view && view.level !== t.level) {
-        // Upgraded: rebuild the view so it reflects the new level.
-        view.root.destroy();
-        view = undefined;
-      }
-      view ??= this.createTower(t);
-      view.barrel.rotation = t.angle;
-      const recoil = (now - view.firedAt) / RECOIL_MS;
-      view.barrel.scaleX = recoil >= 1 ? 1 : 0.7 + 0.3 * (1 - (1 - recoil) ** 2);
+      if (view && view.level !== t.level) this.applyLevel(view, t);
+      view ??= this.createTower(t, now);
+      this.updateTower(view, t, now);
       view.seen = frame;
     }
     for (const e of sim.enemies) {
       if (!e.alive) continue;
       const view = this.enemies.get(e.id) ?? this.createEnemy(e);
-      view.root.setPosition(lerp(e.prevX, e.x, alpha), lerp(e.prevY, e.y, alpha));
-      view.frost.setVisible(e.slowFactor < 1);
-      const flash = (now - view.hitAt) / FLASH_MS;
-      view.flash.setAlpha(flash >= 1 ? 0 : 0.85 * (1 - flash));
-      this.updateHpBar(view, e);
+      this.updateEnemy(view, e, alpha, now);
       view.seen = frame;
     }
-    this.rebuilding = false;
     for (const p of sim.projectiles) {
       if (!p.alive) continue;
-      const view = this.projectiles.get(p.id) ?? this.createProjectile(p);
-      view.root.setPosition(lerp(p.prevX, p.x, alpha), lerp(p.prevY, p.y, alpha));
+      const view = this.projectiles.get(p.id) ?? this.createProjectile(p, now);
+      this.updateProjectile(view, p, alpha, now);
       view.seen = frame;
     }
 
-    prune(this.towers, frame, (v) => v.root.destroy());
-    prune(this.enemies, frame, (v) => v.root.destroy());
+    prune(this.towers, frame, (v) => destroyAll(v.shadow, v.base, v.defender));
+    prune(this.enemies, frame, (v) => destroyAll(v.shadow, v.body, v.barBack, v.barFill));
     prune(this.projectiles, frame, (v) => this.releaseProjectile(v));
-  }
-
-  private releaseProjectile(v: ProjectileView): void {
-    v.root.setVisible(false);
-    const pool = this.projectilePool.get(v.kind) ?? [];
-    pool.push(v.root);
-    this.projectilePool.set(v.kind, pool);
   }
 
   /** Brief white flash when an enemy takes a hit. */
@@ -111,199 +119,182 @@ export class EntityRenderer {
     if (view) view.hitAt = this.scene.time.now;
   }
 
-  /** Barrel kick-back when a tower fires. */
+  /** Shooting pose when a tower fires. */
   recoilTower(id: number): void {
     const view = this.towers.get(id);
     if (view) view.firedAt = this.scene.time.now;
   }
 
-  /** After a zoom change: rebuild every view so baked art is re-rasterised at the new scale. */
-  rescale(): void {
-    this.clear();
-    this.rebuilding = true;
+  /** Where an enemy's body is drawn (for effects that should hit the body, not the feet). */
+  enemyCenter(e: Enemy): { x: number; y: number } {
+    const art = CREATURE_ART[e.type];
+    const { h } = frameSize(art.walk);
+    return { x: e.x, y: e.y + (art.feet - h / 2) * ART_SCALE };
   }
 
   clear(): void {
-    for (const v of this.towers.values()) v.root.destroy();
-    for (const v of this.enemies.values()) v.root.destroy();
-    for (const v of this.projectiles.values()) v.root.destroy();
-    for (const pool of this.projectilePool.values()) for (const arc of pool) arc.destroy();
+    for (const v of this.towers.values()) destroyAll(v.shadow, v.base, v.defender);
+    for (const v of this.enemies.values()) destroyAll(v.shadow, v.body, v.barBack, v.barFill);
+    for (const v of this.projectiles.values()) v.img.destroy();
+    for (const pool of this.projectilePool.values()) for (const img of pool) img.destroy();
     this.projectilePool.clear();
     this.towers.clear();
     this.enemies.clear();
     this.projectiles.clear();
   }
 
-  // ---------------------------------------------------------------- factories
+  // ---------------------------------------------------------------- towers
 
-  private createTower(t: Tower): TowerView {
-    const color = TOWERS[t.type].color;
-    const ts = TILE_SIZE;
-    const half = ts * (0.33 + 0.02 * t.level);
-    // The base is baked once per tower type and level, one tile in size, centred on the tower.
-    const baseKey = bakeTexture(this.scene, `tower-${t.type}-${t.level}`, ts, ts, (g) => drawTowerBase(g, color, half, t.level), true);
-    const base = bakedImage(this.scene, 0, 0, baseKey);
-
-    const barrel = this.scene.add.container(0, 0, this.barrelParts(t.type, color));
-    const cap = this.capPart(t.type, color, half);
-    const root = this.scene.add.container(t.x, t.y, [base, barrel, cap]).setDepth(DEPTH.towers);
-
-    if (!this.rebuilding && !prefersReducedMotion()) {
-      root.setScale(0.5);
-      this.scene.tweens.add({ targets: root, scale: 1, duration: 220, ease: 'Back.Out' });
-    }
-
-    const view: TowerView = { root, barrel, level: t.level, firedAt: -Infinity, seen: 0 };
+  private createTower(t: Tower, now: number): TowerView {
+    const bottom = (t.row + 1) * TILE_SIZE;
+    const shadow = this.scene.add
+      .image(t.x, bottom - 2 * ART_SCALE, shadowTexture(this.scene, 18))
+      .setScale(ART_SCALE)
+      .setDepth(DEPTH.shadows);
+    const base = pixelImage(this.scene, t.x, bottom, `tower-${t.type}-base`, t.level - 1).setOrigin(0.5, 1);
+    const defender = this.scene.add.image(t.x, 0, ATLAS_KEY, this.defenderFrame(t, false)).setScale(ART_SCALE).setOrigin(0.5, 1);
+    const built = prefersReducedMotion() ? -Infinity : now;
+    const view: TowerView = { shadow, base, defender, level: t.level, firedAt: -Infinity, builtAt: built, seen: 0 };
+    this.applyLevel(view, t);
     this.towers.set(t.id, view);
     return view;
   }
 
-  /** Barrel silhouettes, drawn pointing along +x so rotation aims them. */
-  private barrelParts(type: TowerTypeId, color: number): Phaser.GameObjects.GameObject[] {
-    const ts = TILE_SIZE;
-    const rect = (y: number, length: number, width: number) =>
-      this.scene.add.rectangle(0, y, length, width, color).setOrigin(0, 0.5);
-    switch (type) {
-      case 'basic':
-        return [rect(0, ts * 0.42, 7)];
-      case 'sniper':
-        return [rect(0, ts * 0.58, 4), this.scene.add.rectangle(ts * 0.5, 0, 4, 8, color)];
-      case 'rapid':
-        return [rect(-4, ts * 0.36, 4), rect(4, ts * 0.36, 4)];
-      case 'frost':
-        return [this.scene.add.triangle(ts * 0.3, 0, 0, -5, 10, 0, 0, 5, color)];
+  private applyLevel(view: TowerView, t: Tower): void {
+    view.level = t.level;
+    view.base.setFrame(frameKey(`tower-${t.type}-base`, t.level - 1));
+    const depth = unitDepth((t.row + 1) * TILE_SIZE);
+    view.base.setDepth(depth);
+    view.defender.setDepth(depth + 0.01);
+  }
+
+  private updateTower(view: TowerView, t: Tower, now: number): void {
+    const shooting = now - view.firedAt < SHOT_POSE_MS;
+    view.defender.setFrame(this.defenderFrame(t, shooting));
+    // Archers and mages face their target; the ballista turns instead.
+    if (TOWER_ART[t.type].defender !== 'ballista') view.defender.setFlipX(Math.cos(t.angle) < -0.05);
+    // New towers drop into place.
+    const drop = Math.max(0, 1 - (now - view.builtAt) / BUILD_DROP_MS);
+    const lift = Math.round(drop * drop * 8) * ART_SCALE;
+    const bottom = (t.row + 1) * TILE_SIZE;
+    const baseHeight = view.base.height * ART_SCALE;
+    view.base.setY(bottom - lift).setAlpha(1 - drop * 0.6);
+    const feet = bottom - baseHeight + (BASE_TOPS[t.type][t.level - 1] + DEFENDER_SINK) * ART_SCALE;
+    view.defender.setY(feet - lift).setAlpha(1 - drop * 0.6);
+  }
+
+  private defenderFrame(t: Tower, shooting: boolean): string {
+    switch (TOWER_ART[t.type].defender) {
+      case 'ballista':
+        return frameKey(shooting ? 'tower-sniper-fired' : 'tower-sniper-loaded', directionIndex(t.angle, BALLISTA_DIRECTIONS));
+      case 'mage':
+        return frameKey(`tower-${t.type}-cast`, shooting ? 1 : 0);
+      case 'archer':
+        return frameKey(`tower-${t.type}-shoot`, shooting ? 1 : 0);
     }
   }
 
-  private capPart(type: TowerTypeId, color: number, half: number): Phaser.GameObjects.Shape {
-    if (type === 'frost') {
-      return this.scene.add.rectangle(0, 0, half * 0.75, half * 0.75, color).setAngle(45);
-    }
-    return this.scene.add.circle(0, 0, half * 0.4, color);
-  }
+  // ---------------------------------------------------------------- enemies
 
   private createEnemy(e: Enemy): EnemyView {
-    const cfg = ENEMIES[e.type];
-    const r = e.radius;
-    // Baked once per enemy type; the margin leaves room for outlines and the boss's halo.
-    const size = Math.ceil((r + 6) * 2);
-    const bodyKey = bakeTexture(this.scene, `enemy-${e.type}`, size, size, (g) => drawEnemyShape(g, cfg.shape, r, cfg.color), true);
-    const body = bakedImage(this.scene, 0, 0, bodyKey);
-    const flash = this.scene.add.circle(0, 0, r + 1, 0xffffff).setAlpha(0);
-    const frost = this.scene.add
-      .circle(0, 0, r + 4)
-      .setStrokeStyle(2, TOWERS.frost.color, 0.9)
-      .setVisible(false);
-    const barWidth = cfg.shape === 'boss' ? 44 : 26;
-    const barY = -r - 7;
-    const hpBack = this.scene.add
-      .rectangle(-barWidth / 2, barY, barWidth, HP_BAR_HEIGHT, PALETTE.hpBack, 0.7)
-      .setOrigin(0, 0.5);
-    const hpFill = this.scene.add
-      .rectangle(-barWidth / 2, barY, barWidth, HP_BAR_HEIGHT, PALETTE.hpHigh)
-      .setOrigin(0, 0.5);
-    const root = this.scene.add
-      .container(e.x, e.y, [body, flash, frost, hpBack, hpFill])
-      .setDepth(DEPTH.enemies);
-
-    const view: EnemyView = { root, flash, frost, hpBack, hpFill, barWidth, hitAt: -Infinity, seen: 0 };
-    this.updateHpBar(view, e);
+    const art = CREATURE_ART[e.type];
+    const { w, h } = frameSize(art.walk);
+    const shadow = this.scene.add
+      .image(e.x, e.y, shadowTexture(this.scene, Math.max(8, w - 4)))
+      .setScale(ART_SCALE)
+      .setDepth(DEPTH.shadows);
+    const body = pixelImage(this.scene, e.x, e.y, art.walk, 0).setOrigin(0.5, 1);
+    const barW = art.barWidth * ART_SCALE;
+    const barBack = this.scene.add
+      .rectangle(0, 0, barW + 2 * ART_SCALE, 3 * ART_SCALE, PALETTE.hpBack, 0.85)
+      .setOrigin(0, 0)
+      .setDepth(DEPTH.bars);
+    const barFill = this.scene.add.rectangle(0, 0, barW, ART_SCALE, PALETTE.hpHigh).setOrigin(0, 0).setDepth(DEPTH.bars + 1);
+    const view: EnemyView = { shadow, body, barBack, barFill, art, height: h * ART_SCALE, facing: 1, hitAt: -Infinity, seen: 0 };
     this.enemies.set(e.id, view);
     return view;
   }
 
-  private createProjectile(p: Projectile): ProjectileView {
+  private updateEnemy(view: EnemyView, e: Enemy, alpha: number, now: number): void {
+    const x = lerp(e.prevX, e.x, alpha);
+    const y = lerp(e.prevY, e.y, alpha);
+    const feet = y + view.art.feet * ART_SCALE;
+    const dx = e.x - e.prevX;
+    if (Math.abs(dx) > 0.01) view.facing = dx < 0 ? -1 : 1;
+    // Walk frames follow distance travelled, so feet never slide and slowed creatures visibly slow down.
+    const step = Math.floor(e.distance / view.art.stride) % 4;
+    view.body.setFrame(frameKey(view.art.walk, step)).setPosition(x, feet).setFlipX(view.facing < 0).setDepth(unitDepth(feet));
+    view.shadow.setPosition(x, feet - ART_SCALE);
+    if (now - view.hitAt < FLASH_MS) view.body.setTintFill(0xffffff);
+    else if (e.slowFactor < 1) view.body.setTint(PALETTE.slowed);
+    else view.body.clearTint();
+    this.updateHpBar(view, e, x, feet - view.height - 4 * ART_SCALE);
+  }
+
+  private updateHpBar(view: EnemyView, e: Enemy, x: number, top: number): void {
+    const ratio = Phaser.Math.Clamp(e.hp / e.maxHp, 0, 1);
+    // Full-health enemies hide their bar to keep the board readable (bosses always show theirs).
+    const visible = ratio < 1 || e.type === 'boss';
+    view.barBack.setVisible(visible);
+    view.barFill.setVisible(visible);
+    if (!visible) return;
+    const barW = view.art.barWidth * ART_SCALE;
+    const left = Math.round((x - barW / 2) / ART_SCALE) * ART_SCALE;
+    const row = Math.round(top / ART_SCALE) * ART_SCALE;
+    view.barBack.setPosition(left - ART_SCALE, row - ART_SCALE);
+    view.barFill.setPosition(left, row);
+    view.barFill.width = Math.max(ART_SCALE, Math.round((barW * ratio) / ART_SCALE) * ART_SCALE);
+    view.barFill.fillColor = ratio > 0.6 ? PALETTE.hpHigh : ratio > 0.3 ? PALETTE.hpMid : PALETTE.hpLow;
+  }
+
+  // ---------------------------------------------------------------- projectiles
+
+  private createProjectile(p: Projectile, now: number): ProjectileView {
     const kind = p.towerType;
+    const animation = TOWER_ART[kind].projectile;
     const pooled = this.projectilePool.get(kind)?.pop();
-    let root: Phaser.GameObjects.Arc;
-    if (pooled) {
-      root = pooled.setPosition(p.x, p.y).setVisible(true);
-    } else {
-      const color = TOWERS[p.towerType].color;
-      const radius = p.towerType === 'frost' ? 5 : p.towerType === 'basic' ? 4 : 3;
-      root = this.scene.add
-        .circle(p.x, p.y, radius, p.towerType === 'frost' ? color : PALETTE.projectile)
-        .setStrokeStyle(2, color, 0.8)
-        .setDepth(DEPTH.projectiles);
-    }
-    const view: ProjectileView = { root, kind, seen: 0 };
+    const img = pooled ? pooled.setVisible(true) : pixelImage(this.scene, p.x, p.y, animation, 0).setDepth(DEPTH.projectiles);
+    const span = Math.hypot(p.tx - p.x, p.ty - p.y);
+    const view: ProjectileView = { img, kind, startX: p.x, startY: p.y, span, lastX: p.x, lastY: p.y, bornAt: now, seen: 0 };
     this.projectiles.set(p.id, view);
     return view;
   }
 
-  private updateHpBar(view: EnemyView, e: Enemy): void {
-    const ratio = Phaser.Math.Clamp(e.hp / e.maxHp, 0, 1);
-    // Full-health enemies hide their bar to keep the board readable (bosses always show theirs).
-    const visible = ratio < 1 || e.type === 'boss';
-    view.hpBack.setVisible(visible);
-    view.hpFill.setVisible(visible);
-    if (!visible) return;
-    view.hpFill.width = view.barWidth * ratio;
-    view.hpFill.fillColor = ratio > 0.6 ? PALETTE.hpHigh : ratio > 0.3 ? PALETTE.hpMid : PALETTE.hpLow;
+  private updateProjectile(view: ProjectileView, p: Projectile, alpha: number, now: number): void {
+    const art = TOWER_ART[view.kind];
+    const x = lerp(p.prevX, p.x, alpha);
+    let y = lerp(p.prevY, p.y, alpha);
+    if (art.arc > 0) {
+      // A ballistic-looking arc on screen: height peaks halfway along the shot.
+      const travelled = Math.hypot(x - view.startX, y - view.startY);
+      const remaining = Math.hypot(p.tx - x, p.ty - y);
+      const t = travelled / Math.max(1, travelled + remaining);
+      y -= art.arc * Math.min(view.span, 6 * TILE_SIZE) * 4 * t * (1 - t);
+    }
+    if (art.projectile === 'shard') {
+      view.img.setFrame(frameKey('shard', Math.floor((now - view.bornAt) / SHARD_FRAME_MS) % 2));
+    } else {
+      const dx = x - view.lastX;
+      const dy = y - view.lastY;
+      // Point along the on-screen motion (which includes the arc); aim at the target on the first frame.
+      const angle = dx * dx + dy * dy > 0.01 ? Math.atan2(dy, dx) : Math.atan2(p.ty - p.y, p.tx - p.x);
+      view.img.setFrame(frameKey(art.projectile, directionIndex(angle, PROJECTILE_DIRECTIONS)));
+    }
+    view.img.setPosition(x, y);
+    view.lastX = x;
+    view.lastY = y;
+  }
+
+  private releaseProjectile(v: ProjectileView): void {
+    v.img.setVisible(false);
+    const pool = this.projectilePool.get(v.kind) ?? [];
+    pool.push(v.img);
+    this.projectilePool.set(v.kind, pool);
   }
 }
 
-function drawTowerBase(g: Phaser.GameObjects.Graphics, color: number, half: number, level: number): void {
-  if (level === MAX_TOWER_LEVEL) {
-    g.fillStyle(color, 0.18).fillRoundedRect(-half - 3, -half - 3, half * 2 + 6, half * 2 + 6, 8);
-  }
-  g.fillStyle(PALETTE.towerBase).fillRoundedRect(-half, -half, half * 2, half * 2, 6);
-  g.lineStyle(2, color, 1).strokeRoundedRect(-half, -half, half * 2, half * 2, 6);
-  g.fillStyle(color, 0.22).fillCircle(0, 0, half * 0.7);
-
-  // Level pips along the bottom edge.
-  const pip = 4;
-  const gap = 3;
-  const startX = -((MAX_TOWER_LEVEL * pip + (MAX_TOWER_LEVEL - 1) * gap) / 2);
-  for (let i = 0; i < MAX_TOWER_LEVEL; i++) {
-    g.fillStyle(color, i < level ? 1 : 0.2).fillRect(startX + i * (pip + gap), half - pip - 3, pip, pip);
-  }
-}
-
-function drawEnemyShape(g: Phaser.GameObjects.Graphics, shape: EnemyShape, r: number, color: number): void {
-  const outline = PALETTE.enemyOutline;
-  switch (shape) {
-    case 'square':
-      g.fillStyle(color).fillRoundedRect(-r, -r, r * 2, r * 2, 4);
-      g.lineStyle(2, outline, 1).strokeRoundedRect(-r, -r, r * 2, r * 2, 4);
-      g.fillStyle(0xffffff, 0.25).fillRect(-r + 3, -r + 3, r * 0.7, r * 0.5);
-      return;
-    case 'diamond': {
-      const pts = [new Phaser.Math.Vector2(0, -r - 2), new Phaser.Math.Vector2(r + 2, 0),
-        new Phaser.Math.Vector2(0, r + 2), new Phaser.Math.Vector2(-r - 2, 0)];
-      g.fillStyle(color).fillPoints(pts, true);
-      g.lineStyle(2, outline, 1).strokePoints(pts, true);
-      g.fillStyle(0xffffff, 0.3).fillTriangle(0, -r + 2, r * 0.5, -2, -r * 0.5, -2);
-      return;
-    }
-    case 'octagon': {
-      const pts = polygon(8, r, Math.PI / 8);
-      g.fillStyle(color).fillPoints(pts, true);
-      g.lineStyle(3, outline, 1).strokePoints(pts, true);
-      // Armor plate.
-      g.fillStyle(0x000000, 0.25).fillRect(-r * 0.55, -r * 0.2, r * 1.1, r * 0.4);
-      g.lineStyle(1.5, 0xffffff, 0.35).strokePoints(polygon(8, r * 0.65, Math.PI / 8), true);
-      return;
-    }
-    case 'boss': {
-      const pts = polygon(8, r, Math.PI / 8);
-      g.fillStyle(0x000000, 0.35).fillCircle(0, 0, r + 5);
-      g.fillStyle(color).fillPoints(pts, true);
-      g.lineStyle(3, 0xffd166, 1).strokePoints(pts, true);
-      g.fillStyle(0x0b0f1a, 0.8).fillCircle(0, 0, r * 0.45);
-      g.fillStyle(0xffd166).fillCircle(0, 0, r * 0.2);
-      return;
-    }
-  }
-}
-
-function polygon(sides: number, r: number, rotation: number): Phaser.Math.Vector2[] {
-  const pts: Phaser.Math.Vector2[] = [];
-  for (let i = 0; i < sides; i++) {
-    const a = rotation + (i / sides) * Math.PI * 2;
-    pts.push(new Phaser.Math.Vector2(Math.cos(a) * r, Math.sin(a) * r));
-  }
-  return pts;
+function destroyAll(...objects: Phaser.GameObjects.GameObject[]): void {
+  for (const o of objects) o.destroy();
 }
 
 function lerp(a: number, b: number, t: number): number {

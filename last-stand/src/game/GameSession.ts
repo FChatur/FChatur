@@ -1,4 +1,5 @@
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
+import type { TileCoord } from '../config/map';
 import { TARGETING_MODES, type TargetingMode, type TowerTypeId } from '../config/towers';
 import type { UpgradeId } from '../config/upgrades';
 import { EventBus } from '../core/EventBus';
@@ -18,6 +19,7 @@ export class GameSession {
   private _buildType: TowerTypeId | null = null;
   private _selectedTowerId: number | null = null;
   private _hoveredTowerId: number | null = null;
+  private _drag: { type: TowerTypeId; tile: TileCoord | null } | null = null;
   private _screen: Screen = 'menu';
   private _paused = false;
   private readonly settings: Settings;
@@ -99,6 +101,38 @@ export class GameSession {
     // Cached: the HUD reads this every refresh, and storage only changes when a run ends.
     this.recordCache ??= this.persistence.loadRecords()[this._sim.map.id] ?? null;
     return this.recordCache;
+  }
+
+  /** A tower being dragged from the shop: its type and the tile under the pointer (null when off the map). */
+  get drag(): Readonly<{ type: TowerTypeId; tile: TileCoord | null }> | null {
+    return this._drag;
+  }
+
+  /** Starts dragging a tower from the shop (only while a run is being played). */
+  beginDrag(type: TowerTypeId): boolean {
+    if (this._screen !== 'playing' || this._paused || this._sim.phase === 'gameover') return false;
+    this.clearSelection();
+    this._drag = { type, tile: null };
+    this.bus.emit('dragChanged', { towerType: type });
+    return true;
+  }
+
+  /** The tile under the dragged tower, or null when the pointer is off the map. */
+  dragOver(tile: TileCoord | null): void {
+    if (this._drag) this._drag.tile = tile;
+  }
+
+  /**
+   * Ends a drag. With `drop`, builds on the tile under the pointer if that is allowed; otherwise (or when
+   * the drop is somewhere invalid) nothing is built. Returns the new tower, if any.
+   */
+  endDrag(drop: boolean): Tower | null {
+    const drag = this._drag;
+    if (!drag) return null;
+    this._drag = null;
+    const tower = drop && drag.tile ? this._sim.placeTower(drag.type, drag.tile.col, drag.tile.row) : null;
+    this.bus.emit('dragChanged', { towerType: null });
+    return tower;
   }
 
   /** Arms a tower type for building (clears any built-tower selection). */
@@ -190,6 +224,7 @@ export class GameSession {
   setPaused(paused: boolean): void {
     if (this._screen !== 'playing' || this._sim.phase === 'gameover') paused = false;
     if (paused === this._paused) return;
+    if (paused) this.endDrag(false);
     this._paused = paused;
     this.emitScreen();
   }
@@ -231,6 +266,7 @@ export class GameSession {
 
   /** New run. Speed, sound and Auto Wave are player preferences and carry over. */
   restart(): void {
+    this.endDrag(false);
     this._sim = this.newSimulation();
     this._buildType = null;
     this._selectedTowerId = null;

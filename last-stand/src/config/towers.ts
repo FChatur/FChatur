@@ -63,9 +63,9 @@ export function isGlobalRange(rangeTiles: number): boolean {
 export const TOWERS: Record<TowerTypeId, TowerConfig> = {
   basic: {
     id: 'basic',
-    name: 'Turret',
+    name: 'Archer Tower',
     role: 'All-rounder · Single target',
-    description: 'Reliable, affordable damage. A solid backbone for any defence.',
+    description: 'Reliable, affordable archers. A solid backbone for any defence, and steady against armor.',
     cost: 50,
     targeting: 'first',
     levels: [
@@ -73,14 +73,14 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
       { upgradeCost: 45, damage: 16, fireRate: 1.6, rangeTiles: 3.0, projectileSpeed: 560 },
       { upgradeCost: 80, damage: 26, fireRate: 1.8, rangeTiles: 3.25, projectileSpeed: 600 },
     ],
-    color: 0x4fd1c5,
+    color: 0xde5d4f,
     hotkey: '1',
   },
   sniper: {
     id: 'sniper',
-    name: 'Sniper',
-    role: 'Global range · Single target',
-    description: 'High-damage precision tower. Picks off the toughest enemy anywhere on the map.',
+    name: 'Ballista Tower',
+    role: 'Global range · Heavy hits',
+    description: 'Heavy bolts that reach anywhere on the map. Expensive: an investment that pays off in later waves.',
     cost: 110,
     targeting: 'strongest',
     // Priced for global range: it covers the whole path from anywhere, so it costs more than its
@@ -91,14 +91,14 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
       { upgradeCost: 100, damage: 80, fireRate: 0.5, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2600 },
       { upgradeCost: 170, damage: 140, fireRate: 0.55, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2800 },
     ],
-    color: 0xa78bfa,
+    color: 0x9a62c2,
     hotkey: '2',
   },
   rapid: {
     id: 'rapid',
-    name: 'Rapid',
+    name: 'Ranger Tower',
     role: 'Short range · Rapid fire',
-    description: 'Shreds fast, lightly armored enemies with a stream of small hits.',
+    description: 'Rangers loose a stream of quick arrows that shred fast, lightly armored enemies.',
     cost: 70,
     targeting: 'first',
     levels: [
@@ -106,14 +106,14 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
       { upgradeCost: 60, damage: 7, fireRate: 6, rangeTiles: 2.75, projectileSpeed: 700 },
       { upgradeCost: 100, damage: 10, fireRate: 7.5, rangeTiles: 3.0, projectileSpeed: 750 },
     ],
-    color: 0xfb923c,
+    color: 0x68a05c,
     hotkey: '3',
   },
   frost: {
     id: 'frost',
-    name: 'Frost',
+    name: 'Frost Mage Tower',
     role: 'Support · Crowd control',
-    description: 'Slows enemies so the rest of your defence gets more time to hit them.',
+    description: 'Ice magic slows enemies so the rest of your defence gets more time to hit them.',
     cost: 60,
     targeting: 'first',
     levels: [
@@ -121,7 +121,7 @@ export const TOWERS: Record<TowerTypeId, TowerConfig> = {
       { upgradeCost: 50, damage: 5, fireRate: 1.1, rangeTiles: 2.75, projectileSpeed: 500, slow: { factor: 0.5, duration: 1.75 } },
       { upgradeCost: 90, damage: 8, fireRate: 1.25, rangeTiles: 3.0, projectileSpeed: 520, slow: { factor: 0.4, duration: 2.0 } },
     ],
-    color: 0x7dd3fc,
+    color: 0x6cbcf0,
     hotkey: '4',
   },
 };

@@ -446,9 +446,11 @@ export class Simulation {
     const m = this.mods.forTower(p.towerType);
     const crit = m.critChance > 0 && this.rng() < m.critChance;
     const base = crit ? p.damage * m.critMultiplier : p.damage;
-    this.bus.emit('projectileHit', { projectile: p, enemy, crit });
+    const primary = withSlowedBonus(enemy, base, m);
+    const damage = mitigate(primary, enemy.armor, this.balance.armorMinDamageFraction);
+    this.bus.emit('projectileHit', { projectile: p, enemy, crit, damage });
 
-    this.damageEnemy(enemy, withSlowedBonus(enemy, base, m), p.towerType);
+    this.damageEnemy(enemy, primary, p.towerType);
     if (p.slowFactor < 1) applySlow(enemy, p.slowFactor, p.slowDuration);
 
     const splash = m.splashFraction;
