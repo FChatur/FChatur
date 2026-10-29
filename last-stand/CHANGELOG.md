@@ -6,7 +6,7 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
-Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release.
+## [0.7.0] - 2026-10-29 (Phase 7: Audio & Music)
 
 ### Added
 - Background music: "Picnic at the Tower Gate" (AI-generated with Google Gemini, credited in the main
@@ -16,8 +16,12 @@ Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release.
 - Master, Music and Effects volume sliders (0–100%) in the main menu and the pause menu, plus a Sound
   on/off button in the pause menu. Saved with the other settings; the old single volume carries over as
   Master at the same loudness.
-- docs/AUDIO.md: the audio system, the soundtrack's technical edits, the memory approach, and provenance
-  and licensing (with points for the owner to confirm before public release).
+- docs/AUDIO.md: the audio system, the soundtrack's technical edits, the memory approach, provenance
+  and the owner's licensing decision.
+- Tests: volume maths, settings migration, music state rules, the live music scheduler on a simulated
+  clock (intro, three loop wraps, sample-exact joins, memory bound), and browser tests in Chromium,
+  Firefox and WebKit (no audio before interaction, playback, settings persistence, mute and hidden-tab
+  suspend/resume, loop joins with each browser's own decoders).
 
 ### Changed
 - Music streams as short Opus chunks (AAC fallback) that download as the music reaches them. Only ~11 MB

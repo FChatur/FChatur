@@ -128,7 +128,7 @@ turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTO
 - Scope limits: no new maps, towers, enemies, upgrades or major systems. Released in 0.6.0
   after the owner playtested a hosted preview.
 
-### Phase 7: Audio & Music (v0.7.0, in progress)
+### Phase 7: Audio & Music ✅ (released in 0.7.0)
 Scheduled by the owner after 0.6.0, ahead of the map work. Requirements and design in section 8; the
 system as built and the soundtrack's processing and licensing in [AUDIO.md](AUDIO.md).
 - Background music: "Picnic at the Tower Gate" (generated with Google Gemini), looped seamlessly.
