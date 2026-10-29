@@ -10,7 +10,7 @@ Technical edits only (the owner's rule: never remix or alter the music):
     joins two bars that the track itself repeats 48 bars apart, with a short equal-power crossfade at
     the join;
   - the unused end (rest of the last section, outro and trailing silence) is dropped;
-  - encoded as Ogg Opus (all current browsers) with an AAC .m4a fallback.
+  - encoded as Ogg Opus (all current browsers) with an AAC .mp4 fallback.
 
 Memory: a decoded track is ~23 MB per stereo minute at 48 kHz, so instead of one file the game gets
 short chunks (~9 s) and keeps only the few it is about to play decoded (see src/audio/MusicPlayer.ts).
@@ -126,10 +126,10 @@ def main():
         ffmpeg('-y', *common, '-c:a', 'libopus', '-b:a', f'{OPUS_KBPS}k', '-application', 'audio',
                f'{OUT}/{name}.ogg', data=seg)
         ffmpeg('-y', *common, '-c:a', 'aac', '-b:a', f'{AAC_KBPS}k', '-movflags', '+faststart',
-               f'{OUT}/{name}.m4a', data=seg)
+               f'{OUT}/{name}.mp4', data=seg)
         chunks.append({'file': name, 'start': s, 'length': e - s})
 
-    sizes = {ext: sum(os.path.getsize(f'{OUT}/{c["file"]}.{ext}') for c in chunks) for ext in ('ogg', 'm4a')}
+    sizes = {ext: sum(os.path.getsize(f'{OUT}/{c["file"]}.{ext}') for c in chunks) for ext in ('ogg', 'mp4')}
     manifest = {
         'id': TRACK_ID,
         'sampleRate': SR,
@@ -139,7 +139,7 @@ def main():
     }
     print(f'loop {intro_end / SR:.3f}..{(intro_end + period) / SR:.3f} s of the edit '
           f'(source {loop_start / SR:.3f}..{seam / SR:.3f} s); {len(chunks)} chunks; '
-          f'ogg {sizes["ogg"] / 1e6:.2f} MB, m4a {sizes["m4a"] / 1e6:.2f} MB', file=sys.stderr)
+          f'ogg {sizes["ogg"] / 1e6:.2f} MB, mp4 {sizes["mp4"] / 1e6:.2f} MB', file=sys.stderr)
     print(json.dumps(manifest))
     verify(manifest, intro, body)
 
@@ -149,7 +149,7 @@ def verify(manifest, intro, body):
     does, then checks that every join is as continuous as the music around it."""
     m = manifest['margin']
     expect = np.vstack([intro, body, body])
-    for ext in ('ogg', 'm4a'):
+    for ext in ('ogg', 'mp4'):
         parts = []
         order = list(range(len(manifest['chunks']))) + list(range(manifest['loopChunk'], len(manifest['chunks'])))
         for i in order:

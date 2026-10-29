@@ -2,7 +2,7 @@ import { AUDIO, type SoundtrackManifest } from '../config/audio';
 import type { AudioEngine } from './AudioEngine';
 import { chunkAfter, chunkPlayback } from './mixing';
 
-type Format = 'ogg' | 'm4a';
+type Format = 'ogg' | 'mp4';
 
 /**
  * Streams a looping soundtrack from short chunks (see tools/prepare-music.py) with gapless joins.
@@ -15,7 +15,7 @@ type Format = 'ogg' | 'm4a';
  * previous one ends (sample-accurate, independent of frame rate or timers). Neighbouring chunks overlap by
  * a few milliseconds of identical audio and crossfade there, so rounding at a join can't click.
  *
- * Format: Ogg Opus where the browser can decode it, otherwise AAC (.m4a), chosen by trying chunk 0.
+ * Format: Ogg Opus where the browser can decode it, otherwise AAC (.mp4), chosen by trying chunk 0.
  * State for tests is mirrored on `<body data-music="off|loading|playing|error" data-music-format>`.
  */
 export class MusicPlayer {
@@ -144,7 +144,7 @@ export class MusicPlayer {
     this.formatProbe ??= (async () => {
       const ctx = this.engine.ctx!;
       const probe = document.createElement('audio');
-      const candidates: Format[] = probe.canPlayType('audio/ogg; codecs="opus"') ? ['ogg', 'm4a'] : ['m4a', 'ogg'];
+      const candidates: Format[] = probe.canPlayType('audio/ogg; codecs="opus"') ? ['ogg', 'mp4'] : ['mp4', 'ogg'];
       for (const format of candidates) {
         try {
           const bytes = await this.file(0, format);

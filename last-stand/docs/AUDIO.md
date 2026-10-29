@@ -88,7 +88,8 @@ regeneration, EQ, compression or limiting.
 
 **Formats**
 - **Ogg Opus at 96 kbps** (2.1 MB): current Chrome, Edge, Firefox and Safari.
-- **AAC .m4a at 160 kbps** (3.1 MB): a fallback.
+- **AAC at 160 kbps** (3.1 MB): a fallback, in `.mp4` files (the same container as `.m4a`; `.mp4` is
+  served correctly by more hosts).
 - The game tries Opus first and falls back if the browser can't decode it.
 - Opus at 96 kbps is close to transparent for this material; the source is itself a lossy 192 kbps
   MP3. Re-encoding as AAC at 160 kbps measured slightly closer to the source, but it is 50% larger.

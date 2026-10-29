@@ -26,7 +26,7 @@ async function watchAudio(page: Page): Promise<string[]> {
 async function decodableFormats(page: Page, t: SoundtrackManifest): Promise<string[]> {
   return page.evaluate(async (t) => {
     const ok: string[] = [];
-    for (const fmt of ['ogg', 'm4a']) {
+    for (const fmt of ['ogg', 'mp4']) {
       const bytes = await (await fetch(`audio/music/${t.id}/${t.chunks[0].file}.${fmt}`)).arrayBuffer();
       try {
         await new OfflineAudioContext(2, 128, 44100).decodeAudioData(bytes);
