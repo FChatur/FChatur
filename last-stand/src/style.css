@@ -1,3 +1,14 @@
+/* Digits only: Pixelify Sans draws 5 like an S and a cramped 8, so numbers (gold, costs, stats, waves)
+   use Jersey 10's clearer digits. Letters keep Pixelify. The weight range stops browsers faking bold. */
+@font-face {
+  font-family: 'Last Stand Digits';
+  src: url('../node_modules/@fontsource/jersey-10/files/jersey-10-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0030-0039;
+  font-weight: 100 900;
+  font-display: swap;
+  size-adjust: 125%;
+}
+
 :root {
   /* Interface colours come from the art palette (src/art/palette.ts), so panels match the pixel art. */
   --bg: #1a1424; /* ink0 */
@@ -11,7 +22,7 @@
   --gold: #f2c94c; /* gold3 */
   --health: #de5d4f; /* red3 */
   --wave: #6cbcf0; /* frost3 */
-  --font: 'Pixelify Sans', ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
+  --font: 'Last Stand Digits', 'Pixelify Sans', ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Consolas, monospace;
   /* Shop widths: expanded cards and the collapsed rail. */
   --shop-width: 264px;
   --rail-width: 88px;
