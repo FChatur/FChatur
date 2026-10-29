@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Issue #4 free-placement mockup. Run `npm run art` first (writes art-preview/). -->
+<base href="../../art-preview/"><style>
+@font-face { font-family:'Digits'; src:url(../node_modules/@fontsource/jersey-10/files/jersey-10-latin-400-normal.woff2); unicode-range:U+0030-0039; size-adjust:125%; }
+@font-face { font-family:'Pixelify Sans'; font-weight:600; src:url(../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-600-normal.woff2); }
+body { margin:0; background:#1a1424; font-family:'Digits','Pixelify Sans',sans-serif; }
+canvas { display:block; image-rendering:pixelated; }
+</style></head><body><canvas id="c" width="1408" height="896"></canvas>
+<script>
+// Free (Bloons-style) placement mockup on Millbrook at 4x: towers sit anywhere off the road, not on a grid.
+const T = 64, OX = 64, OY = 64; // tile size and map origin in this image
+const load = (s) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = s; });
+(async () => {
+  const c = document.getElementById('c'), ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  await document.fonts.load('600 22px "Pixelify Sans"'); await document.fonts.load('22px Digits', '0123456789');
+  const [map, basic, rapid, frost, sniper] = await Promise.all(['map-millbrook-thumb.png', 'ghost-basic.png', 'ghost-rapid.png', 'ghost-frost.png', 'ghost-sniper.png'].map(load));
+  ctx.drawImage(map, 0, 0, map.width * 4, map.height * 4);
+  const P = (col, row) => [OX + col * T, OY + row * T];
+  const foot = (x, y, r, col, fill) => { ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } ctx.lineWidth = 4; ctx.strokeStyle = col; ctx.stroke(); };
+  const place = (img, col, row, r, alpha = 1) => { const [x, y] = P(col, row); ctx.globalAlpha = alpha; ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height + 8)); ctx.globalAlpha = 1; return [x, y]; };
+  // Road corridor shown faintly while placing (half a tile either side of the centre line).
+  const road = [[-1, 1], [17, 1], [17, 4], [2, 4], [2, 7], [17, 7], [17, 10], [20, 10]];
+  ctx.save(); ctx.strokeStyle = 'rgba(222,93,79,0.28)'; ctx.lineWidth = T * 1.0 + 2 * 0.45 * T; ctx.lineJoin = 'round'; ctx.beginPath();
+  road.forEach(([c2, r2], i) => { const [x, y] = P(c2 + 0.5, r2 + 0.5); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.restore();
+  // Placed towers at free positions (note the uneven spacing: no grid).
+  const placed = [[basic, 5.35, 2.95, 0.45], [rapid, 6.25, 2.95, 0.45], [frost, 10.4, 3.05, 0.45], [sniper, 6.2, 6.1, 0.65], [basic, 13.85, 6.05, 0.45], [rapid, 15.2, 6.1, 0.45], [frost, 9.6, 9.05, 0.45]];
+  for (const [img, col, row, r] of placed) { const [x, y] = P(col, row); foot(x, y, r * T, 'rgba(255,255,255,0.35)'); }
+  placed.sort((a, b) => a[2] - b[2]).forEach(([img, col, row]) => place(img, col, row));
+  // A valid ghost (green footprint, range ring) and an invalid one (red: overlaps the road).
+  let [gx, gy] = P(12.0, 3.05);
+  ctx.beginPath(); ctx.arc(gx, gy - 20, 2.75 * T, 0, Math.PI * 2); ctx.fillStyle = 'rgba(163,215,101,0.12)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(163,215,101,0.9)'; ctx.stroke();
+  foot(gx, gy, 0.45 * T, '#a3d765', 'rgba(163,215,101,0.3)'); place(basic, 12.0, 3.05, 0.45, 0.75);
+  let [bx, by] = P(16.4, 8.05);
+  foot(bx, by, 0.45 * T, '#de5d4f', 'rgba(222,93,79,0.35)'); place(rapid, 16.4, 8.05, 0.45, 0.55);
+  const label = (x, y, text, bg) => { ctx.font = '600 22px Digits, "Pixelify Sans"'; const w = ctx.measureText(text).width + 20; ctx.fillStyle = bg; ctx.fillRect(x - w / 2, y, w, 34); ctx.fillStyle = '#1a1424'; ctx.fillText(text, x - w / 2 + 10, y + 24); };
+  label(bx, by - 150, 'Too close to the road', '#f59a73');
+  label(gx, gy - 152, 'Fits: 50 gold', '#cfe88a');
+  // Two towers touching footprints: the closest allowed spacing.
+  label(P(5.8, 3.0)[0], P(5.8, 3.0)[1] + 24, 'Footprints may touch, not overlap', '#fbe7a1');
+})();
+</script></body></html>

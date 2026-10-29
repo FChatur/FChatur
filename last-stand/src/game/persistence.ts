@@ -1,5 +1,7 @@
+import { AUDIO } from '../config/audio';
 import type { GameSpeed } from '../config/balance';
 import type { MapId } from '../config/maps';
+import { sliderForGain } from '../audio/mixing';
 
 /**
  * Settings and personal records, saved in localStorage. Every access is guarded: in private
@@ -9,8 +11,10 @@ import type { MapId } from '../config/maps';
 
 export interface Settings {
   muted: boolean;
-  /** 0..1 */
-  volume: number;
+  /** Volume slider positions, 0..1 (shown as 0–100%; gain follows a curve, see audio/mixing.ts). */
+  masterVolume: number;
+  musicVolume: number;
+  sfxVolume: number;
   speed: GameSpeed;
   /** Set once the first-run tutorial has been finished or skipped. */
   tutorialDone: boolean;
@@ -29,7 +33,21 @@ export interface MapRecord {
 /** Personal records, kept per map so different maps never share one leaderboard. */
 export type Records = Partial<Record<MapId, MapRecord>>;
 
-export const DEFAULT_SETTINGS: Settings = { muted: false, volume: 0.6, speed: 1, tutorialDone: false, autoWave: true, shopCollapsed: false };
+export const DEFAULT_SETTINGS: Settings = {
+  muted: false,
+  masterVolume: AUDIO.defaultVolumes.master,
+  musicVolume: AUDIO.defaultVolumes.music,
+  sfxVolume: AUDIO.defaultVolumes.sfx,
+  speed: 1,
+  tutorialDone: false,
+  autoWave: true,
+  shopCollapsed: false,
+};
+
+/** Settings as saved by older versions (before 0.7.0 there was one linear `volume` gain). */
+type StoredSettings = Partial<Settings> & { volume?: unknown };
+
+const isLevel = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1;
 
 const KEYS = { settings: 'lastStand.v1.settings', records: 'lastStand.v1.records' } as const;
 
@@ -51,10 +69,14 @@ export class Persistence {
   constructor(private readonly store: KeyValueStore | null = defaultStore()) {}
 
   loadSettings(): Settings {
-    const raw = this.read<Partial<Settings>>(KEYS.settings) ?? {};
+    const raw = this.read<StoredSettings>(KEYS.settings) ?? {};
     const s = { ...DEFAULT_SETTINGS };
     if (typeof raw.muted === 'boolean') s.muted = raw.muted;
-    if (typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1) s.volume = raw.volume;
+    // Before 0.7.0: one linear gain for everything. Keep that loudness as the Master slider.
+    if (isLevel(raw.volume)) s.masterVolume = sliderForGain(raw.volume);
+    if (isLevel(raw.masterVolume)) s.masterVolume = raw.masterVolume;
+    if (isLevel(raw.musicVolume)) s.musicVolume = raw.musicVolume;
+    if (isLevel(raw.sfxVolume)) s.sfxVolume = raw.sfxVolume;
     if (raw.speed === 1 || raw.speed === 2 || raw.speed === 3) s.speed = raw.speed;
     if (typeof raw.tutorialDone === 'boolean') s.tutorialDone = raw.tutorialDone;
     if (typeof raw.autoWave === 'boolean') s.autoWave = raw.autoWave;

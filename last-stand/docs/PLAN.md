@@ -128,7 +128,16 @@ turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTO
 - Scope limits: no new maps, towers, enemies, upgrades or major systems. Released in 0.6.0
   after the owner playtested a hosted preview.
 
-### Phase 7: Maps and map selection (planned, after Phase 6 is approved)
+### Phase 7: Audio & Music ✅ (released in 0.7.0)
+Scheduled by the owner after 0.6.0, ahead of the map work. Requirements and design in section 8; the
+system as built and the soundtrack's processing and licensing in [AUDIO.md](AUDIO.md).
+- Background music: "Picnic at the Tower Gate" (generated with Google Gemini), looped seamlessly.
+- Master, Music and SFX volume sliders, global mute, saved preferences; in the main menu and the pause
+  menu.
+- Smooth music transitions, pause and focus behaviour, browser autoplay rules, mobile support.
+
+### Phase 8: Maps and map selection (v0.8.0; design proposal awaiting approval: [PROGRESSION.md](PROGRESSION.md))
+Moved from v0.7.0 to v0.8.0 when Audio & Music was scheduled first; the planned features are unchanged.
 - **Additional maps**, each balanced individually against the shared difficulty expectations (see
   section 6), and a way to choose between them.
 
@@ -136,8 +145,8 @@ turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTO
 - **Mobile**: touch-first controls and layout, then **PWA installation** (web app manifest, icons,
   "Add to Home Screen") and **offline support** (service worker caching the built game so it runs without
   a connection; versioned cache so a new release replaces the old one).
-- **Audio & Music**: background music, richer sound effects and separate volume controls. Dedicated
-  milestone with requirements and design notes in section 8.
+- **Audio, later steps**: more tracks (a boss-intensity layer or variant, a game-over sting) and richer
+  sound effects with recorded samples (section 8). The first audio milestone is Phase 7.
 
 ## 6. Balance principles (multi-map)
 
@@ -200,9 +209,11 @@ kinds), run `npm test` (registry checks) and `npm run balance`.
 - Towers and enemies are already keyed registries (`config/towers.ts`, `config/enemies.ts`) and maps are
   data (`config/maps.ts`); bosses are enemy definitions, so more of each is additive.
 
-## 8. Future milestone: Audio & Music (set by the owner)
+## 8. Milestone: Audio & Music (set by the owner)
 
-Not scheduled and not part of any current patch. Recorded so the work starts from agreed requirements.
+Scheduled as v0.7.0 (Phase 7). Requirements below were agreed before the work started; what was built
+and how is in [AUDIO.md](AUDIO.md). Boss-intensity music and recorded sound effects come later: the
+first soundtrack has no separate layers or boss variant.
 
 **Priority:** a cohesive soundtrack and satisfying combat feedback matter more than the number of tracks.
 A small, consistent set (for example a build/menu theme, a combat loop with a boss-intensity variant,

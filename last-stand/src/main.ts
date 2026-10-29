@@ -6,6 +6,8 @@ import { GameSession } from './game/GameSession';
 import { PALETTE } from './render/palette';
 import { clampPixelRatio, computeViewport, mapScreenRect, type Viewport } from './render/viewport';
 import { GameScene, type GameSceneData } from './scenes/GameScene';
+import { AudioEngine } from './audio/AudioEngine';
+import { Music } from './audio/Music';
 import { Sfx } from './audio/Sfx';
 import { Hud, type BoardGeometry } from './ui/Hud';
 import { hideNotice, showNotice, watchForCrashes } from './ui/notice';
@@ -44,6 +46,9 @@ const game = new Phaser.Game({
   render: { antialias: false, antialiasGL: false, pixelArt: true, roundPixels: true },
   scale: { mode: Phaser.Scale.NONE, zoom: 1 / viewport.devicePixelRatio },
   banner: false,
+  // All sound goes through src/audio. Without this Phaser opens its own audio context on page load,
+  // before the player has interacted (browsers then warn and keep it suspended).
+  audio: { noAudio: true },
 });
 game.registry.set('viewport', viewport);
 
@@ -149,8 +154,14 @@ game.scene.add('Game', GameScene, true, { session } satisfies GameSceneData);
 
 // Dev-server only (stripped from production builds): lets automated playtests drive the game.
 if (import.meta.env.DEV) Object.assign(window, { __lastStand: { session, game } });
+// Audio first: its unlock listeners must see a Play click or key press before the HUD acts on it.
+const audio = new AudioEngine(session);
 new Hud(session, geometry);
-new Sfx(session);
+new Sfx(session, audio);
+// Without the soundtrack files (withheld while licensing is checked) the game runs without music.
+if (__SOUNDTRACK_AVAILABLE__) new Music(session, audio);
+else document.body.dataset.music = 'unavailable';
+document.getElementById('menu-credits')?.toggleAttribute('hidden', !__SOUNDTRACK_AVAILABLE__);
 
 const versionLabel = document.getElementById('version');
 if (versionLabel) versionLabel.textContent = `v${__APP_VERSION__}`;

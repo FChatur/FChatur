@@ -1,0 +1,588 @@
+<title>Last Stand Character Studies</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: a concept-art book. Cream paper pages, one section per character, art first, notes beside it. */
+  :root {
+    --paper: #f7f0e3; --page: #fbf6ec; --ink: #2b1a22; --muted: #6f5f66; --line: #e0d4bf;
+    --manny: #e07a1f; --wren: #c8323c; --bones: #6c3f7d; --gold: #b8862a;
+    --display: 'Trebuchet MS', 'Gill Sans', system-ui, sans-serif; --body: Georgia, 'Iowan Old Style', serif;
+    color-scheme: light;
+  }
+  html, body { background: var(--paper); color: var(--ink); }
+  body { margin: 0; font-family: var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; }
+  .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+  h1, h2, h3, .tag { font-family: var(--display); }
+  h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.6rem); letter-spacing: .01em; text-wrap: balance; }
+  .lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; line-height: 1.5; }
+  .card { background: var(--page); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+  .lineup { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; align-items: end; }
+  .lineup figure { margin: 0; text-align: center; }
+  .lineup svg { width: 100%; height: auto; }
+  .lineup figcaption { font-family: var(--display); font-weight: 700; }
+  .lineup figcaption small { display: block; font-weight: 400; color: var(--muted); font-family: var(--body); }
+  section.char { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 22px; border-top: 6px solid var(--c); }
+  @media (max-width: 820px) { section.char { grid-template-columns: 1fr; } }
+  .hero svg { width: 100%; height: auto; display: block; }
+  .tag { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; color: var(--c); font-weight: 700; }
+  h2 { margin: 2px 0 2px; font-size: 1.8rem; }
+  .quote { font-style: italic; color: var(--muted); margin: 0 0 10px; }
+  .notes { display: grid; gap: 10px; min-width: 0; }
+  .notes p { margin: 0; line-height: 1.5; }
+  .notes dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+  .notes dt { font-family: var(--display); font-weight: 700; font-size: .9rem; }
+  .notes dd { margin: 0; line-height: 1.45; }
+  h3 { margin: 6px 0 4px; font-size: .78rem; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .faces { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 560px) { .faces { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .faces figure, .poses figure { margin: 0; text-align: center; font-size: .78rem; color: var(--muted); }
+  .faces svg { width: 100%; height: auto; background: #fff8ec; border-radius: 8px; border: 1px solid var(--line); }
+  .poses { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; }
+  .poses svg { width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); filter: grayscale(1) sepia(0.25) contrast(0.95); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .sil svg { width: 110px; height: auto; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatches span { width: 30px; height: 30px; border-radius: 6px; border: 2px solid var(--ink); }
+  .scale { display: flex; align-items: flex-end; justify-content: center; gap: 22px; padding: 18px; background: #5aa748; border-radius: 10px; overflow-x: auto; }
+  .scale figure { margin: 0; text-align: center; color: #fff; font-family: var(--display); font-size: .78rem; flex: none; }
+  .scale img { image-rendering: pixelated; }
+  .limits { border-left: 6px solid var(--gold); }
+  .limits ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.5; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Last Stand Character Studies</h1>
+    <p class="lede">Design explorations for three heroes. Each starts from a personality and a few memorable hooks, then a silhouette, expressions and signature poses. Everything here is vector art drawn in code as concept work, not final in-game art. Judge the designs; final polish would come from the art pipeline described in the last section.</p>
+  </header>
+
+  <div class="card lineup" id="lineup"></div>
+
+  <section class="card char" style="--c: var(--manny)" id="manny"></section>
+  <section class="card char" style="--c: var(--wren)" id="wren"></section>
+  <section class="card char" style="--c: var(--bones)" id="bones"></section>
+
+  <div class="card">
+    <h3>At gameplay size (about 90 px tall), next to today's Wren</h3>
+    <div class="scale" id="scale"></div>
+  </div>
+
+  <div class="card limits">
+    <h3>What this art is, and what polished art needs</h3>
+    <ul>
+      <li>These drawings are flat-shaded vector art written in code. That is enough to settle a design: silhouette, proportions, costume, colours and expressions.</li>
+      <li>The rich painted shading, texture and fine line quality of a polished commercial game come from a dedicated illustrator. Code can approximate them, not match them.</li>
+      <li>Approved designs can go to an illustrator as layered artwork (one layer per body part) and be animated in the engine, or be delivered as finished animation sheets. The engine side is the same either way.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// Character concept art for Last Stand, drawn as SVG. Shared helpers and the three characters.
+// Each character function returns SVG markup for a 400x480 canvas (feet near y=452).
+(function () {
+  const INK = '#2b1a22';
+  let uid = 0;
+
+  /**
+   * A shaded part: base fill, an automatic form shadow (light from the upper left: the shadow is the
+   * part minus a copy shifted up-left), optional extra shapes, then the outline.
+   */
+  function part(d, o) {
+    const id = `c${uid++}`;
+    const s = o.s ?? 9;
+    const extra = (o.extra || []).map(([dd, fill, op = 1]) => `<path d="${dd}" fill="${fill}" opacity="${op}"/>`).join('');
+    return `<clipPath id="${id}"><path d="${d}"/></clipPath>
+<g clip-path="url(#${id})">
+  <path d="${d}" fill="${o.shade || o.fill}"/>
+  <path d="${d}" fill="${o.fill}" transform="translate(${-s} ${-s * 0.8})"/>
+  ${o.hi ? `<path d="${d}" fill="${o.hi}" transform="translate(${-s * 0.15} ${-s * 0.12})" opacity="0"/>` : ''}
+  ${extra}
+</g>
+${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.sw ?? 4.5}" stroke-linejoin="round" stroke-linecap="round"/>`}`;
+  }
+  const line = (d, w = 2.6, c = INK, extra = '') => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+  const fillp = (d, c, extra = '') => `<path d="${d}" fill="${c}" ${extra}/>`;
+  const shadowEll = (cx, cy, rx, ry) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#2b1a22" opacity="0.18"/>`;
+
+  // ============================================================== MANNY
+  const M = {
+    skin: '#eda574', skinSh: '#c4774f', skinHi: '#ffd2aa', skinDeep: '#9c5638',
+    robe: '#f39a2c', robeSh: '#c8661a', robeHi: '#ffc867',
+    sash: '#bf313b', sashSh: '#86202c', gold: '#f4c542', goldSh: '#b8862a', goldHi: '#fff1b0',
+    wrap: '#efe2c8', wrapSh: '#c4b08c', jade: '#2f9c8c', jadeSh: '#1b6359', jadeHi: '#8ae3d2',
+    mouth: '#5a1a24', ribbon: '#e0413a', blush: '#f2826b',
+  };
+
+  function mannyFace(expr) {
+    const faces = {
+      cocky: `
+        ${fillp('M 177 93 C 183 84, 194 83, 199 90 L 196 96 C 190 91, 184 92, 179 98 Z', INK)}
+        ${fillp('M 203 84 C 209 74, 221 74, 228 81 L 225 87 C 219 82, 211 84, 206 90 Z', INK)}
+        ${line('M 181 104 C 185 99, 192 99, 196 104', 3.2)}
+        <ellipse cx="215" cy="101" rx="4.4" ry="5.6" fill="#fff" stroke="${INK}" stroke-width="2"/><circle cx="216" cy="102" r="2.6" fill="${INK}"/><circle cx="217" cy="100" r="1" fill="#fff"/>
+        ${fillp('M 180 121 C 189 140, 213 140, 222 118 C 209 125, 194 125, 180 121 Z', M.mouth, `stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"`)}
+        ${fillp('M 183 122 C 195 126, 208 126, 220 120 L 219 125 C 207 130, 195 130, 184 126 Z', '#fff')}
+        <rect x="204" y="122" width="6" height="6" rx="1" fill="${M.gold}" stroke="${INK}" stroke-width="1"/>
+        ${fillp('M 192 133 C 198 137, 206 137, 212 132 C 206 136, 198 136, 192 133 Z', '#e85d6a')}`,
+      grin: `
+        ${fillp('M 177 90 C 183 81, 194 80, 199 87 L 196 93 C 190 88, 184 89, 179 95 Z', INK)}
+        ${fillp('M 201 87 C 206 80, 217 81, 223 90 L 221 95 C 216 89, 210 88, 204 93 Z', INK)}
+        ${line('M 181 104 C 185 98, 192 98, 196 104', 3.2)}${line('M 205 104 C 209 98, 216 98, 220 104', 3.2)}
+        ${fillp('M 178 118 C 186 144, 216 144, 224 118 C 210 124, 192 124, 178 118 Z', M.mouth, `stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"`)}
+        ${fillp('M 181 119 C 194 124, 208 124, 221 119 L 220 125 C 207 130, 195 130, 182 125 Z', '#fff')}
+        <rect x="203" y="121" width="6" height="6" rx="1" fill="${M.gold}" stroke="${INK}" stroke-width="1"/>`,
+      focus: `
+        ${fillp('M 176 88 C 184 88, 194 92, 199 98 L 197 102 C 190 97, 183 95, 178 95 Z', INK)}
+        ${fillp('M 224 88 C 216 88, 206 92, 201 98 L 203 102 C 210 97, 217 95, 222 95 Z', INK)}
+        <ellipse cx="187" cy="104" rx="3.4" ry="3" fill="${INK}"/><ellipse cx="213" cy="104" rx="3.4" ry="3" fill="${INK}"/>
+        ${fillp('M 184 124 L 216 124 L 213 132 L 187 132 Z', '#fff', `stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"`)}
+        ${line('M 186 128 L 214 128', 1.6)}${line('M 194 124 L 194 132 M 202 124 L 202 132 M 209 124 L 209 132', 1.4)}`,
+      shock: `
+        ${fillp('M 178 82 C 184 74, 194 74, 198 80 L 196 85 C 190 81, 184 82, 180 87 Z', INK)}
+        ${fillp('M 202 80 C 207 74, 217 74, 222 82 L 220 87 C 216 82, 210 81, 204 85 Z', INK)}
+        <circle cx="187" cy="102" r="6" fill="#fff" stroke="${INK}" stroke-width="2"/><circle cx="187" cy="102" r="2.2" fill="${INK}"/>
+        <circle cx="213" cy="102" r="6" fill="#fff" stroke="${INK}" stroke-width="2"/><circle cx="213" cy="102" r="2.2" fill="${INK}"/>
+        <ellipse cx="200" cy="128" rx="8" ry="10" fill="${M.mouth}" stroke="${INK}" stroke-width="2.6"/>`,
+      smug: `
+        ${fillp('M 177 94 C 183 89, 194 88, 199 92 L 197 97 C 190 94, 184 95, 179 99 Z', INK)}
+        ${fillp('M 203 84 C 209 74, 221 74, 228 81 L 225 87 C 219 82, 211 84, 206 90 Z', INK)}
+        ${line('M 181 103 L 196 103', 3.2)}
+        ${line('M 207 104 C 211 99, 217 99, 221 104', 3.2)}
+        ${fillp('M 186 124 C 196 130, 210 128, 220 118 C 214 128, 198 134, 186 124 Z', M.mouth, `stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"`)}
+        <path d="M 232 76 l 3 -8 l 3 8 l 8 3 l -8 3 l -3 8 l -3 -8 l -8 -3 Z" fill="${M.goldHi}" stroke="${INK}" stroke-width="1.4"/>`,
+      laugh: `
+        ${fillp('M 176 88 C 182 79, 193 78, 198 85 L 195 91 C 189 86, 183 87, 178 93 Z', INK)}
+        ${fillp('M 202 85 C 207 78, 218 79, 224 88 L 222 93 C 217 87, 211 86, 205 91 Z', INK)}
+        ${line('M 180 99 L 189 104 L 180 108', 3.2)}${line('M 220 99 L 211 104 L 220 108', 3.2)}
+        ${fillp('M 176 116 C 180 148, 220 148, 226 116 C 210 122, 192 122, 176 116 Z', M.mouth, `stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"`)}
+        ${fillp('M 179 117 C 193 122, 209 122, 223 117 L 222 123 C 208 128, 194 128, 180 123 Z', '#fff')}
+        ${fillp('M 190 138 C 196 132, 206 132, 212 138 C 206 143, 196 143, 190 138 Z', '#e85d6a')}
+        <path d="M 170 96 q -8 6 -4 14 q 6 -2 4 -14 Z" fill="#8fd3ff" stroke="${INK}" stroke-width="1.4"/>`,
+    };
+    return faces[expr] || faces.cocky;
+  }
+
+  function mannyHead(expr = 'cocky') {
+    const head = 'M 172 96 C 172 70, 186 58, 200 58 C 214 58, 228 70, 228 96 L 228 116 C 228 136, 216 147, 200 147 C 184 147, 172 136, 172 116 Z';
+    return `
+      ${part('M 228 64 C 214 46, 196 38, 168 30 C 146 24, 128 32, 112 22 C 120 40, 142 46, 160 48 C 180 50, 198 58, 214 70 Z', { fill: M.ribbon, shade: M.sashSh, s: 5, sw: 3.4 })}
+      ${part('M 226 60 C 218 40, 204 30, 182 34 C 168 36, 154 30, 146 20 C 146 38, 164 48, 182 48 C 198 48, 210 56, 220 66 Z', { fill: M.ribbon, shade: M.sashSh, s: 5, sw: 3.4 })}
+      <circle cx="200" cy="52" r="12" fill="${INK}"/><circle cx="198" cy="50" r="4" fill="#5a4048"/>
+      ${part('M 186 60 L 214 60 L 212 68 L 188 68 Z', { fill: M.ribbon, shade: M.sashSh, s: 3, sw: 3 })}
+      ${part('M 166 100 C 158 98, 156 112, 166 116 Z', { fill: M.skin, shade: M.skinSh, s: 3, sw: 3.4 })}
+      ${part('M 234 100 C 242 98, 244 112, 234 116 Z', { fill: M.skin, shade: M.skinSh, s: 3, sw: 3.4 })}
+      ${part(head, { fill: M.skin, shade: M.skinSh, s: 8, extra: [['M 178 70 C 186 62, 196 60, 204 62 C 194 64, 186 70, 182 80 Z', M.skinHi, 0.9]] })}
+      <ellipse cx="180" cy="116" rx="6" ry="3.4" fill="${M.blush}" opacity="0.65"/><ellipse cx="221" cy="116" rx="6" ry="3.4" fill="${M.blush}" opacity="0.65"/>
+      ${line('M 197 104 C 194 110, 196 114, 201 114', 2.4)}
+      <g transform="rotate(-14 200 110)"><rect x="189" y="106" width="22" height="7" rx="2" fill="${M.wrap}" stroke="${INK}" stroke-width="2"/>${line('M 195 107 L 195 112 M 205 107 L 205 112', 1.2)}</g>
+      ${mannyFace(expr)}
+      ${line('M 196 142 C 199 144, 202 144, 204 142', 2)}`;
+  }
+
+  // A big taped fist, knuckles to the viewer, centred on (cx, cy) with half-width r.
+  function fist(cx, cy, r, mirror = false) {
+    const sx = mirror ? -1 : 1;
+    const X = (v) => cx + v * r * sx, Y = (v) => cy + v * r;
+    const P = (pts) => pts.map(([cmd, ...xy]) => cmd + ' ' + xy.map((v, i) => (i % 2 ? Y(v) : X(v)).toFixed(1)).join(' ')).join(' ');
+    const body = P([['M', -0.98, 0.0], ['C', -1.06, -0.62, -0.62, -0.98, 0.0, -0.98], ['C', 0.64, -0.98, 1.06, -0.6, 1.02, 0.02], ['C', 0.98, 0.66, 0.6, 1.02, -0.02, 1.02], ['C', -0.62, 1.02, -0.92, 0.6, -0.98, 0.0], ['Z']]);
+    const tape = P([['M', -0.86, -0.42], ['C', -0.36, -0.62, 0.36, -0.62, 0.9, -0.44], ['L', 0.92, -0.14], ['C', 0.38, -0.3, -0.36, -0.3, -0.9, -0.1], ['Z']]);
+    const thumb = P([['M', 0.56, 0.0], ['C', 0.86, -0.08, 1.08, 0.2, 0.98, 0.52], ['C', 0.88, 0.8, 0.58, 0.82, 0.42, 0.64], ['C', 0.56, 0.42, 0.58, 0.2, 0.56, 0.0], ['Z']]);
+    const hi = P([['M', -0.74, -0.42], ['C', -0.5, -0.82, 0.0, -0.9, 0.36, -0.8], ['C', -0.04, -0.74, -0.42, -0.6, -0.6, -0.3], ['Z']]);
+    const knuckles = P([['M', -0.78, 0.18], ['C', -0.7, 0.04, -0.5, 0.04, -0.42, 0.18], ['M', -0.4, 0.18], ['C', -0.3, 0.02, -0.06, 0.02, 0.02, 0.18], ['M', 0.04, 0.18], ['C', 0.12, 0.04, 0.32, 0.04, 0.4, 0.2]]);
+    const fingers = P([['M', -0.42, 0.22], ['L', -0.42, 0.7], ['M', 0.02, 0.22], ['L', 0.02, 0.76]]);
+    const tapeLines = P([['M', -0.56, -0.5], ['L', -0.56, -0.2], ['M', -0.16, -0.56], ['L', -0.16, -0.26], ['M', 0.24, -0.56], ['L', 0.24, -0.26], ['M', 0.62, -0.5], ['L', 0.62, -0.22]]);
+    return `
+      ${part(body, { fill: M.skin, shade: M.skinSh, s: r * 0.28, extra: [[hi, M.skinHi, 0.9]] })}
+      ${part(tape, { fill: M.wrap, shade: M.wrapSh, s: 4, sw: 2.8 })}
+      ${line(tapeLines, 1.6, M.wrapSh)}
+      ${line(knuckles, 2.4)}${line(fingers, 2.2)}
+      ${part(thumb, { fill: M.skin, shade: M.skinSh, s: 6, sw: 3.4 })}`;
+  }
+
+  // Raised flexing fist above the shoulder.
+  function fistRaised() {
+    return `
+      ${part('M 34 192 C 26 168, 34 142, 46 120 L 86 124 C 80 146, 72 170, 70 198 Z', { fill: M.skin, shade: M.skinSh, s: 10 })}
+      ${part('M 40 112 L 92 116 L 89 134 L 37 130 Z', { fill: M.sash, shade: M.sashSh, s: 4, sw: 3.4 })}
+      ${fist(66, 74, 46, true)}`;
+  }
+
+  // Resting fist by the knee.
+  function fistLow() {
+    return `
+      ${part('M 304 256 C 318 284, 318 310, 312 334 L 352 336 C 354 306, 348 280, 338 252 Z', { fill: M.skin, shade: M.skinSh, s: 10 })}
+      ${part('M 307 326 L 356 328 L 355 344 L 305 342 Z', { fill: M.sash, shade: M.sashSh, s: 4, sw: 3.4 })}
+      ${fist(332, 378, 54)}`;
+  }
+
+  function manny(expr = 'cocky') {
+
+    return `<defs><filter id="sil" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="d"/><feFlood flood-color="${INK}"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    ${shadowEll(214, 452, 150, 16)}<g class="manny" filter="url(#sil)">
+      ${part('M 168 316 C 136 324, 120 352, 124 384 C 140 368, 156 360, 178 356 Z', { fill: M.robe, shade: M.robeSh, s: 8 })}
+      ${part('M 232 316 C 264 324, 280 352, 276 384 C 260 368, 244 360, 222 356 Z', { fill: M.robe, shade: M.robeSh, s: 8 })}
+      ${part('M 170 318 C 132 332, 112 374, 122 412 C 126 426, 140 432, 152 430 L 168 430 C 174 402, 180 372, 198 338 Z', { fill: M.robe, shade: M.robeSh, s: 12, extra: [['M 130 380 C 138 360, 150 346, 166 340 C 156 356, 146 372, 142 392 Z', M.robeHi, 0.8]] })}
+      ${part('M 230 318 C 268 332, 288 374, 278 412 C 274 426, 260 432, 248 430 L 232 430 C 226 402, 220 372, 202 338 Z', { fill: M.robe, shade: M.robeSh, s: 12 })}
+      ${line('M 150 360 C 152 378, 152 398, 148 416 M 250 360 C 248 378, 248 398, 252 416', 2.2, M.robeSh)}
+      ${part('M 138 420 L 172 420 L 172 436 L 138 436 Z', { fill: M.wrap, shade: M.wrapSh, s: 3, sw: 3.4 })}
+      ${part('M 228 420 L 262 420 L 262 436 L 228 436 Z', { fill: M.wrap, shade: M.wrapSh, s: 3, sw: 3.4 })}
+      ${part('M 140 434 C 120 434, 104 444, 110 454 L 170 454 C 174 446, 168 436, 158 434 Z', { fill: M.skin, shade: M.skinSh, s: 4, sw: 3.6 })}
+      ${line('M 118 446 L 118 453 M 126 444 L 126 453', 1.6)}
+      ${part('M 260 434 C 280 434, 296 444, 290 454 L 230 454 C 226 446, 232 436, 242 434 Z', { fill: M.skin, shade: M.skinSh, s: 4, sw: 3.6 })}
+      ${line('M 282 446 L 282 453 M 274 444 L 274 453', 1.6)}
+      ${part('M 172 302 C 150 270, 118 236, 98 202 C 84 178, 92 160, 118 154 C 150 146, 176 150, 186 136 L 214 136 C 224 150, 250 146, 282 154 C 308 160, 316 178, 302 202 C 282 236, 250 270, 228 302 Z', { fill: M.skin, shade: M.skinSh, s: 14, extra: [['M 112 168 C 132 158, 158 158, 176 166 C 150 168, 130 176, 120 190 Z', M.skinHi, 0.8]] })}
+      ${part('M 200 170 C 176 162, 136 166, 124 194 C 138 214, 176 220, 200 208 Z', { fill: M.skin, shade: M.skinSh, s: 9, sw: 3.2 })}
+      ${part('M 200 170 C 224 162, 264 166, 276 194 C 262 214, 224 220, 200 208 Z', { fill: M.skin, shade: M.skinSh, s: 9, sw: 3.2 })}
+      ${line('M 200 214 L 200 296', 2.6)}
+      ${line('M 182 232 C 190 236, 196 236, 200 234 C 204 236, 210 236, 218 232', 2.4)}
+      ${line('M 184 254 C 191 258, 196 258, 200 256 C 204 258, 209 258, 216 254', 2.4)}
+      ${line('M 186 275 C 192 279, 196 279, 200 277 C 204 279, 208 279, 214 275', 2.4)}
+      ${line('M 150 236 C 160 254, 168 272, 172 290 M 250 236 C 240 254, 232 272, 228 290', 2.2, M.skinDeep)}
+      ${part('M 184 140 L 216 140 L 222 168 L 178 168 Z', { fill: M.skinSh, shade: M.skinDeep, s: 4, noLine: true })}
+      ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => { const k = i / 8; const x = 120 + k * 150, y = 170 + Math.sin(k * Math.PI) * 18 + k * 120; return `<circle cx="${x}" cy="${y}" r="10.5" fill="${M.jade}" stroke="${INK}" stroke-width="3"/><circle cx="${x - 3.5}" cy="${y - 3.5}" r="3.4" fill="${M.jadeHi}"/>`; }).join('')}
+      ${part('M 264 288 C 274 300, 276 316, 270 330 C 262 322, 258 306, 264 288 Z', { fill: M.gold, shade: M.goldSh, s: 3, sw: 2.6 })}
+      ${part('M 164 300 L 236 300 L 240 332 L 160 332 Z', { fill: M.sash, shade: M.sashSh, s: 6 })}
+      ${part('M 226 328 C 238 352, 234 374, 248 396 L 260 388 C 248 366, 250 346, 238 324 Z', { fill: M.sash, shade: M.sashSh, s: 5, sw: 3.4 })}
+      <circle cx="200" cy="318" r="23" fill="${M.gold}" stroke="${INK}" stroke-width="4"/>
+      <circle cx="200" cy="318" r="15" fill="none" stroke="${M.goldSh}" stroke-width="3"/>
+      <circle cx="200" cy="318" r="6" fill="${M.goldHi}" stroke="${INK}" stroke-width="2"/>
+      <path d="M 188 306 C 192 302, 198 300, 204 300" stroke="${M.goldHi}" stroke-width="3" fill="none" stroke-linecap="round"/>
+      ${mannyHead(expr)}
+      ${part('M 118 160 C 100 136, 70 126, 50 144 C 38 156, 30 172, 32 190 C 34 210, 48 222, 64 220 C 86 218, 102 212, 118 206 Z', { fill: M.skin, shade: M.skinSh, s: 11, extra: [['M 60 140 C 74 132, 92 134, 104 144 C 90 142, 74 144, 64 152 Z', M.skinHi, 0.9]] })}
+      ${part('M 126 150 C 142 160, 146 182, 136 198 C 122 214, 96 214, 84 200 C 76 190, 78 172, 90 160 C 100 150, 114 146, 126 150 Z', { fill: M.skin, shade: M.skinSh, s: 10, extra: [['M 92 162 C 100 154, 112 150, 122 152 C 110 156, 100 162, 96 172 Z', M.skinHi, 0.9]] })}
+      ${fistRaised()}
+      ${part('M 282 160 C 316 158, 338 186, 338 216 C 340 242, 330 264, 316 268 C 298 260, 290 232, 280 206 Z', { fill: M.skin, shade: M.skinSh, s: 11 })}
+      ${part('M 274 150 C 258 160, 254 182, 264 198 C 278 214, 304 214, 316 200 C 324 190, 322 172, 310 160 C 300 150, 286 146, 274 150 Z', { fill: M.skin, shade: M.skinSh, s: 10, extra: [['M 276 158 C 286 152, 298 152, 306 158 C 294 158, 284 164, 280 172 Z', M.skinHi, 0.9]] })}
+      ${fistLow()}
+    </g>`;
+  }
+
+  window.ART = { manny, mannyHead, M, INK, part, line, fillp, shadowEll };
+})();
+
+// Wren and Bones concept art (uses helpers from art.js).
+(function () {
+  const { part, line, fillp, shadowEll, INK } = window.ART;
+  const SIL = `<defs><filter id="sil2" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="3.5" result="d"/><feFlood flood-color="${INK}"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+
+  // ============================================================== WREN
+  const W = {
+    hood: '#c8323c', hoodSh: '#8e1f2b', hoodHi: '#ef6a5e', cream: '#f4e4c4', creamSh: '#cdb38a', leather: '#8a5532', leatherSh: '#5e3620',
+    legs: '#4a3550', legsSh: '#2f2238', boot: '#6b3f24', bootSh: '#45261a', hair: '#c45a28', hairSh: '#8c3a18', skin: '#f7c9a3', skinSh: '#d99a76',
+    eye: '#3f8f4a', gold: '#f2c94c', goldSh: '#b8862a', wood: '#a0683a', woodSh: '#6e4426', blush: '#f08a7a', teal: '#2f8f9c', peacock: '#1f6f8c',
+  };
+  function wrenFace(expr) {
+    const eye = (cx, look = 2.5, closed = false, wide = false) => closed ? line(`M ${cx - 7} 150 C ${cx - 3} 145, ${cx + 3} 145, ${cx + 7} 150`, 3) :
+      `<ellipse cx="${cx}" cy="149" rx="${wide ? 8 : 7}" ry="${wide ? 10.5 : 9}" fill="#fff" stroke="${INK}" stroke-width="2.4"/>
+       <circle cx="${cx + look}" cy="150" r="${wide ? 5 : 5.4}" fill="${W.eye}"/><circle cx="${cx + look}" cy="150" r="2.6" fill="${INK}"/><circle cx="${cx + look - 1.6}" cy="147.5" r="1.5" fill="#fff"/>
+       ${line(`M ${cx - 7.5} 143 C ${cx - 3} 139, ${cx + 3} 139, ${cx + 7.5} 143`, 3.4)}`;
+    const faces = {
+      smirk: `${eye(183)}${eye(217)}
+        ${line('M 173 134 C 178 130, 187 130, 192 133', 3)}${line('M 208 128 C 214 123, 223 124, 228 129', 3)}
+        ${line('M 191 173 C 199 177, 208 175, 215 167', 2.8)}${line('M 214 165 L 217 170', 2)}`,
+      aim: `${eye(183, 0, true)}${eye(217, 1.5)}
+        ${line('M 173 138 C 178 135, 187 136, 192 140', 3)}${line('M 208 138 C 214 134, 222 134, 228 136', 3)}
+        ${line('M 194 172 L 210 171', 2.8)}`,
+      cheer: `${eye(183, 0, true)}${eye(217, 0, true)}
+        ${line('M 172 131 C 177 126, 186 126, 191 130', 3)}${line('M 209 130 C 214 126, 223 126, 228 131', 3)}
+        ${fillp('M 189 166 C 194 182, 210 182, 215 166 C 206 170, 198 170, 189 166 Z', '#7a2032', `stroke="${INK}" stroke-width="2.4"`)}`,
+      oops: `${eye(183, -1, false, true)}${eye(217, -1, false, true)}
+        ${line('M 172 132 C 178 127, 187 128, 192 134', 3)}${line('M 208 134 C 213 128, 222 127, 228 132', 3)}
+        ${line('M 193 174 C 197 170, 200 176, 204 172 C 207 169, 210 175, 213 171', 2.6)}
+        <path d="M 236 128 q -6 6 -2 12 q 5 -1 2 -12 Z" fill="#8fd3ff" stroke="${INK}" stroke-width="1.4"/>`,
+      proud: `${eye(183, 0, true)}${eye(217, 0, true)}
+        ${line('M 172 134 C 177 129, 186 129, 191 133', 3)}${line('M 209 133 C 214 129, 223 129, 228 134', 3)}
+        ${line('M 190 170 C 198 178, 208 178, 216 170', 2.8)}
+        <path d="M 236 118 l 2.5 -6 l 2.5 6 l 6 2.5 l -6 2.5 l -2.5 6 l -2.5 -6 l -6 -2.5 Z" fill="#fff1b0" stroke="${INK}" stroke-width="1.2"/>`,
+      grumpy: `${eye(183, 1)}${eye(217, 1)}
+        ${line('M 173 138 C 179 140, 186 142, 192 146', 3.2)}${line('M 227 138 C 221 140, 214 142, 208 146', 3.2)}
+        ${line('M 192 175 C 198 171, 204 171, 211 175', 2.8)}`,
+    };
+    return faces[expr] || faces.smirk;
+  }
+  function wrenHead(expr = 'smirk') {
+    return `
+      ${part('M 214 82 C 190 42, 132 68, 96 42 C 84 34, 70 28, 56 34 C 72 44, 84 62, 104 78 C 136 102, 186 98, 212 116 Z', { fill: W.hood, shade: W.hoodSh, s: 8, extra: [['M 80 44 C 96 48, 112 58, 130 62 C 112 64, 96 58, 84 52 Z', W.hoodHi, 0.9]] })}
+      ${part('M 146 156 C 138 104, 166 58, 214 50 C 246 48, 266 74, 264 112 L 264 164 C 264 188, 252 202, 236 204 L 166 204 C 150 198, 146 180, 146 156 Z', { fill: W.hood, shade: W.hoodSh, s: 12, extra: [['M 160 112 C 172 78, 196 62, 222 60 C 200 72, 184 90, 176 116 Z', W.hoodHi, 0.9]] })}
+      ${fillp('M 166 200 C 152 170, 154 128, 172 110 C 190 94, 220 94, 234 110 C 252 132, 252 172, 238 200 Z', W.hoodSh)}
+      ${part('M 162 144 C 162 110, 180 96, 200 96 C 222 96, 240 110, 240 144 C 240 172, 222 190, 200 190 C 180 190, 162 172, 162 144 Z', { fill: W.skin, shade: W.skinSh, s: 7 })}
+      ${part('M 166 128 C 172 104, 192 96, 210 98 C 228 100, 240 112, 240 128 C 232 120, 224 118, 218 126 C 214 114, 204 110, 196 120 C 190 112, 180 114, 176 126 C 172 122, 168 124, 166 128 Z', { fill: W.hair, shade: W.hairSh, s: 5, sw: 3.4 })}
+      ${part('M 166 130 C 158 146, 160 166, 168 176 C 168 160, 170 146, 174 134 Z', { fill: W.hair, shade: W.hairSh, s: 3, sw: 3 })}
+      ${[[176, 160], [181, 163], [186, 160], [214, 160], [219, 163], [224, 160], [198, 158], [203, 156]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.4" fill="#c46a4a"/>`).join('')}
+      <ellipse cx="178" cy="166" rx="6" ry="3.2" fill="${W.blush}" opacity="0.6"/><ellipse cx="223" cy="166" rx="6" ry="3.2" fill="${W.blush}" opacity="0.6"/>
+      ${line('M 199 155 C 197 160, 199 163, 203 162', 2.2)}
+      ${wrenFace(expr)}
+      ${line('M 222 112 L 274 84', 3.4, W.wood)}
+      ${part('M 266 84 L 284 70 L 280 86 L 290 84 L 276 96 Z', { fill: W.peacock, shade: '#164f66', s: 3, sw: 2.4 })}
+      <circle cx="281" cy="82" r="2.6" fill="${W.gold}"/>`;
+  }
+  function wren(expr = 'smirk') {
+    return `${SIL}${shadowEll(204, 452, 120, 14)}<g filter="url(#sil2)">
+      ${part('M 118 150 L 146 140 L 166 280 L 138 290 Z', { fill: W.leather, shade: W.leatherSh, s: 7 })}
+      ${[[118, 136, '#e8e0d0'], [128, 128, W.peacock], [140, 132, '#d8402f'], [108, 146, W.teal]].map(([x, y, c]) => `${line(`M ${x + 14} ${y + 26} L ${x + 4} ${y + 2}`, 2.6, W.woodSh)}${part(`M ${x} ${y} L ${x + 10} ${y - 16} L ${x + 12} ${y + 2} Z`, { fill: c, shade: c, s: 2, sw: 2.2 })}`).join('')}
+      ${line('M 320 116 C 348 160, 356 230, 340 282 C 356 334, 348 404, 324 448', 11, INK)}
+      ${line('M 320 116 C 348 160, 356 230, 340 282 C 356 334, 348 404, 324 448', 6.5, W.wood)}
+      ${line('M 320 116 L 324 448', 1.6, '#f4efe4')}
+      ${[0, 1, 2, 3].map((i) => line(`M ${346 - i * 0.2} ${196 + i * 9} l 7 -2`, 2, '#fff')).join('')}
+      ${part('M 334 266 L 352 266 L 354 298 L 334 298 Z', { fill: W.leather, shade: W.leatherSh, s: 3, sw: 3 })}
+      ${part('M 168 352 L 194 352 L 192 412 L 168 412 Z', { fill: W.legs, shade: W.legsSh, s: 6 })}
+      ${part('M 210 352 L 236 352 L 240 412 L 214 412 Z', { fill: W.legs, shade: W.legsSh, s: 6 })}
+      ${part('M 160 400 L 198 400 L 196 438 C 198 452, 158 456, 144 450 C 142 440, 156 436, 160 428 Z', { fill: W.boot, shade: W.bootSh, s: 6 })}
+      ${part('M 156 396 L 202 396 L 200 410 L 158 410 Z', { fill: '#8a5a38', shade: W.bootSh, s: 3, sw: 3 })}
+      ${part('M 210 400 L 248 400 L 252 430 C 258 436, 270 440, 268 450 C 252 456, 212 452, 212 438 Z', { fill: W.boot, shade: W.bootSh, s: 6 })}
+      ${part('M 206 396 L 252 396 L 252 410 L 208 410 Z', { fill: '#8a5a38', shade: W.bootSh, s: 3, sw: 3 })}
+      ${part('M 150 300 L 254 300 L 270 360 C 236 374, 168 374, 132 360 Z', { fill: W.cream, shade: W.creamSh, s: 10 })}
+      ${line('M 140 352 C 170 362, 236 362, 262 352', 1.6, W.creamSh, 'stroke-dasharray="4 4"')}
+      ${part('M 156 226 L 246 226 L 254 306 L 148 306 Z', { fill: W.cream, shade: W.creamSh, s: 9 })}
+      ${part('M 166 234 L 236 234 L 242 296 L 160 296 Z', { fill: W.leather, shade: W.leatherSh, s: 8 })}
+      ${line('M 186 244 L 214 252 M 186 258 L 214 266 M 186 272 L 214 280 M 214 244 L 186 252 M 214 258 L 186 266 M 214 272 L 186 280', 1.8, W.gold)}
+      ${part('M 148 296 L 254 296 L 254 312 L 148 312 Z', { fill: W.leatherSh, shade: INK, s: 3, sw: 3.2 })}
+      ${part('M 192 294 L 210 294 L 210 314 L 192 314 Z', { fill: W.gold, shade: W.goldSh, s: 3, sw: 2.6 })}
+      ${part('M 222 308 L 248 308 L 246 336 L 224 336 Z', { fill: W.leather, shade: W.leatherSh, s: 4, sw: 3 })}
+      ${part('M 150 214 C 136 230, 124 254, 126 276 C 128 290, 146 300, 164 302 L 168 288 C 154 284, 146 276, 148 264 C 152 248, 160 236, 168 226 Z', { fill: W.cream, shade: W.creamSh, s: 8 })}
+      ${part('M 156 286 C 162 282, 174 284, 176 294 C 174 304, 162 306, 156 300 Z', { fill: W.skin, shade: W.skinSh, s: 3, sw: 3 })}
+      ${part('M 250 216 C 270 230, 286 246, 300 260 C 312 268, 326 272, 338 274 L 334 290 C 318 290, 300 284, 286 274 C 270 262, 252 248, 238 234 Z', { fill: W.cream, shade: W.creamSh, s: 8 })}
+      ${part('M 300 258 L 322 266 L 316 290 L 296 282 Z', { fill: W.leather, shade: W.leatherSh, s: 3, sw: 3 })}
+      ${part('M 330 268 C 344 264, 354 272, 352 284 C 350 296, 336 298, 328 290 Z', { fill: W.skin, shade: W.skinSh, s: 3, sw: 3 })}
+      ${part('M 146 214 C 160 196, 240 196, 256 214 L 266 252 C 236 266, 168 266, 138 252 Z', { fill: W.hood, shade: W.hoodSh, s: 10, extra: [['M 152 218 C 170 206, 210 204, 236 210 C 200 214, 172 220, 160 232 Z', W.hoodHi, 0.85]] })}
+      ${part('M 194 210 L 208 210 L 214 222 L 201 236 L 188 222 Z', { fill: W.gold, shade: W.goldSh, s: 3, sw: 2.6 })}
+      ${wrenHead(expr)}
+    </g>`;
+  }
+
+  // ============================================================== BONES
+  const B = {
+    bone: '#f1ead8', boneSh: '#c8bea2', boneDeep: '#9d9377', card: '#6c3f7d', cardSh: '#4a2758', cardHi: '#9461a6',
+    scarf: '#e3aa3c', scarfSh: '#b07a22', stripe: '#f4efe4', hat: '#2f7c8c', hatSh: '#1d5361', glow: '#c48bff', glowHi: '#f1dcff',
+    candle: '#f4e9c8', candleSh: '#cdbb8c', flame: '#b07cff', flameHi: '#efe0ff', patch: '#8a5532', button: '#e3aa3c',
+  };
+  function bonesFace(expr) {
+    const sockets = (lx, rx, ly = 108, ry = 108, lh = 13, rh = 13) => `
+      ${fillp(`M ${lx - 13} ${ly} C ${lx - 13} ${ly - lh}, ${lx + 13} ${ly - lh}, ${lx + 13} ${ly} C ${lx + 13} ${ly + 12}, ${lx - 13} ${ly + 12}, ${lx - 13} ${ly} Z`, '#2b1a22')}
+      ${fillp(`M ${rx - 13} ${ry} C ${rx - 13} ${ry - rh}, ${rx + 13} ${ry - rh}, ${rx + 13} ${ry} C ${rx + 13} ${ry + 12}, ${rx - 13} ${ry + 12}, ${rx - 13} ${ry} Z`, '#2b1a22')}`;
+    const light = (x, y, r = 4.2) => `<circle cx="${x}" cy="${y}" r="${r + 4}" fill="${B.glow}" opacity="0.35"/><circle cx="${x}" cy="${y}" r="${r}" fill="${B.glowHi}"/>`;
+    const teeth = (curve = 6) => `${fillp(`M 176 136 C 190 ${136 + curve}, 212 ${136 + curve}, 226 136 L 224 146 C 210 ${150 + curve * 0.5}, 192 ${150 + curve * 0.5}, 178 146 Z`, B.bone, `stroke="${INK}" stroke-width="2.6"`)}
+      ${line(`M 186 ${139 + curve * 0.6} L 186 ${148 + curve * 0.3} M 196 ${141 + curve * 0.7} L 196 ${150 + curve * 0.3} M 206 ${141 + curve * 0.7} L 206 ${150 + curve * 0.3} M 216 ${139 + curve * 0.6} L 216 ${148 + curve * 0.3}`, 1.6)}`;
+    const faces = {
+      chill: `${sockets(184, 218, 110, 108, 9, 13)}${line('M 171 102 L 197 104', 3, B.boneDeep)}${light(186, 111, 3.4)}${light(220, 109)}${teeth(7)}`,
+      pun: `${sockets(184, 218)}${light(184, 106)}<path d="M 218 103 l 2 5 l 5 2 l -5 2 l -2 5 l -2 -5 l -5 -2 l 5 -2 Z" fill="${B.glowHi}"/><circle cx="218" cy="110" r="9" fill="${B.glow}" opacity="0.3"/>${teeth(10)}`,
+      shock: `${sockets(184, 218, 108, 108, 15, 15)}${light(184, 108, 2)}${light(218, 108, 2)}
+        ${fillp('M 178 146 C 190 150, 212 150, 224 146 L 222 156 C 210 160, 192 160, 180 156 Z', B.bone, `stroke="${INK}" stroke-width="2.6" transform="translate(0 14)"`)}`,
+      laugh: `${sockets(184, 218)}${line('M 177 108 C 181 103, 187 103, 191 108', 3, B.glowHi)}${line('M 211 108 C 215 103, 221 103, 225 108', 3, B.glowHi)}${teeth(12)}
+        <path d="M 236 92 q 8 -2 10 6" fill="none" stroke="${INK}" stroke-width="2"/><path d="M 240 84 q 9 0 10 8" fill="none" stroke="${INK}" stroke-width="2"/>`,
+      focus: `${sockets(184, 218)}${line('M 172 98 L 196 104 M 230 98 L 206 104', 3.2, B.boneDeep)}${light(186, 110, 5)}${light(216, 110, 5)}${teeth(2)}`,
+      cold: `${sockets(184, 218, 110, 110, 11, 11)}${light(184, 111, 3)}${light(218, 111, 3)}${teeth(-2)}
+        ${line('M 168 150 l -6 -4 M 234 150 l 6 -4 M 166 160 l -7 0 M 236 160 l 7 0', 2, '#8fd3ff')}`,
+    };
+    return faces[expr] || faces.chill;
+  }
+  function bonesHead(expr = 'chill') {
+    return `
+      ${part('M 158 108 C 152 70, 172 46, 202 44 C 234 42, 254 66, 250 106 C 248 128, 240 134, 236 138 L 230 152 C 214 160, 190 160, 172 152 L 166 138 C 160 132, 158 122, 158 108 Z', { fill: B.bone, shade: B.boneSh, s: 9, extra: [['M 172 70 C 184 54, 206 50, 222 54 C 202 58, 188 66, 180 80 Z', '#fffaf0', 0.9]] })}
+      ${line('M 238 76 C 242 86, 240 96, 234 100 M 236 84 l 6 -3', 2)}
+      ${bonesFace(expr)}
+      ${fillp('M 196 120 L 202 132 L 206 120 C 204 117, 198 117, 196 120 Z', '#2b1a22')}
+      ${part('M 150 74 C 150 34, 180 14, 206 14 C 236 14, 260 36, 258 74 C 230 66, 178 66, 150 74 Z', { fill: B.hat, shade: B.hatSh, s: 7 })}
+      ${line('M 168 30 C 180 50, 182 60, 180 70 M 190 20 C 196 40, 198 56, 196 68 M 214 18 C 218 38, 218 54, 216 68 M 236 26 C 238 44, 238 56, 236 70', 1.8, B.hatSh)}
+      ${part('M 144 70 C 180 58, 228 58, 264 70 L 262 86 C 228 76, 180 76, 146 86 Z', { fill: B.hat, shade: B.hatSh, s: 4, sw: 3.6 })}
+      ${line('M 152 76 l 0 6 M 162 73 l 0 6 M 172 71 l 0 6 M 182 70 l 0 6 M 192 69 l 0 6 M 202 69 l 0 6 M 212 69 l 0 6 M 222 70 l 0 6 M 232 71 l 0 6 M 242 73 l 0 6 M 252 75 l 0 6', 1.6, B.hatSh)}
+      <circle cx="232" cy="14" r="15" fill="${B.stripe}" stroke="${INK}" stroke-width="4"/>${line('M 222 10 l 6 -2 M 230 4 l 2 6 M 238 8 l 4 4 M 226 18 l 6 2', 1.6, B.boneSh)}`;
+  }
+  function bones(expr = 'chill') {
+    return `${SIL}${shadowEll(206, 452, 120, 14)}<g filter="url(#sil2)">
+      ${line('M 318 60 L 300 448', 9, INK)}
+      ${part('M 306 300 C 300 300, 296 308, 300 314 L 298 440 C 292 446, 296 456, 306 454 C 312 452, 314 444, 310 440 L 314 312 C 320 306, 314 298, 306 300 Z', { fill: B.bone, shade: B.boneSh, s: 4, sw: 3 })}
+      ${line('M 316 80 L 304 300', 7, B.bone)}${line('M 316 80 L 304 300', 1.4, B.boneSh, 'transform="translate(2 0)"')}
+      ${part('M 308 58 C 300 54, 296 64, 302 70 C 296 76, 302 86, 312 82 C 318 88, 330 84, 328 74 C 336 70, 334 58, 324 58 C 320 50, 310 50, 308 58 Z', { fill: B.bone, shade: B.boneSh, s: 4, sw: 3 })}
+      ${part('M 308 34 L 328 34 L 328 60 L 308 60 Z', { fill: B.candle, shade: B.candleSh, s: 4, sw: 3 })}
+      ${fillp('M 308 40 C 312 46, 316 44, 316 50 C 316 54, 320 54, 320 48 L 320 36 Z', B.candleSh)}
+      <ellipse cx="318" cy="18" rx="16" ry="20" fill="${B.flame}" opacity="0.3"/>
+      ${part('M 318 4 C 326 14, 330 22, 326 28 C 322 34, 312 34, 310 26 C 308 18, 314 14, 318 4 Z', { fill: B.flame, shade: '#8a55e0', s: 3, sw: 2.6 })}
+      ${fillp('M 318 14 C 322 20, 322 26, 318 28 C 314 26, 314 20, 318 14 Z', B.flameHi)}
+      ${part('M 178 360 L 190 360 L 186 426 L 174 426 Z', { fill: B.bone, shade: B.boneSh, s: 3, sw: 3 })}
+      ${part('M 216 360 L 228 360 L 232 426 L 220 426 Z', { fill: B.bone, shade: B.boneSh, s: 3, sw: 3 })}
+      <circle cx="181" cy="390" r="7" fill="${B.bone}" stroke="${INK}" stroke-width="3"/><circle cx="224" cy="390" r="7" fill="${B.bone}" stroke="${INK}" stroke-width="3"/>
+      ${part('M 172 422 C 158 424, 146 436, 150 448 L 192 448 C 194 438, 190 426, 184 422 Z', { fill: B.bone, shade: B.boneSh, s: 3, sw: 3 })}
+      ${line('M 160 440 l 0 8 M 168 438 l 0 10 M 176 438 l 0 10', 1.6)}
+      ${part('M 218 422 C 232 424, 246 436, 242 448 L 214 448 C 212 438, 214 426, 220 422 Z', { fill: B.bone, shade: B.boneSh, s: 3, sw: 3 })}
+      ${line('M 230 440 l 0 8 M 222 438 l 0 10', 1.6)}
+      ${part('M 158 186 C 168 172, 236 172, 248 186 L 262 316 C 252 360, 236 368, 224 370 L 176 370 C 162 368, 148 360, 142 318 Z', { fill: B.card, shade: B.cardSh, s: 12, extra: [['M 164 192 C 178 182, 210 180, 232 184 C 208 190, 186 196, 172 212 Z', B.cardHi, 0.85]] })}
+      ${fillp('M 180 190 C 196 186, 210 186, 226 190 L 222 300 C 214 312, 192 312, 184 300 Z', '#3a2440')}
+      ${[0, 1, 2, 3, 4].map((i) => { const y = 206 + i * 17, w = 19 - i * 1.6; return `${line(`M ${203 - w} ${y + 6} C ${203 - w + 2} ${y - 4}, 198 ${y - 6}, 203 ${y - 3} C 208 ${y - 6}, ${203 + w - 2} ${y - 4}, ${203 + w} ${y + 6}`, 7, INK)}${line(`M ${203 - w} ${y + 6} C ${203 - w + 2} ${y - 4}, 198 ${y - 6}, 203 ${y - 3} C 208 ${y - 6}, ${203 + w - 2} ${y - 4}, ${203 + w} ${y + 6}`, 3.6, B.bone)}`; }).join('')}
+      ${line('M 203 196 L 203 288', 8, INK)}${line('M 203 196 L 203 288', 4.4, B.bone)}
+      ${line('M 196 300 C 200 304, 206 304, 210 300', 4, B.boneSh)}
+      ${part('M 168 188 L 184 188 C 180 240, 182 300, 190 368 L 172 368 C 162 300, 162 240, 168 188 Z', { fill: B.card, shade: B.cardSh, s: 3, sw: 3 })}
+      ${part('M 238 188 L 222 188 C 226 240, 224 300, 216 368 L 234 368 C 244 300, 244 240, 238 188 Z', { fill: B.card, shade: B.cardSh, s: 3, sw: 3 })}
+      ${[220, 258, 296, 334].map((y, i) => i === 2 ? `<circle cx="176" cy="${y}" r="6" fill="${B.bone}" stroke="${INK}" stroke-width="2.4"/>${line(`M 173 ${y - 1} l 2 0 M 178 ${y - 1} l 1 0`, 1.6)}` : `<circle cx="176" cy="${y}" r="5.5" fill="${B.button}" stroke="${INK}" stroke-width="2.4"/>`).join('')}
+      ${part('M 150 300 L 178 302 L 176 326 L 150 324 Z', { fill: B.cardSh, shade: '#3a1d46', s: 3, sw: 2.6 })}
+      ${part('M 160 186 C 140 206, 130 242, 132 276 C 134 296, 144 308, 154 312 L 166 300 C 156 286, 154 262, 160 236 C 164 218, 172 204, 176 196 Z', { fill: B.card, shade: B.cardSh, s: 8 })}
+      ${part('M 132 250 C 128 262, 130 274, 138 280 L 154 276 C 150 268, 150 256, 152 248 Z', { fill: B.patch, shade: '#5e3620', s: 3, sw: 2.6 })}
+      ${part('M 246 186 C 266 200, 286 220, 296 250 C 302 266, 304 280, 300 290 L 286 290 C 284 274, 278 256, 270 240 C 262 226, 252 214, 240 204 Z', { fill: B.card, shade: B.cardSh, s: 8 })}
+      ${part('M 290 272 C 298 266, 312 270, 314 282 C 316 294, 306 300, 296 298 C 288 296, 284 280, 290 272 Z', { fill: B.bone, shade: B.boneSh, s: 3, sw: 3 })}
+      ${line('M 296 280 L 312 278 M 296 288 L 312 288', 2)}
+      ${part('M 156 166 C 176 150, 228 150, 250 166 C 256 180, 250 196, 238 200 C 214 208, 184 208, 164 200 C 152 194, 150 178, 156 166 Z', { fill: B.scarf, shade: B.scarfSh, s: 8 })}
+      ${line('M 162 176 C 184 186, 222 186, 246 176 M 160 188 C 184 198, 222 198, 244 188', 4, B.stripe)}
+      ${part('M 228 196 L 252 198 L 262 280 L 238 282 Z', { fill: B.scarf, shade: B.scarfSh, s: 5 })}
+      ${line('M 232 220 L 256 220 M 234 244 L 258 244 M 236 266 L 260 266', 4, B.stripe)}
+      ${line('M 240 282 l -2 8 M 248 282 l 0 8 M 256 281 l 2 8', 2.6, B.scarfSh)}
+      ${bonesHead(expr)}
+    </g>`;
+  }
+  Object.assign(window.ART, { wren, wrenHead, bones, bonesHead, W, B });
+})();
+
+// Pose thumbnails: rough gesture sketches of each character's signature attack and gag (240 x 200).
+(function () {
+  const { line, INK, M, W, B } = window.ART;
+  const blob = (d, fill, sw = 3) => `<path d="${d}" fill="${fill}" stroke="${INK}" stroke-width="${sw}" stroke-linejoin="round"/>`;
+  const circ = (x, y, r, fill, sw = 3) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${INK}" stroke-width="${sw}"/>`;
+  const action = (d) => line(d, 2, '#d9534f', 'stroke-dasharray="6 5" opacity="0.8"');
+  const gob = (x, y, rot) => `<g transform="translate(${x} ${y}) rotate(${rot})">${circ(0, 0, 7, '#b3ac3f', 2)}${blob('M -6 -4 L -14 -10 L -5 -1 Z M 6 -4 L 14 -10 L 5 -1 Z', '#7f7a2a', 1.6)}</g>`;
+  const star = (x, y, r, fill = '#fff1b0') => { let d = ''; for (let i = 0; i < 16; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 8, rr = i % 2 ? r * 0.45 : r; d += `${i ? 'L' : 'M'} ${(x + Math.cos(a) * rr).toFixed(1)} ${(y + Math.sin(a) * rr).toFixed(1)} `; } return blob(d + 'Z', fill, 2); };
+
+  const sketches = {
+    mannyPunch: `
+      ${action('M 40 186 C 90 150, 140 110, 214 76')}
+      ${blob('M 92 132 C 70 150, 52 168, 42 188 L 58 190 C 70 172, 88 156, 104 146 Z', M.robe)}
+      ${blob('M 118 134 C 132 152, 146 170, 166 186 L 180 180 C 164 162, 146 146, 132 128 Z', M.robe)}
+      ${blob('M 84 118 C 76 86, 100 66, 132 70 C 156 74, 164 98, 150 122 C 138 140, 100 144, 84 118 Z', M.skin)}
+      ${blob('M 92 128 L 132 128 L 132 138 L 92 138 Z', M.sash)}
+      ${circ(88, 62, 12, M.skin)}${line('M 80 66 C 86 72, 94 70, 98 64', 2)}${line('M 84 56 L 92 58', 2.6)}
+      ${line('M 92 48 C 80 34, 64 40, 50 30', 4, M.ribbon)}
+      ${line('M 100 98 C 84 106, 70 112, 60 110', 12, INK)}${line('M 100 98 C 84 106, 70 112, 60 110', 8, M.skinSh)}${circ(54, 110, 13, M.skinSh)}
+      ${line('M 140 88 L 186 80', 14, INK)}${line('M 140 88 L 186 80', 10, M.skin)}
+      ${line('M 150 62 C 170 56, 190 58, 200 62 M 148 100 C 168 104, 188 102, 198 98', 2, INK, 'opacity="0.6"')}
+      ${circ(206, 78, 24, M.skin)}${line('M 192 70 C 200 66, 214 66, 222 70', 2.4)}
+      ${star(226, 66, 22)}
+      ${gob(214, 30, 40)}${gob(232, 44, -30)}${gob(196, 22, 120)}
+      ${line('M 200 20 C 180 12, 170 24, 160 18 M 226 20 C 214 6, 196 4, 186 8', 1.6, INK, 'opacity="0.6"')}`,
+    mannyGong: `
+      ${blob('M 92 148 C 80 162, 72 178, 70 192 L 92 192 C 94 178, 100 166, 108 156 Z', M.robe)}
+      ${blob('M 148 148 C 160 162, 168 178, 170 192 L 148 192 C 146 178, 140 166, 132 156 Z', M.robe)}
+      ${blob('M 104 146 C 76 126, 62 96, 72 76 C 90 64, 150 64, 168 76 C 178 96, 164 126, 136 146 Z', M.skin)}
+      ${blob('M 100 142 L 140 142 L 142 156 L 98 156 Z', M.sash)}
+      ${circ(120, 150, 14, M.gold)}${circ(120, 150, 5, '#fff1b0', 2)}
+      ${line('M 98 134 C 92 130, 88 126, 86 120 M 142 134 C 148 130, 152 126, 154 120 M 104 172 C 112 178, 128 178, 136 172', 2.4, '#d9534f')}
+      ${line('M 160 96 C 170 112, 166 128, 150 140', 13, INK)}${line('M 160 96 C 170 112, 166 128, 150 140', 9, M.skin)}${circ(144, 140, 18, M.skin)}
+      ${line('M 80 96 C 62 86, 56 70, 60 54', 13, INK)}${line('M 80 96 C 62 86, 56 70, 60 54', 9, M.skin)}${circ(60, 44, 16, M.skin)}${blob('M 60 30 C 56 20, 66 14, 70 22 L 68 32 Z', M.skin, 2.4)}
+      ${circ(120, 52, 14, M.skin)}${line('M 112 52 C 114 48, 118 48, 120 52 M 122 52 C 124 48, 128 48, 130 52', 2.2)}${blob('M 112 58 C 116 66, 126 66, 130 58 Z', M.mouth, 2)}
+      ${line('M 120 38 C 112 24, 96 28, 90 18', 4, M.ribbon)}
+      <text x="176" y="160" font-family="'Trebuchet MS', sans-serif" font-weight="800" font-size="22" fill="#f4c542" stroke="${INK}" stroke-width="1.2" transform="rotate(-12 176 160)">BONG!</text>`,
+    wrenDraw: `
+      ${action('M 60 190 C 80 140, 100 110, 180 96')}
+      ${blob('M 90 140 L 102 140 L 92 190 L 76 190 Z', W.legs)}${blob('M 112 140 L 124 140 L 140 188 L 126 192 Z', W.legs)}
+      ${blob('M 84 96 C 84 82, 124 80, 128 96 L 132 144 C 116 152, 96 152, 82 144 Z', W.cream)}
+      ${blob('M 82 92 C 92 82, 120 82, 130 92 L 134 110 C 114 116, 98 116, 80 110 Z', W.hood)}
+      ${blob('M 96 68 C 70 50, 46 70, 20 58 C 36 76, 62 84, 92 84 Z', W.hood)}
+      ${blob('M 86 76 C 82 50, 104 40, 120 48 C 134 56, 132 82, 118 92 L 92 92 C 88 88, 86 82, 86 76 Z', W.hood)}
+      ${circ(106, 74, 13, W.skin)}${line('M 102 72 L 108 72', 2.4)}${line('M 104 80 L 110 80', 2)}
+      ${line('M 174 26 C 196 60, 200 120, 176 172', 6, INK)}${line('M 174 26 C 196 60, 200 120, 176 172', 3, W.wood)}
+      ${line('M 174 26 L 118 82 L 176 172', 1.6, '#fff')}
+      ${line('M 118 82 L 210 90', 2.6, W.woodSh)}${blob('M 210 90 L 220 86 L 214 96 Z', '#aab6cc', 1.6)}
+      ${line('M 124 98 C 142 96, 158 94, 176 92', 9, INK)}${line('M 124 98 C 142 96, 158 94, 176 92', 5, W.cream)}
+      ${line('M 114 84 C 116 92, 118 98, 122 100', 7, INK)}${line('M 114 84 C 116 92, 118 98, 122 100', 4, W.cream)}`,
+    wrenBlow: `
+      ${blob('M 100 140 L 112 140 L 110 190 L 96 190 Z', W.legs)}${blob('M 122 140 L 134 140 L 140 190 L 126 190 Z', W.legs)}
+      ${blob('M 96 98 C 96 84, 136 84, 140 98 L 144 146 C 126 154, 108 154, 92 146 Z', W.cream)}
+      ${blob('M 92 94 C 104 84, 132 84, 142 94 L 146 112 C 124 118, 108 118, 90 112 Z', W.hood)}
+      ${blob('M 104 66 C 80 40, 50 60, 34 40 C 44 64, 70 76, 100 80 Z', W.hood)}
+      ${blob('M 98 76 C 94 48, 116 38, 132 46 C 146 54, 146 80, 130 92 L 104 92 C 100 88, 98 82, 98 76 Z', W.hood)}
+      ${circ(118, 72, 13, W.skin)}${line('M 112 70 C 114 67, 117 67, 119 70 M 121 70 C 123 67, 126 67, 128 70', 2.2)}${circ(129, 78, 3, '#7a2032', 1.6)}
+      ${line('M 160 20 C 182 60, 184 120, 162 176', 6, INK)}${line('M 160 20 C 182 60, 184 120, 162 176', 3, W.wood)}${line('M 160 20 L 162 176', 1.6, '#fff')}
+      ${line('M 140 110 C 150 104, 156 100, 166 96', 9, INK)}${line('M 140 110 C 150 104, 156 100, 166 96', 5, W.cream)}
+      ${circ(146, 74, 5, '#efe6d6', 1.6)}${circ(156, 66, 7, '#efe6d6', 1.6)}${circ(168, 56, 9, '#efe6d6', 1.6)}
+      <text x="176" y="44" font-family="'Trebuchet MS', sans-serif" font-style="italic" font-size="13" fill="${INK}">too easy</text>
+      ${line('M 74 40 l 6 6 M 70 52 l 8 0 M 74 64 l 6 -6', 2, '#f2c94c')}`,
+    bonesRib: `
+      ${action('M 70 190 C 70 140, 90 90, 150 60')}
+      ${line('M 92 150 L 84 190 M 108 150 L 116 190', 6, INK)}${line('M 92 150 L 84 190 M 108 150 L 116 190', 3, B.bone)}
+      ${blob('M 76 74 C 80 64, 120 64, 124 74 L 128 152 C 112 160, 88 160, 72 152 Z', B.card)}
+      ${blob('M 92 78 L 108 78 L 106 130 L 94 130 Z', '#3a2440', 2)}${line('M 94 90 C 98 86, 102 86, 106 90 M 94 100 C 98 96, 102 96, 106 100', 2.4, B.bone)}
+      ${blob('M 74 70 C 90 62, 112 62, 126 70 C 128 80, 120 84, 100 84 C 82 84, 72 80, 74 70 Z', B.scarf, 2.4)}
+      ${circ(100, 50, 18, B.bone)}${circ(93, 48, 5, '#2b1a22', 1)}${circ(107, 48, 5, '#2b1a22', 1)}<circle cx="107" cy="48" r="2" fill="${B.glowHi}"/>
+      ${blob('M 82 40 C 82 22, 118 22, 118 40 Z', B.hat)}${circ(112, 22, 6, B.stripe, 2)}
+      ${line('M 124 84 C 138 70, 146 58, 150 48', 8, INK)}${line('M 124 84 C 138 70, 146 58, 150 48', 4.4, B.card)}
+      ${line('M 150 44 C 160 36, 172 40, 176 50', 6, INK)}${line('M 150 44 C 160 36, 172 40, 176 50', 3, B.bone)}
+      ${line('M 180 60 C 200 70, 214 90, 220 116', 1.8, INK, 'stroke-dasharray="4 4"')}
+      ${gob(200, 150, 0)}${gob(216, 160, 0)}${gob(230, 150, 0)}${line('M 190 150 L 236 158', 3, B.boneSh)}${star(212, 140, 10, '#efe0ff')}`,
+    bonesJaw: `
+      ${line('M 102 150 L 96 190 M 118 150 L 124 190', 6, INK)}${line('M 102 150 L 96 190 M 118 150 L 124 190', 3, B.bone)}
+      ${blob('M 84 80 C 88 70, 132 70, 136 80 L 140 152 C 122 160, 98 160, 80 152 Z', B.card)}
+      ${blob('M 82 76 C 98 68, 122 68, 138 76 C 140 86, 132 90, 110 90 C 90 90, 80 86, 82 76 Z', B.scarf, 2.4)}
+      ${circ(110, 46, 20, B.bone)}${line('M 98 44 C 101 40, 105 40, 108 44 M 112 44 C 115 40, 119 40, 122 44', 2.4, B.glowHi)}
+      ${blob('M 90 26 C 92 4, 128 4, 130 26 Z', B.hat)}${circ(124, 6, 6, B.stripe, 2)}
+      ${blob('M 98 92 C 106 100, 118 100, 124 92 L 122 104 C 114 110, 106 110, 100 104 Z', B.bone, 2.4)}
+      ${line('M 136 94 C 150 92, 156 98, 150 104', 7, INK)}${line('M 136 94 C 150 92, 156 98, 150 104', 3.6, B.card)}${circ(128, 104, 6, B.bone, 2)}
+      <text x="150" y="40" font-family="'Trebuchet MS', sans-serif" font-weight="800" font-size="16" fill="${B.card}" transform="rotate(10 150 40)">heh heh</text>
+      ${line('M 110 70 L 110 88', 1.6, INK, 'stroke-dasharray="3 3"')}
+      ${line('M 50 40 C 60 50, 60 60, 54 70', 2, INK, 'opacity="0.5"')}`,
+  };
+  window.ART.sketch = (name) => `<rect width="240" height="200" fill="#fbf6ec"/>${sketches[name]}`;
+})();
+
+</script>
+<script>
+(() => {
+  const A = window.ART, INK = A.INK;
+  const sil = (id) => `<defs><filter id="${id}" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="3" result="d"/><feFlood flood-color="${INK}"/><feComposite in2="d" operator="in" result="o"/><feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  const svg = (vb, inner, extra = '') => `<svg viewBox="${vb}" ${extra} role="img">${inner}</svg>`;
+  const C = {
+    manny: {
+      title: 'Manny the Manhandler', tag: 'Concept · fist-fighting monk', quote: '"These hands are rated E for Everyone."', draw: A.manny, head: A.mannyHead, vb: '104 12 152 142',
+      faces: [['cocky', 'Cocky wink'], ['grin', 'Grin'], ['focus', 'Wind-up focus'], ['shock', 'Boss incoming'], ['smug', 'Tooth glint'], ['laugh', 'Belly laugh']],
+      poses: [['mannyPunch', 'Signature: the haymaker launches a whole pack back down the road'], ['mannyGong', 'Gag: bonks his own gong buckle before a fight']],
+      palette: ['#eda574', '#f39a2c', '#bf313b', '#2f9c8c', '#f4c542', '#efe2c8'],
+      notes: `<p>A monastery's star pupil who found out he likes punching more than meditating. He treats every wave as a workout and the player as his fan club.</p>
+        <dl><dt>Shape</dt><dd>An anvil on toothpicks: a huge inverted triangle on stubby legs, fists bigger than his head, and a small head for comic contrast.</dd>
+        <dt>Hooks</dt><dd>A topknot ribbon that whips with every move, a gong for a belt buckle, plum-sized jade beads, a gold tooth that glints, a taped nose.</dd>
+        <dt>Moves</dt><dd>Idle: bounces on his toes and admires his biceps. Attack: a lazy, cocky wind-up, then a snap haymaker with a freeze-frame. Boss arrives: rolls up imaginary sleeves. Victory: double flex and a tooth glint.</dd>
+        <dt>Upgrades</dt><dd>1: novice robe and tape. 2: brass knuckle guards and a bigger gong. 3: gilded tape, a champion's sash and a golden gong.</dd></dl>`,
+    },
+    wren: {
+      title: 'Wren', tag: 'Redesign · the first archer', quote: '"I never miss. That one was a warning shot."', draw: A.wren, head: A.wrenHead, vb: '136 42 150 168',
+      faces: [['smirk', 'Smirk'], ['aim', 'Aiming'], ['cheer', 'Bullseye!'], ['oops', 'Oops'], ['proud', 'Too easy'], ['grumpy', 'Missed (never)']],
+      poses: [['wrenDraw', 'Signature: one-eye draw, hood tail streaming like a pennant'], ['wrenBlow', 'Gag: blows on the bowstring after a great shot']],
+      palette: ['#c8323c', '#f4e4c4', '#8a5532', '#4a3550', '#c45a28', '#1f6f8c'],
+      notes: `<p>The village's best shot and its biggest show-off. She is the player's first friend (the free starter), dependable in a fight, and never admits a miss.</p>
+        <dl><dt>Shape</dt><dd>Small and pointy: a tall pointed hood with a pennant tail, and a bow taller than she is. Big eyes and a big head keep her face readable at small sizes.</dd>
+        <dt>Hooks</dt><dd>The hood tail that streams in the wind, a spare arrow tucked behind her ear, mismatched fletching from any feather she finds (peacock, jay, cardinal), freckles and a smirk, an arrowhead clasp.</dd>
+        <dt>Moves</dt><dd>Idle: twirls an arrow. Attack: one eye shut, tongue out, snap release. Lives lost: "oops". Victory: blows on the string, "too easy".</dd>
+        <dt>Upgrades</dt><dd>1: village hunter. 2: ranger's capelet and a quiver of trophy feathers. 3: crimson captain's hood with gold trim and a hawk-feather longbow.</dd></dl>`,
+    },
+    bones: {
+      title: 'Bones', tag: 'Concept · skeleton mage', quote: '"I\'d help more, but I\'m chilled to the bone."', draw: A.bones, head: A.bonesHead, vb: '132 -6 150 172',
+      faces: [['chill', 'Half-lidded'], ['pun', 'Pun incoming'], ['shock', 'Jaw drop'], ['laugh', 'Heh heh'], ['focus', 'Actually trying'], ['cold', 'Chattering']],
+      poses: [['bonesRib', 'Signature: plucks a rib and throws it straight through a line'], ['bonesJaw', 'Gag: laughs so hard his jaw falls off, then catches it']],
+      palette: ['#f1ead8', '#6c3f7d', '#e3aa3c', '#2f7c8c', '#c48bff', '#8a5532'],
+      notes: `<p>A laid-back skeleton mage who is always cold. He has deadpan timing, groan-worthy puns, and is surprisingly strong when he can be bothered.</p>
+        <dl><dt>Original</dt><dd>A nod to Undertale's humour without its look: he is tall and lanky (not short), wears a cardigan, scarf and beanie (no hoodie, no slippers), and has purple eye lights that change shape with his mood. The jokes are physical bone gags.</dd>
+        <dt>Hooks</dt><dd>A hand-knit cardigan with elbow patches and one skull button, a very long scarf, a pom-pom beanie, a femur staff with a purple candle, and ribs he throws (they grow back).</dd>
+        <dt>Moves</dt><dd>Idle: shivers and tugs his scarf. Attack: "plink" goes a rib, a lazy spin, a piercing throw. Surprise: his jaw drops, literally. Victory: finger-guns with a bony clatter.</dd>
+        <dt>Upgrades</dt><dd>1: hand-knit cardigan. 2: an even longer scarf and a candle lantern. 3: an archmage robe over the cardigan, with floating candles.</dd></dl>`,
+    },
+  };
+  const OLD_WREN = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEQAAABYCAYAAABMB1FSAAACwElEQVR4nO3bPUscURQGYH+ElZUBC60EE8RCQWwVAyJWsQ2BNMFSBf+GlQj+AWtrQdOLpZW9IaSPcOEU87In536duXc3b/EWOx87e56dc+fOfsyd3O39/Vc2LzYGsbaf1hxcbYfMESQR5H8JQQgyjAwBAkGQWQGpNbgjBEFmBcQLgiCtQHqZ0FkQBPEG6aXwXAh5/QSxQGoVlvs83pfV5JYhSONTvjUAQVpfdr2BakEQZFpAxgYgSO8g3gUSpBRk7ANqH921Cr4xBGkNUgvMq+UI0jtIKVRuBJggsSC9Xx5LC9fWEwRBei987NdFEAQZu0AZHBfmlyam9RtAkLFB8JSXwk8X10JuP20P0hqGIKkg2oQodbDTIF6OPw/SGoYgqSCliYXoBYYgsSClN1MIoYE8X56G/Lq/mZixYQgSC2IFwXDChRCyXApEiD9vryGyHUGmHSS2VXBqjiBay8jy6+87IQSZFRCEwccCcvN1P0QKRzhZ/vD4FIIwsRPD1AkkQRAEd/D+QMaCkch6AZH9vFuIIBqI95fRUsD5/sdBpECJLMeWIUivINYU3lofC/H7516IPM4FKb3lIEgsiPbjt1SYWBCtdUpbJvuyS5DIlqk12EoBX9aXB5FWweUSbWKW2xIE8QbJHbSkkKOjH4PglB3Xe0NgfQQpBcltnVyQUgjraxSC1AKJvQxjgZKtpQ8Tk7tdLpRVJ0EskNy/Z+DECaMVlLudXJZTp/AEqd0yFhCC4BTdKxaI2xhCkMQgCP4AxjtyXG2Qj4UgiDeINrjiKY6nuhbcHp+vdqsQpDWIVbAFRpBpB1n/thoyNogclyC9gsgLskC8BlU8vgViTTQJUgsEW0WD0aLtV7q/Nti7twxBjANZBWJ2zzZCUveTLB+uhMS2itvNHUEUiNiUFqoNmrlfhxCkFkguQGm8j0+QRJB3DUS2Lo0XzR0AAAAASUVORK5CYII=';
+  let f = 0;
+  const lineup = document.getElementById('lineup');
+  lineup.innerHTML = Object.entries(C).map(([k, c]) => `<figure>${svg('0 0 400 480', c.draw())}<figcaption>${c.title}<small>${c.tag}</small></figcaption></figure>`).join('');
+  for (const [k, c] of Object.entries(C)) {
+    const el = document.getElementById(k);
+    el.innerHTML = `
+      <div class="hero">${svg('0 0 400 480', c.draw())}
+        <h3>Silhouette test</h3><div class="row"><div class="sil">${svg('0 0 400 480', c.draw(), 'style="filter: brightness(0)"')}</div>
+        <div><h3>Palette</h3><div class="swatches">${c.palette.map((p) => `<span style="background:${p}" title="${p}"></span>`).join('')}</div></div></div></div>
+      <div class="notes">
+        <div><span class="tag">${c.tag}</span><h2>${c.title}</h2><p class="quote">${c.quote}</p></div>
+        ${c.notes}
+        <h3>Expressions</h3>
+        <div class="faces">${c.faces.map(([e, label]) => { const id = 'fx' + f++; return `<figure>${svg(c.vb, sil(id) + `<g filter="url(#${id})">${c.head(e)}</g>`)}<figcaption>${label}</figcaption></figure>`; }).join('')}</div>
+        <h3>Storyboard roughs (poses to be illustrated)</h3>
+        <div class="poses">${c.poses.map(([p, label]) => `<figure>${svg('0 0 240 200', A.sketch(p))}<figcaption>${label}</figcaption></figure>`).join('')}</div>
+      </div>`;
+  }
+  document.getElementById('scale').innerHTML = `<figure><img src="${OLD_WREN}" width="68" height="88" alt=""><figcaption>Wren today</figcaption></figure>` +
+    Object.values(C).map((c) => `<figure><svg viewBox="0 0 400 480" width="76" height="91">${c.draw()}</svg><figcaption>${c.title.split(' ')[0]}</figcaption></figure>`).join('') +
+    `<figure style="margin-left:18px"><img src="${OLD_WREN}" width="34" height="44" alt=""><figcaption>today</figcaption></figure>` +
+    Object.values(C).map((c) => `<figure><svg viewBox="0 0 400 480" width="48" height="58">${c.draw()}</svg><figcaption>small</figcaption></figure>`).join('');
+})();
+</script>

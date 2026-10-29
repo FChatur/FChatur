@@ -1,5 +1,6 @@
 import type { TowerTypeId } from '../config/towers';
 import type { GameSession } from '../game/GameSession';
+import type { AudioEngine } from './AudioEngine';
 
 interface ToneOptions {
   freq: number;
@@ -27,25 +28,26 @@ const MIN_GAP_MS: Record<string, number> = {
   crit: 70,
   splash: 90,
   chain: 90,
+  preview: 120,
 };
 
 /**
- * Procedural sound effects (Web Audio, no files). Listens to game events; never affects gameplay.
- * The audio context starts on the first click or key press, as browsers require.
+ * Procedural sound effects (Web Audio, no files) on the engine's SFX bus. Listens to game events; never
+ * affects gameplay.
  */
 export class Sfx {
-  private ctx: AudioContext | null = null;
-  private master: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private readonly lastPlayed = new Map<string, number>();
 
-  constructor(private readonly session: GameSession) {
-    const unlock = () => this.unlock();
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
-
+  constructor(
+    private readonly session: GameSession,
+    private readonly engine: AudioEngine,
+  ) {
     const bus = session.bus;
-    bus.on('muteChanged', () => this.applyVolume());
+    // Moving the Master or SFX slider plays a short tick at the new level.
+    bus.on('volumeChanged', ({ channel }) => {
+      if (channel !== 'music') this.limited('preview', () => this.tone({ freq: 520, to: 780, type: 'triangle', duration: 0.08, volume: 0.12 }));
+    });
     bus.on('towerFired', ({ tower }) => this.shoot(tower.type));
     bus.on('projectileHit', ({ crit }) => crit && this.limited('crit', () => this.tone({ freq: 1500, to: 2200, type: 'square', duration: 0.05, volume: 0.05 })));
     bus.on('enemyKilled', ({ enemy }) => {
@@ -74,30 +76,12 @@ export class Sfx {
     bus.on('gameOver', () => this.tone({ freq: 440, to: 80, type: 'triangle', duration: 1.2, volume: 0.25 }));
   }
 
-  private unlock(): void {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
-      return;
-    }
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
-    try {
-      this.ctx = new Ctor();
-      this.master = this.ctx.createGain();
-      this.master.connect(this.ctx.destination);
-      this.applyVolume();
-    } catch {
-      this.ctx = null;
-    }
-  }
-
-  private applyVolume(): void {
-    if (!this.master || !this.ctx) return;
-    this.master.gain.setValueAtTime(this.session.muted ? 0 : this.session.volume, this.ctx.currentTime);
+  private get ctx(): AudioContext | null {
+    return this.engine.ctx;
   }
 
   private get live(): boolean {
-    return !!this.ctx && this.ctx.state === 'running' && !this.session.muted;
+    return this.engine.running && !this.session.muted;
   }
 
   private shoot(type: TowerTypeId): void {
@@ -130,7 +114,7 @@ export class Sfx {
   }
 
   private tone(o: ToneOptions): void {
-    if (!this.live || !this.ctx || !this.master) return;
+    if (!this.live || !this.ctx) return;
     const t = this.ctx.currentTime + (o.delay ?? 0);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -140,13 +124,13 @@ export class Sfx {
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(o.volume, t + 0.005);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + o.duration);
-    osc.connect(gain).connect(this.master);
+    osc.connect(gain).connect(this.engine.sfxBus);
     osc.start(t);
     osc.stop(t + o.duration + 0.02);
   }
 
   private noise(o: NoiseOptions): void {
-    if (!this.live || !this.ctx || !this.master) return;
+    if (!this.live || !this.ctx) return;
     if (!this.noiseBuffer) {
       const length = this.ctx.sampleRate;
       this.noiseBuffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
@@ -162,7 +146,7 @@ export class Sfx {
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(o.volume, t);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + o.duration);
-    src.connect(filter).connect(gain).connect(this.master);
+    src.connect(filter).connect(gain).connect(this.engine.sfxBus);
     src.start(t);
     src.stop(t + o.duration + 0.02);
   }

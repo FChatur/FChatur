@@ -46,8 +46,8 @@ Upgrades are data (`config/upgrades.ts` registry, typed effects); offers are ran
 filtered by eligibility, never steered toward synergies. Don't hardcode anything to the current pool.
 Details: `last-stand/docs/PLAN.md` section 7.
 
-Audio & Music is a future milestone (`last-stand/docs/PLAN.md` section 8): don't change the current
-audio implementation until it is scheduled.
+Audio & Music is the v0.7.0 milestone (`last-stand/docs/PLAN.md` section 8, `last-stand/docs/AUDIO.md`).
+The soundtrack must only get technical edits (looping, trimming, levels, encoding); never remix or alter it.
 
 ## Versioning and checkpoints
 

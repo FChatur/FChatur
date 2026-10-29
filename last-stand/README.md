@@ -34,6 +34,7 @@ Tested automatically in Chromium, Firefox and WebKit on every change. Mobile/tou
 | Auto Wave on/off (next wave starts 3s after the last) | Auto button | `A` |
 | Pause / resume | Pause button | `P` or `Esc` |
 | Mute sound | Speaker button (top right) | `M` |
+| Master, Music and Effects volume (0–100%) | Sliders in the main menu and the pause menu | Arrow keys on a slider |
 | Restart after game over | Play again | `R` |
 
 **Your first Archer each run is free** (it sells for nothing, even after upgrades).
@@ -43,6 +44,10 @@ Ballista, Brakk the dwarf engineer (global range: hits the toughest enemy anywhe
 heavy), Ranger, Fen the elf (fast weak shots, poor against armor), Frost Mage, Old Rime (slows what he hits).
 
 **Run upgrades:** after every 5th wave you pick 1 of 3 random upgrades that last for the rest of the run.
+
+**Music:** "Picnic at the Tower Gate", AI-generated with Google Gemini. It loops for as long as a run lasts
+and quietens while paused. Details, provenance and licensing:
+[docs/AUDIO.md](docs/AUDIO.md).
 Upgrades have rarities (Common, Uncommon, Rare, Legendary), stack up to a limit, and some only appear once
 you've built a matching tower. Current pool: Overclock, Critical Strike, Compound Interest, Frostbite,
 Explosive Rounds, Chain Lightning. New upgrades are added as data in `src/config/upgrades.ts`.
@@ -117,11 +122,13 @@ src/game     GameSession: glue between simulation, scene and UI
 src/balance  Headless balance harness (not part of the game bundle)
 src/render   Phaser drawing (baked static art, entities, effects, viewport sizing)
 src/scenes   Phaser scene: game loop and board input
-src/audio    Procedural sound effects (Web Audio, no files)
+src/audio    Audio engine (volume buses, unlock, focus), streamed looping music, procedural sound effects
 src/ui       HTML HUD, tooltips, tutorial, notices, keyboard shortcuts
 tests        Vitest tests (unit, fuzz, soak)
 e2e          Playwright end-to-end tests
-public       Static files copied as-is (link-preview image)
+public       Static files copied as-is (link-preview image, music chunks)
+assets-src   Source media not served to players (the soundtrack master)
+tools        Asset scripts (tools/prepare-music.py builds the music chunks)
 ```
 
 All gameplay numbers live in `src/config`. Change a value there, and the game and tests pick it up.
