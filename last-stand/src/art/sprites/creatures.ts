@@ -12,7 +12,7 @@ import { shadedColumn, shadedEllipse } from '../shapes';
 
 const GOBLIN: Legend = {
   G: 'goblin3', g: 'goblin2', h: 'goblin1', H: 'goblin0',
-  y: 'gold3', r: 'red2', R: 'red1', b: 'wood1', B: 'wood2', s: 'steel4', w: 'wood3',
+  y: 'red4', r: 'red2', R: 'red1', b: 'wood1', B: 'wood2', s: 'steel4', w: 'wood3',
 };
 
 const GOBLIN_BODY = [
@@ -38,13 +38,13 @@ const GOBLIN_LEGS = [
 
 // ---------------------------------------------------------------- Wolf (Runner)
 
-const WOLF: Legend = { F: 'fur3', f: 'fur2', d: 'fur1', D: 'fur0', l: 'fur4', y: 'gold3' };
+const WOLF: Legend = { F: 'fur3', f: 'fur2', d: 'fur1', D: 'fur0', l: 'fur4', y: 'red4' };
 
 const WOLF_BODY = [
   '.............dd...',
   'd...........dfd...',
   'dfd........dfffd..',
-  '.dffdddddddddfyfd.',
+  '.dffDDDDDDDDdfyfd.',
   '..dffffffffffffllk',
   '...dffffffffffFkW.',
   '....ffffffffFFF...',
@@ -62,12 +62,13 @@ const WOLF_LEGS = [
 
 const ORC: Legend = {
   S: 'steel4', s: 'steel3', t: 'steel2', T: 'steel1', U: 'steel0',
-  O: 'orc3', o: 'orc2', p: 'orc1', P: 'orc0', e: 'red3', b: 'wood1', B: 'wood2', w: 'wood3', r: 'red2', R: 'red1',
+  O: 'orc3', o: 'orc2', p: 'orc1', P: 'orc0', e: 'red4', b: 'wood1', B: 'wood2', w: 'wood3', r: 'red2', R: 'red1',
+  h: 'dirt4', H: 'white0',
 };
 
 const ORC_BODY = [
-  '.....SSSSs.....',
-  '....SSsssst....',
+  '..h..SSSSs..h..',
+  '..hHSSsssstHh..',
   '....TTTTtTT.SS.',
   '....poOOeOosSs.',
   '....poOOOOOotSt',
@@ -77,8 +78,8 @@ const ORC_BODY = [
   '.TsstttttTTb.w.',
   '..TTtttTTTbB.w.',
   '...bBbbbbBb..w.',
-  '...rRrrrRr...w.',
-  '...RrrrrrR.....',
+  'R..rRrrrRr...w.',
+  'RR.RrrrrrR.....',
 ];
 
 const ORC_LEGS = [
@@ -147,8 +148,8 @@ function ogreFrame(step: number): Bitmap {
     shadedEllipse(b, 18.5, 9.6 + bob, 4, 2.2, 'ogre', 2);
     // Heavy brow, eyes, nose and tusks.
     rect(b, 16, 5 + bob, 6, 1, COLORS.ogre0);
-    set(b, 17, 6 + bob, COLORS.gold3);
-    set(b, 20, 6 + bob, COLORS.gold3);
+    set(b, 17, 6 + bob, COLORS.red4);
+    set(b, 20, 6 + bob, COLORS.red4);
     set(b, 21, 8 + bob, COLORS.ogre1);
     for (const x of [16, 20]) {
       set(b, x, 9 + bob, COLORS.white0);

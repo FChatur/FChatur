@@ -10,6 +10,7 @@ import { COLORS } from '../../src/art/palette';
 import { TOWER_ORDER } from '../../src/config/towers';
 import { encodePng } from './png';
 import { sceneStill } from './scene';
+import { showcase } from './showcase';
 import { contactSheet } from './sheet';
 
 // `npm run art`: writes art-preview/*.png (enlarged) for reviewing sprites.
@@ -25,6 +26,7 @@ it('art preview', () => {
   }
   writeFileSync(`${out}/towers.png`, encodePng(contactSheet(towers), 6));
   writeFileSync(`${out}/scene.png`, encodePng(sceneStill(), 3));
+  writeFileSync(`${out}/showcase.png`, encodePng(showcase(), 4));
   for (const t of TOWER_ORDER) writeFileSync(`${out}/portrait-${t}.png`, encodePng(towerPortrait(t, 1), 4));
   const fx: Record<string, ReturnType<typeof explosionFrames>> = { ...projectileFrames(), ...effectFrames(), explosion: explosionFrames(14) };
   fx.text = [textBitmap('WAVE 12', COLORS.white0), textBitmap('+25', COLORS.gold3), textBitmap('LV 2', COLORS.frost4), textBitmap('OGRE WARLORD APPROACHES!', COLORS.red3), textBitmap('0123456789 ABCDEFGHIJKLM NOPQRSTUVWXYZ +-!%:/?')];

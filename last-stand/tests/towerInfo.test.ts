@@ -33,7 +33,7 @@ describe('towerInfo', () => {
   it('explains in plain English why Rapid struggles against armor', () => {
     const t = trait(towerInfo('rapid'), 'Weak vs armor');
     expect(t?.tone).toBe('bad');
-    expect(t?.text).toMatch(/Brutes block 4 damage from every hit/);
+    expect(t?.text).toMatch(/Armored Orcs block 4 damage from every hit/);
     expect(t?.text).toMatch(/only \d+% gets through/);
     expect(stat(towerInfo('basic'), 'Range').value).toBe(`${TOWERS.basic.levels[0].rangeTiles} tiles`);
   });

@@ -111,6 +111,7 @@ export class GameScene extends Phaser.Scene {
 
     this.entities.sync(sim, this.accumulator / step);
     this.updateEffects();
+    this.board?.update();
     // A tower dragged from the shop previews where the pointer is; otherwise the mouse hover is used.
     const drag = this.session.drag;
     this.preview.update(

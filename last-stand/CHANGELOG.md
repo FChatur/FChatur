@@ -16,6 +16,12 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
   actually dealt per gold in bot runs, swap tests on the Mixed build, early-game openings, and Frostbite
   on/off.
 
+- Visual Prototype V2 (issue #1, review only): warmer palette and sunlight, composed forest edge with
+  dappled shade, flower meadows, pond, torch-lit cave and gatehouse, ambient life (torches, butterflies,
+  falling leaves, swaying grass); distinct Archer, Ranger, Ballista and Frost Mage towers with visible
+  upgrade progression; more expressive enemies; hit flinch, slowed-enemy snowflakes, ballista thump and
+  see-through explosions. Details and measurements: docs/VISUAL_PROTOTYPE.md section 8.
+
 ### Docs
 - Phase 6 proposal: [docs/VISUAL_PROTOTYPE.md](docs/VISUAL_PROTOTYPE.md) (pixel-art specification, asset
   approach, interface layout, steps and risks, combat balance evidence). Roadmap: Phase 6, then Phase 7

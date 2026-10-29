@@ -46,7 +46,8 @@ describe('upgrade registry', () => {
 
   it('describes upgrades from their effects', () => {
     expect(describeUpgrade(getUpgrade('overclock'), 2)).toBe('Towers fire 30% faster.');
-    expect(describeUpgrade(def('x', { towers: ['sniper'] }), 1, (t) => TOWERS[t].name)).toBe('Sniper towers fire 10% faster.');
+    expect(describeUpgrade(def('x', { towers: ['sniper'] }), 1, (t) => TOWERS[t].name)).toBe('Ballista Towers fire 10% faster.');
+    expect(describeUpgrade(def('x', { towers: ['sniper'] }), 1)).toBe('sniper towers fire 10% faster.');
     expect(describeUpgrade(getUpgrade('compoundInterest'), 1)).toBe('Clearing a wave pays 10% of unspent gold (max 40).');
   });
 });

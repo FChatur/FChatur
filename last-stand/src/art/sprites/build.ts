@@ -80,7 +80,7 @@ export function leafClump(b: Bitmap, cx: number, cy: number, rx: number, ry: num
       const lit = -nx * 0.6 - ny * 0.8;
       const noise = rnd() * 0.5 - 0.25;
       const v = lit + noise;
-      set(b, x, y, v > 0.45 ? COLORS.leaf4 : v > 0 ? COLORS.leaf3 : v > -0.45 ? COLORS.leaf2 : COLORS.leaf1);
+      set(b, x, y, v > 0.75 ? COLORS.leaf5 : v > 0.4 ? COLORS.leaf4 : v > 0 ? COLORS.leaf3 : v > -0.45 ? COLORS.leaf2 : COLORS.leaf1);
     }
   }
 }

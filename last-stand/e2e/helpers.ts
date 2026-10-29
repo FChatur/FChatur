@@ -20,11 +20,18 @@ export async function startRun(page: Page): Promise<void> {
   if (await skip.isVisible()) await skip.click();
 }
 
-/** Page coordinates of the centre of map tile (col, row). */
+/**
+ * Page coordinates of the centre of map tile (col, row). The canvas fills the stage and shows scenery
+ * around the map; the game publishes where the map sits (data attributes on #game-container).
+ */
 export async function tileCenter(page: Page, col: number, row: number): Promise<[number, number]> {
   const box = (await page.locator('#game-container canvas').boundingBox())!;
-  const tile = box.width / 20;
-  return [box.x + (col + 0.5) * tile, box.y + (row + 0.5) * tile];
+  const map = await page.locator('#game-container').evaluate((el) => ({
+    left: Number((el as HTMLElement).dataset.mapLeft),
+    top: Number((el as HTMLElement).dataset.mapTop),
+    tile: Number((el as HTMLElement).dataset.tile),
+  }));
+  return [box.x + map.left + (col + 0.5) * map.tile, box.y + map.top + (row + 0.5) * map.tile];
 }
 
 export async function clickTile(page: Page, col: number, row: number): Promise<void> {

@@ -3,7 +3,7 @@ import { allSprites, buildAtlas } from '../src/art/atlas';
 import { get } from '../src/art/bitmap';
 import { CREATURE_ART, TOWER_ART } from '../src/art/catalog';
 import { hasGlyph, textBitmap } from '../src/art/font';
-import { PALETTE_VALUES } from '../src/art/palette';
+import { COLORS, PALETTE_VALUES } from '../src/art/palette';
 import { paintTerrain, ART_TILE } from '../src/art/terrain';
 import { ENEMIES, type EnemyTypeId } from '../src/config/enemies';
 import { TILE_SIZE } from '../src/config/map';
@@ -94,7 +94,7 @@ describe('terrain', () => {
       const spec = { cols: map.grid.cols, rows: map.grid.rows, margin: 2, road: path.points.map((p) => ({ x: p.x / k, y: p.y / k })), seed: 7 };
       const t = paintTerrain(spec);
       expect(t.image.w).toBe((map.grid.cols + 4) * ART_TILE);
-      const road = new Set([0x5e432f, 0x7d5c3c, 0x9c774b, 0xbb9660, 0xd6b47c, 0x77788f, 0x9c9db0]);
+      const road = new Set(['dirt0', 'dirt1', 'dirt2', 'dirt3', 'dirt4', 'stone3', 'stone4'].map((n) => COLORS[n]));
       // Every path tile's centre is road.
       for (const key of path.tileKeys) {
         const [c, r] = key.split(',').map(Number);

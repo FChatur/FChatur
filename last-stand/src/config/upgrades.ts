@@ -159,12 +159,17 @@ export function describeEffect(e: UpgradeEffect, stacks: number): string {
 export function describeUpgrade(def: UpgradeDef, stacks: number, towerNames?: (t: TowerTypeId) => string): string {
   if (def.describe) return def.describe(stacks);
   const subject = def.towers
-    ? `${def.towers.map((t) => towerNames?.(t) ?? t).join(' and ')} towers`
+    ? `${def.towers.map((t) => plural(towerNames?.(t) ?? t)).join(' and ')}`
     : 'Towers';
   const towerEffects = def.effects.filter((e) => e.kind !== 'interest').map((e) => describeEffect(e, stacks));
   const economy = def.effects.filter((e) => e.kind === 'interest').map((e) => describeEffect(e, stacks));
   if (towerEffects.length === 0) return economy.map(capitalise).join('. ') + '.';
   return [`${subject} ${towerEffects.join(' and ')}`, ...economy.map(capitalise)].join('. ') + '.';
+}
+
+/** "Ballista Tower" → "Ballista Towers", "sniper" → "sniper towers". */
+function plural(name: string): string {
+  return /tower$/i.test(name) ? `${name}s` : `${name} towers`;
 }
 
 function capitalise(s: string): string {

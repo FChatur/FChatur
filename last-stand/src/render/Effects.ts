@@ -71,6 +71,7 @@ export function attachEffects(
   world: { width: number; height: number },
 ): { update: () => void; detach: () => void } {
   const budget = new EffectBudget();
+  let lastThump = -Infinity;
   const playing: Flipbook[] = [];
   const pool: Phaser.GameObjects.Image[] = [];
 
@@ -129,13 +130,18 @@ export function attachEffects(
     }),
 
     bus.on('projectileHit', ({ projectile, enemy, crit, damage }) => {
-      entities.flashEnemy(enemy.id);
+      entities.flashEnemy(enemy.id, projectile.x - projectile.prevX, projectile.y - projectile.prevY);
       const at = entities.enemyCenter(enemy);
       const art = TOWER_ART[projectile.towerType];
       play(crit ? 'crit-spark' : art.impact, at.x, at.y, art.impact === 'heavy-impact' ? 55 : 50, 'minor');
       // Ballista hits are big and rare: show how much they did (red for a critical hit). Other towers hit
       // too often for numbers to stay readable, so they rely on sparks and health bars.
       if (art.defender === 'ballista') {
+        // A heavy thump: a small camera kick, at most a few per second however many ballistas fire.
+        if (scene.time.now - lastThump > 280) {
+          lastThump = scene.time.now;
+          shake(90, 0.0018);
+        }
         floatText(at.x, at.y - 7 * ART_SCALE, crit ? `${Math.round(damage)}!` : `${Math.round(damage)}`, crit ? COLORS.red3 : COLORS.white0);
       }
     }),

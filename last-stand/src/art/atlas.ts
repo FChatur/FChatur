@@ -1,4 +1,5 @@
 import { blank, blit, type Bitmap } from './bitmap';
+import { ambientFrames } from './sprites/ambient';
 import { creatureFrames } from './sprites/creatures';
 import { effectFrames } from './sprites/effects';
 import { projectileFrames } from './sprites/projectiles';
@@ -26,7 +27,7 @@ const TOWER_TYPES = ['basic', 'sniper', 'rapid', 'frost'] as const;
 
 /** Every sprite animation in the game, by name. */
 export function allSprites(): Record<string, Bitmap[]> {
-  const out: Record<string, Bitmap[]> = { ...creatureFrames(), ...projectileFrames(), ...effectFrames() };
+  const out: Record<string, Bitmap[]> = { ...creatureFrames(), ...projectileFrames(), ...effectFrames(), ...ambientFrames() };
   const towers = towerArt();
   for (const t of TOWER_TYPES) {
     out[`tower-${t}-base`] = towers[t].bases.map((b) => b.image);
