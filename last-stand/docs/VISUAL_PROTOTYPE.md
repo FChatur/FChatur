@@ -420,6 +420,22 @@ Results (development branch, measured in this container):
   compare relatively): V2 baseline 16.2–16.9 fps vs heroes 19.0–20.7 fps; p95 frame time V2
   66.8–83.3 ms vs heroes 66.7 ms. The earlier "V2 18 fps" was measured on a different container; both builds were
   re-measured here side by side.
+- Performance note: the wave-50 fps figures above come from a container without a GPU and are not
+  what players should expect. Investigation, on the same staged wave-50 scene:
+  - The browser there renders WebGL with SwiftShader, a software rasterizer running on the CPU.
+  - The game's own work per frame is small: at 3x speed and 1600×1012, the simulation takes 1.1 ms,
+    sprite updates 0.4 ms and the renderer's JavaScript 0.4 ms, about 2 ms of a 55 ms frame.
+  - Frame time follows the number of pixels drawn, not the game. Shrinking the window to 960×640 with
+    the same scene raises 18 fps to 53 fps.
+  - With the CPU throttled to a quarter of its speed (Chrome's CPU throttling, 960×640), the game's work
+    is 7.8 ms per frame at 3x speed and 3.7 ms at 1x. That still fits a 60 fps frame (16.7 ms).
+  - Conclusion: on any machine with working GPU acceleration, wave 50 is not a gameplay bottleneck. The
+    remaining risk is a browser that falls back to software rendering (GPU blocklisted or acceleration
+    turned off) on a large or high-DPI window: frame rate would then drop the way it does here.
+  - Possible mitigations, not done: render at a lower internal resolution when software rendering is
+    detected, or cap the canvas size.
+  - To check on a real machine: in Chrome DevTools, open Rendering and turn on Frame Rendering Stats
+    during a late wave at 3x.
 - Known limits:
   - With the shop expanded at 1366×768, the map fits at 3× but the scenery margin is narrow, so the
     cave mouth and the gate are partly trimmed. Collapsing the shop shows them.
