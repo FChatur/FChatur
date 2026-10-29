@@ -1,10 +1,23 @@
+import { HEROES } from '../art/catalog';
+import { cssHex } from '../art/palette';
 import { GAME_SPEEDS, type GameSpeed } from '../config/balance';
 import type { TileCoord } from '../config/map';
-import { isGlobalRange, MAX_TOWER_LEVEL, TARGETING, TOWER_ORDER, TOWERS, type TowerLevel, type TowerTypeId } from '../config/towers';
+import {
+  isGlobalRange,
+  MAX_TOWER_LEVEL,
+  TARGETING,
+  TARGETING_MODES,
+  TOWER_ORDER,
+  TOWERS,
+  type TargetingMode,
+  type TowerLevel,
+  type TowerTypeId,
+} from '../config/towers';
 import type { GameEvents } from '../core/events';
 import { describeUpgrade, getUpgrade, RARITY_INFO, type UpgradeDef, type UpgradeId } from '../config/upgrades';
 import type { Tower } from '../core/types';
 import type { GameSession } from '../game/GameSession';
+import { heroPortrait, showPortrait } from './portraits';
 import { TUTORIAL_STEPS, TutorialProgress } from './tutorial';
 import { towerInfo } from './towerInfo';
 import { TowerTooltip } from './TowerTooltip';
@@ -27,6 +40,15 @@ function el<T extends HTMLElement = HTMLElement>(id: string): T {
 
 const cssColor = (n: number): string => `#${n.toString(16).padStart(6, '0')}`;
 
+/** Screen pixels per art pixel for hero portraits: shop cards, the collapsed rail, the tower panel. */
+const PORTRAIT_SCALE = { card: 4, compactCard: 3, rail: 2, panel: 3, preview: 2, drag: 3 } as const;
+/** Short windows get compact shop cards (keep in sync with the media query in style.css). */
+const COMPACT_SHOP = '(max-height: 779px)';
+/** A press on a shop card that moves further than this (CSS px) becomes a drag. */
+const DRAG_START_PX = 6;
+/** The upgrade draft appears this long after its wave is cleared, so the heroes' celebration is seen. */
+const DRAFT_REVEAL_MS = 1400;
+
 /** Events after which the HUD's numbers or button states may be stale. */
 const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'enemyKilled',
@@ -47,11 +69,14 @@ const REFRESH_ON: readonly (keyof GameEvents)[] = [
   'countdownChanged',
   'autoWaveChanged',
   'hoverChanged',
+  'dragChanged',
+  'towerTargetingChanged',
 ];
 
 /**
- * The HTML overlay: main menu, stats bar, build bar, speed control, wave button, contextual hint,
- * tutorial, selected-tower panel, upgrade draft, pause and game-over screens. Also owns keyboard
+ * The HTML overlay: main menu, stats bar, the left tower shop (click or drag to build; collapsible),
+ * speed control, wave button, contextual hint, tutorial, selected-tower panel, upgrade draft, pause and
+ * game-over screens. Also owns keyboard
  * shortcuts, since they map onto the same actions as the buttons.
  */
 export class Hud {
@@ -62,6 +87,9 @@ export class Hud {
   private readonly startWave = el<HTMLButtonElement>('btn-start-wave');
   private readonly startWaveLabel = el('start-wave-label');
   private readonly towerButtons = new Map<TowerTypeId, HTMLButtonElement>();
+  private readonly targetingButtons = new Map<TargetingMode, HTMLButtonElement>();
+  private readonly shop = el('shop');
+  private readonly dragAvatar = el<HTMLImageElement>('drag-avatar');
   private readonly speedButtons = new Map<GameSpeed, HTMLButtonElement>();
   private readonly panel = el('tower-panel');
   private readonly panelUpgrade = el<HTMLButtonElement>('tp-upgrade');
@@ -78,6 +106,8 @@ export class Hud {
     private readonly board: BoardGeometry,
   ) {
     this.buildTowerBar();
+    this.buildShopToggle();
+    this.buildTargetingButtons();
     this.buildSpeedControl();
     this.panelUpgrade.addEventListener('click', () => {
       this.session.upgradeSelected();
@@ -135,14 +165,17 @@ export class Hud {
       : new TutorialProgress(this.session.bus, TUTORIAL_STEPS, () => this.renderTutorial(), () => this.session.completeTutorial());
   }
 
+  /** Shop cards: the hero's portrait, names, role, cost and hotkey. Click to arm, or drag onto the map. */
   private buildTowerBar(): void {
     const bar = el('tower-bar');
     for (const id of TOWER_ORDER) {
       const cfg = TOWERS[id];
+      const hero = HEROES[id];
       const btn = document.createElement('button');
       btn.className = 'tower-btn';
-      btn.style.setProperty('--tower-color', cssColor(cfg.color));
-      btn.setAttribute('aria-label', `${cfg.name}, ${cfg.cost} gold. ${cfg.description}`);
+      btn.dataset.tower = id;
+      btn.style.setProperty('--tower-color', cssHex(hero.accent));
+      btn.setAttribute('aria-label', `${hero.name}, ${cfg.name}, ${cfg.cost} gold. ${cfg.description}`);
       const showInfo = () => {
         this.shopHover = id;
         this.renderTooltip();
@@ -156,16 +189,123 @@ export class Hud {
       btn.addEventListener('mouseleave', hideInfo);
       btn.addEventListener('blur', hideInfo);
       btn.innerHTML = `
-        <span class="tower-swatch"></span>
-        <span class="tower-name">${cfg.name}</span>
-        <span class="tower-cost">${cfg.cost}g</span>
+        <span class="tower-portrait"><img alt="" draggable="false" /></span>
+        <span class="tower-info">
+          <span class="tower-hero">${hero.name}</span>
+          <span class="tower-name">${cfg.name}</span>
+          <span class="tower-role">${hero.role}</span>
+          <span class="tower-cost"><span class="coin" aria-hidden="true"></span>${cfg.cost}</span>
+          <span class="tower-need"></span>
+        </span>
         <kbd>${cfg.hotkey}</kbd>`;
-      btn.addEventListener('click', () => {
-        this.session.toggleTower(id);
-        btn.blur();
-      });
+      this.wireCard(btn, id);
       bar.appendChild(btn);
       this.towerButtons.set(id, btn);
+    }
+    this.renderShopPortraits();
+  }
+
+  /**
+   * A click arms the tower for click-to-place (same as its hotkey). Pressing and moving drags it: the
+   * map previews the tile under the pointer, and releasing over the map builds there.
+   */
+  private wireCard(btn: HTMLButtonElement, id: TowerTypeId): void {
+    let press: { x: number; y: number; pointer: number } | null = null;
+    let dragging = false;
+    let swallowClick = false;
+    btn.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || btn.disabled) return;
+      press = { x: e.clientX, y: e.clientY, pointer: e.pointerId };
+      dragging = false;
+      // Keep receiving the pointer's moves after it leaves the card, however fast it moves.
+      btn.setPointerCapture(e.pointerId);
+    });
+    btn.addEventListener('pointermove', (e) => {
+      if (!press || e.pointerId !== press.pointer) return;
+      if (!dragging) {
+        if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < DRAG_START_PX) return;
+        if (!this.session.beginDrag(id)) {
+          press = null;
+          return;
+        }
+        dragging = true;
+        this.shopHover = null;
+        showPortrait(this.dragAvatar, heroPortrait(id, 1), PORTRAIT_SCALE.drag);
+      }
+      this.moveDrag(e.clientX, e.clientY);
+    });
+    const finish = (e: PointerEvent, cancelled: boolean) => {
+      if (!press || e.pointerId !== press.pointer) return;
+      press = null;
+      if (!dragging) return;
+      dragging = false;
+      swallowClick = true;
+      const drop = !cancelled && this.board.overBoard(e.clientX, e.clientY);
+      if (drop) this.session.dragOver(this.board.tileAt(e.clientX, e.clientY));
+      this.session.endDrag(drop);
+      this.dragAvatar.classList.add('hidden');
+      btn.blur();
+    };
+    btn.addEventListener('pointerup', (e) => finish(e, false));
+    btn.addEventListener('pointercancel', (e) => finish(e, true));
+    btn.addEventListener('click', () => {
+      if (swallowClick) {
+        swallowClick = false;
+        return;
+      }
+      this.session.toggleTower(id);
+      btn.blur();
+    });
+  }
+
+  /** Over the map the board shows the ghost; elsewhere a portrait follows the pointer. */
+  private moveDrag(x: number, y: number): void {
+    const over = this.board.overBoard(x, y);
+    this.session.dragOver(over ? this.board.tileAt(x, y) : null);
+    this.dragAvatar.classList.toggle('hidden', over || !this.session.drag);
+    this.dragAvatar.style.transform = `translate(${Math.round(x - this.dragAvatar.width / 2)}px, ${Math.round(y - this.dragAvatar.height + 12)}px)`;
+  }
+
+  private buildShopToggle(): void {
+    const toggle = el<HTMLButtonElement>('shop-toggle');
+    toggle.addEventListener('click', () => {
+      this.session.setShopCollapsed(!this.session.shopCollapsed);
+      this.applyShopLayout();
+      toggle.blur();
+    });
+    window.matchMedia(COMPACT_SHOP).addEventListener('change', () => this.renderShopPortraits());
+    this.applyShopLayout();
+  }
+
+  /** Expanded: large cards. Collapsed: a narrow rail of portraits and costs, giving the map more room. */
+  private applyShopLayout(): void {
+    const collapsed = this.session.shopCollapsed;
+    this.shop.classList.toggle('collapsed', collapsed);
+    const toggle = el('shop-toggle');
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.title = collapsed ? 'Expand the shop' : 'Collapse the shop';
+    this.renderShopPortraits();
+  }
+
+  private renderShopPortraits(): void {
+    const compact = window.matchMedia(COMPACT_SHOP).matches;
+    const scale = this.session.shopCollapsed ? PORTRAIT_SCALE.rail : compact ? PORTRAIT_SCALE.compactCard : PORTRAIT_SCALE.card;
+    for (const [id, btn] of this.towerButtons) showPortrait(btn.querySelector('img')!, heroPortrait(id, 1), scale);
+  }
+
+  private buildTargetingButtons(): void {
+    const group = el('tp-targeting');
+    for (const mode of TARGETING_MODES) {
+      const btn = document.createElement('button');
+      btn.className = 'tgt-btn';
+      btn.textContent = TARGETING[mode].label;
+      btn.title = TARGETING[mode].description;
+      btn.addEventListener('click', () => {
+        this.session.setTargetingSelected(mode);
+        btn.blur();
+      });
+      group.appendChild(btn);
+      this.targetingButtons.set(mode, btn);
     }
   }
 
@@ -209,7 +349,10 @@ export class Hud {
     }
     if (e.key === 'Escape') {
       const s = this.session;
-      if (s.paused) s.setPaused(false);
+      if (s.drag) {
+        s.endDrag(false);
+        this.dragAvatar.classList.add('hidden');
+      } else if (s.paused) s.setPaused(false);
       else if (s.selectedTower || s.selectedTowerInstance) s.clearSelection();
       else s.setPaused(true);
       return;
@@ -238,6 +381,10 @@ export class Hud {
     }
     if (key === 's') {
       this.session.sellSelected();
+      return;
+    }
+    if (key === 't') {
+      this.session.cycleTargetingSelected();
       return;
     }
     if (key === 'r' && sim.phase === 'gameover') {
@@ -274,10 +421,13 @@ export class Hud {
     this.lastHealth = sim.health;
 
     for (const [id, btn] of this.towerButtons) {
-      btn.classList.toggle('selected', this.session.selectedTower === id);
-      btn.classList.toggle('unaffordable', sim.gold < TOWERS[id].cost);
+      const short = TOWERS[id].cost - sim.gold;
+      btn.classList.toggle('selected', this.session.selectedTower === id || this.session.drag?.type === id);
+      btn.classList.toggle('unaffordable', short > 0);
+      btn.querySelector('.tower-need')!.textContent = short > 0 ? `Need ${short} more` : '';
       btn.disabled = sim.phase === 'gameover';
     }
+    if (!this.session.drag) this.dragAvatar.classList.add('hidden');
 
     for (const [speed, btn] of this.speedButtons) {
       btn.classList.toggle('active', this.session.speed === speed);
@@ -332,7 +482,7 @@ export class Hud {
     const active = s.screen === 'playing' && !s.paused && sim.phase !== 'draft' && sim.phase !== 'gameover';
     if (active && this.shopHover) {
       const btn = this.towerButtons.get(this.shopHover)!;
-      this.tooltip.show(towerInfo(this.shopHover), btn.getBoundingClientRect(), ['above', 'right']);
+      this.tooltip.show(towerInfo(this.shopHover), btn.getBoundingClientRect(), ['right', 'below']);
       return;
     }
     const t = s.hoveredTower;
@@ -381,12 +531,20 @@ export class Hud {
 
   /** Rebuilt only when a new offer appears, so cards don't flicker while the player decides. */
   private renderedDraft = '';
+  /** When the current offer may be shown (after the heroes' victory celebration). */
+  private draftRevealAt = 0;
 
   private renderDraft(): void {
     const sim = this.session.sim;
-    const open = sim.phase === 'draft';
-    el('overlay-draft').classList.toggle('hidden', !open);
-    const key = open ? `${sim.wave}:${sim.draftChoices.join()}` : '';
+    const offered = sim.phase === 'draft';
+    const key = offered ? `${sim.wave}:${sim.draftChoices.join()}` : '';
+    if (key !== this.renderedDraft && offered) {
+      // The game is already halted for the pick; holding the cards back a moment lets the heroes'
+      // celebration be seen (the 1-3 keys work straight away).
+      this.draftRevealAt = performance.now() + DRAFT_REVEAL_MS;
+      setTimeout(() => this.scheduleRefresh(), DRAFT_REVEAL_MS + 20);
+    }
+    el('overlay-draft').classList.toggle('hidden', !offered || performance.now() < this.draftRevealAt);
     if (key === this.renderedDraft) return;
     this.renderedDraft = key;
     const cards = el('draft-cards');
@@ -427,15 +585,33 @@ export class Hud {
     if (!tower) return;
     const sim = this.session.sim;
     const cfg = TOWERS[tower.type];
+    const hero = HEROES[tower.type];
     const current = cfg.levels[tower.level - 1];
     const next = tower.level < MAX_TOWER_LEVEL ? cfg.levels[tower.level] : null;
 
-    this.panel.style.setProperty('--tower-color', cssColor(cfg.color));
+    // Sits on the side of the map away from the tower, so it never covers the tower or its range.
+    this.panel.classList.toggle('tp-left', tower.col >= sim.map.grid.cols / 2);
+    this.panel.style.setProperty('--tower-color', cssHex(hero.accent));
+    showPortrait(el<HTMLImageElement>('tp-portrait'), heroPortrait(tower.type, tower.level), PORTRAIT_SCALE.panel);
+    el('tp-hero').textContent = `${hero.name} · ${hero.ranks[tower.level - 1]}`;
     el('tp-name').textContent = cfg.name;
     el('tp-level').textContent = `LV ${tower.level}/${MAX_TOWER_LEVEL}`;
-    el('tp-stats').innerHTML = statRows(tower, current, next, sim.mods.forTower(tower.type).fireRateMultiplier)
+    el('tp-stats').innerHTML = statRows(current, next, sim.mods.forTower(tower.type).fireRateMultiplier)
       .map(([label, now, then]) => `<dt>${label}</dt><dd>${now}${then && then !== now ? ` <span class="tp-next">→ ${then}</span>` : ''}</dd>`)
       .join('');
+
+    // Upgrade preview: the next level's look, so the player sees what they're buying.
+    el('tp-preview').classList.toggle('hidden', !next);
+    if (next) {
+      el('tp-next-rank').textContent = `${hero.ranks[tower.level]} (LV ${tower.level + 1})`;
+      showPortrait(el<HTMLImageElement>('tp-next-portrait'), heroPortrait(tower.type, tower.level + 1), PORTRAIT_SCALE.preview);
+      el('tp-next-looks').textContent = hero.looks[tower.level];
+    }
+
+    for (const [mode, btn] of this.targetingButtons) {
+      btn.classList.toggle('active', tower.targeting === mode);
+      btn.setAttribute('aria-pressed', String(tower.targeting === mode));
+    }
 
     const upgrade = sim.canUpgradeTower(tower);
     this.panelUpgrade.disabled = !upgrade.ok;
@@ -449,10 +625,11 @@ export class Hud {
     const selected = this.session.selectedTower;
     if (sim.phase === 'gameover') return '';
     if (sim.phase === 'draft') return 'Pick an upgrade (1-3) to continue.';
+    if (this.session.drag) return 'Release on a free tile to build. Release elsewhere or press Esc to cancel.';
     if (selected) return `Click a free tile to build a ${TOWERS[selected].name}. Right-click or Esc to cancel.`;
-    if (this.session.selectedTowerInstance) return 'U to upgrade, S to sell, Esc to deselect.';
+    if (this.session.selectedTowerInstance) return 'U to upgrade, S to sell, T to change targeting, Esc to deselect.';
     if (sim.phase === 'build' && sim.autoWaveCountdown !== null) return 'Next wave starts automatically. Keep building, or Space to send it now.';
-    if (sim.towers.length === 0) return 'Pick a tower (1-4), then click a free tile beside the path.';
+    if (sim.towers.length === 0) return 'Drag a tower from the shop onto a free tile beside the path, or press 1-4 and click.';
     if (sim.phase === 'build') return 'Click a tower to upgrade or sell it. Space sends the next wave.';
     return 'Enemies that reach the red exit cost health. F changes speed.';
   }
@@ -480,10 +657,11 @@ const rangeLabel = (l: TowerLevel): string => (isGlobalRange(l.rangeTiles) ? 'Gl
 const roman = (n: number): string => ['', 'I', 'II', 'III', 'IV', 'V'][n] ?? String(n);
 
 /**
- * Label, current value and next-level value (null at max level) for the tower panel.
+ * Label, current value and next-level value (null at max level) for the tower panel. Targeting has its
+ * own buttons below the stats.
  * Fire rate includes run upgrades (Overclock) so it shows what the tower really does.
  */
-function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMult: number): [string, string, string | null][] {
+function statRows(now: TowerLevel, next: TowerLevel | null, rateMult: number): [string, string, string | null][] {
   const rate = (l: TowerLevel) => `${+(l.fireRate * rateMult).toFixed(2)}/s`;
   const rows: [string, string, string | null][] = [
     ['Damage', String(now.damage), next && String(next.damage)],
@@ -494,6 +672,5 @@ function statRows(tower: Tower, now: TowerLevel, next: TowerLevel | null, rateMu
     const slow = (l: TowerLevel) => `${Math.round((1 - l.slow!.factor) * 100)}% / ${l.slow!.duration}s`;
     rows.push(['Slow', slow(now), next && slow(next)]);
   }
-  rows.push(['Targeting', TARGETING[tower.targeting].label, null]);
   return rows;
 }

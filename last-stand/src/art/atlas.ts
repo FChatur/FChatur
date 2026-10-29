@@ -3,7 +3,7 @@ import { ambientFrames } from './sprites/ambient';
 import { creatureFrames } from './sprites/creatures';
 import { effectFrames } from './sprites/effects';
 import { projectileFrames } from './sprites/projectiles';
-import { towerArt, towerPortrait } from './sprites/towers';
+import { BALLISTA_DIRECTIONS, heroArt, heroEmotes, heroTower, siegeBow } from './sprites/characters';
 
 /** Where one frame lives in the atlas image. */
 export interface AtlasFrame {
@@ -24,16 +24,34 @@ export interface Atlas {
 export const frameKey = (animation: string, index: number): string => `${animation}:${index}`;
 
 const TOWER_TYPES = ['basic', 'sniper', 'rapid', 'frost'] as const;
+const BOW_STATES = ['loaded', 'cocking', 'fired'] as const;
+
+/** Atlas animation names for the tower heroes (see sprites/characters.ts). One frame per level. */
+export const heroPedestal = (type: string): string => `hero-${type}-pedestal`;
+/** One frame per level: the complete tower, used for the placement ghost. */
+export const heroGhost = (type: string): string => `hero-${type}-ghost`;
+export const heroAnimation = (type: string, level: number, anim: string): string => `hero-${type}-${level}-${anim}`;
+/** The Ballista's crossbow: one frame per aiming direction. */
+export const ballistaBow = (level: number, state: (typeof BOW_STATES)[number]): string => `ballista-bow-${level}-${state}`;
 
 /** Every sprite animation in the game, by name. */
 export function allSprites(): Record<string, Bitmap[]> {
   const out: Record<string, Bitmap[]> = { ...creatureFrames(), ...projectileFrames(), ...effectFrames(), ...ambientFrames() };
-  const towers = towerArt();
+  const heroes = heroArt();
   for (const t of TOWER_TYPES) {
-    out[`tower-${t}-base`] = towers[t].bases.map((b) => b.image);
-    for (const [name, frames] of Object.entries(towers[t].defender)) out[`tower-${t}-${name}`] = frames;
-    out[`tower-${t}-portrait`] = [1, 2, 3].map((level) => towerPortrait(t, level));
+    out[heroPedestal(t)] = heroes[t].pedestals;
+    heroes[t].frames.forEach((anims, i) => {
+      for (const [anim, frames] of Object.entries(anims)) out[heroAnimation(t, i + 1, anim)] = frames;
+    });
+    // The whole tower at each level, for the placement ghost.
+    out[heroGhost(t)] = [1, 2, 3].map((level) => heroTower(t, level));
   }
+  for (const level of [1, 2, 3]) {
+    for (const state of BOW_STATES) {
+      out[ballistaBow(level, state)] = Array.from({ length: BALLISTA_DIRECTIONS }, (_, d) => siegeBow(d, state, level));
+    }
+  }
+  for (const [name, bmp] of Object.entries(heroEmotes())) out[`emote-${name}`] = [bmp];
   return out;
 }
 

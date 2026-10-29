@@ -16,6 +16,8 @@ export interface Settings {
   tutorialDone: boolean;
   /** Start the next wave automatically after a short countdown. */
   autoWave: boolean;
+  /** The left tower shop is collapsed to a narrow rail. */
+  shopCollapsed: boolean;
 }
 
 export interface MapRecord {
@@ -27,7 +29,7 @@ export interface MapRecord {
 /** Personal records, kept per map so different maps never share one leaderboard. */
 export type Records = Partial<Record<MapId, MapRecord>>;
 
-export const DEFAULT_SETTINGS: Settings = { muted: false, volume: 0.6, speed: 1, tutorialDone: false, autoWave: true };
+export const DEFAULT_SETTINGS: Settings = { muted: false, volume: 0.6, speed: 1, tutorialDone: false, autoWave: true, shopCollapsed: false };
 
 const KEYS = { settings: 'lastStand.v1.settings', records: 'lastStand.v1.records' } as const;
 
@@ -56,6 +58,7 @@ export class Persistence {
     if (raw.speed === 1 || raw.speed === 2 || raw.speed === 3) s.speed = raw.speed;
     if (typeof raw.tutorialDone === 'boolean') s.tutorialDone = raw.tutorialDone;
     if (typeof raw.autoWave === 'boolean') s.autoWave = raw.autoWave;
+    if (typeof raw.shopCollapsed === 'boolean') s.shopCollapsed = raw.shopCollapsed;
     return s;
   }
 

@@ -7,7 +7,7 @@ import type { Simulation } from '../core/Simulation';
 import type { PlacementBlock, Tower } from '../core/types';
 import { DEPTH, PALETTE } from './palette';
 import { alphaBitmap, ART_SCALE, ATLAS_KEY, bitmapTexture, rangeTexture, textTexture } from './pixel';
-import { frameKey } from '../art/atlas';
+import { frameKey, heroGhost } from '../art/atlas';
 
 const BLOCK_LABEL: Partial<Record<PlacementBlock, string>> = {
   path: 'ROAD',
@@ -32,7 +32,7 @@ export class PlacementPreview {
     this.g = scene.add.graphics().setDepth(DEPTH.preview);
     this.grid = scene.add.image(0, 0, gridTexture(scene, sim)).setOrigin(0, 0).setScale(ART_SCALE).setDepth(DEPTH.grid).setVisible(false);
     this.range = scene.add.image(0, 0, rangeTexture(scene, 8)).setScale(ART_SCALE).setDepth(DEPTH.preview - 1).setVisible(false);
-    this.ghost = scene.add.image(0, 0, ATLAS_KEY, frameKey('tower-basic-portrait', 0)).setScale(ART_SCALE).setOrigin(0.5, 1).setDepth(DEPTH.preview).setVisible(false);
+    this.ghost = scene.add.image(0, 0, ATLAS_KEY, frameKey(heroGhost('basic'), 0)).setScale(ART_SCALE).setOrigin(0.5, 1).setDepth(DEPTH.preview).setVisible(false);
     this.label = scene.add.image(0, 0, textTexture(scene, 'ROAD', COLORS.white0)).setScale(ART_SCALE).setOrigin(0.5, 1).setDepth(DEPTH.preview + 1).setVisible(false);
   }
 
@@ -59,7 +59,7 @@ export class PlacementPreview {
       this.showRange(sim, cx, (hover.row + 0.5) * ts, TOWERS[selected].levels[0].rangeTiles * ts, color);
       this.outline(hover.col, hover.row, color, 0.22);
       this.ghost
-        .setFrame(frameKey(`tower-${selected}-portrait`, 0))
+        .setFrame(frameKey(heroGhost(selected), 0))
         .setPosition(cx, (hover.row + 1) * ts)
         .setAlpha(check.ok ? 0.8 : 0.55)
         .setVisible(true);

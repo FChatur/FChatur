@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { frameKey } from '../art/atlas';
+import { ballistaBow, frameKey, heroAnimation, heroPedestal } from '../art/atlas';
 import { CREATURE_ART, TOWER_ART, type CreatureArt } from '../art/catalog';
+import { BALLISTA_DIRECTIONS, BALLISTA_LAYOUT, heroArt, type HeroAnim } from '../art/sprites/characters';
 import { directionIndex, PROJECTILE_DIRECTIONS } from '../art/sprites/projectiles';
-import { BALLISTA_DIRECTIONS, DEFENDER_SINK, towerArt } from '../art/sprites/towers';
 import { TILE_SIZE } from '../config/map';
 import type { TowerTypeId } from '../config/towers';
 import type { Simulation } from '../core/Simulation';
@@ -15,11 +15,50 @@ import { ART_SCALE, ATLAS_KEY, frameSize, pixelImage, shadowTexture } from './pi
 const FLASH_MS = 70;
 /** Hit creatures flinch one art pixel away from the shot for this long. */
 const FLINCH_MS = 80;
-/** How long a defender shows its "just shot" pose. */
-const SHOT_POSE_MS = 150;
 /** Drop-in when a tower is built. */
 const BUILD_DROP_MS = 160;
 const SHARD_FRAME_MS = 110;
+
+/**
+ * Hero animation timing (real ms). Heroes follow the rhythm of their own shots: they draw (or crank, or
+ * raise the staff) just before a shot is due, release on the shot, and idle when nothing is in range.
+ */
+const HERO = {
+  idleFrameMs: 420,
+  /** Idle frames: mostly breathing (0, 1), now and then frame 2 (a blink or a bob). */
+  idleSequence: [0, 1, 0, 1, 0, 1, 0, 2],
+  /** How long the release pose shows after a shot (at most this fraction of the gap between shots). */
+  releaseMs: 150,
+  ballistaReleaseMs: 260,
+  releaseShare: 0.45,
+  /** How long before the next shot the draw pose starts (at most this fraction of the gap). */
+  drawMs: 260,
+  ballistaCrankMs: 900,
+  drawShare: 0.45,
+  /** Below this gap between shots (very fast fire) the two attack frames simply alternate. */
+  flurryGapMs: 120,
+  flurryFrameMs: 80,
+  /** The crossbow kicks back this long after a shot. */
+  recoilMs: 110,
+  /** Time from a tower's last shot after which it relaxes back to idle. */
+  engagedMs: 1200,
+};
+
+/** Reactions to the battle: a boss arrives, lives are lost, a wave is won. */
+type Reaction = 'boss' | 'leak' | 'victory' | 'bossVictory';
+const REACTION: Record<Reaction, { anim: HeroAnim; ms: number; frameMs: number; emote: string | null }> = {
+  boss: { anim: 'alarm', ms: 1500, frameMs: 130, emote: 'emote-alert' },
+  leak: { anim: 'alarm', ms: 800, frameMs: 130, emote: 'emote-sweat' },
+  victory: { anim: 'victory', ms: 900, frameMs: 220, emote: null },
+  bossVictory: { anim: 'victory', ms: 2600, frameMs: 200, emote: 'emote-star' },
+};
+/** Heroes don't all react on the same frame: each starts up to this much later (by id). */
+const REACTION_STAGGER_MS = 240;
+
+/** Heroes fade to this opacity while they hide an enemy behind them, so the road stays readable. */
+const OCCLUDING_ALPHA = 0.35;
+/** Creatures walk up to this many art pixels to either side of the path's centre line, so packs spread out. */
+const SPREAD = 3;
 
 interface EnemyView {
   shadow: Phaser.GameObjects.Image;
@@ -34,20 +73,41 @@ interface EnemyView {
   hitDy: number;
   /** Body height in world units, for placing the health bar. */
   height: number;
+  /** Body width in world units, for occlusion checks. */
+  width: number;
   facing: 1 | -1;
   /** Real-time timestamp of the last hit, for the white flash. */
   hitAt: number;
+  /** Sideways offset from the path's centre line (world units, eased when the path turns). */
+  offX: number;
+  offY: number;
+  /** Where the body was drawn last (centre x, feet y), for occlusion checks. */
+  drawnX: number;
+  drawnFeet: number;
   seen: number;
 }
 
 interface TowerView {
   shadow: Phaser.GameObjects.Image;
-  base: Phaser.GameObjects.Image;
-  defender: Phaser.GameObjects.Image;
+  pedestal: Phaser.GameObjects.Image;
+  hero: Phaser.GameObjects.Image;
+  /** The Ballista's crossbow (Brakk's tower only). */
+  bow: Phaser.GameObjects.Image | null;
+  /** Reaction mark over the hero's head, created on first use. */
+  emote: Phaser.GameObjects.Image | null;
   level: number;
-  /** Real-time timestamp of the last shot, for the shooting pose. */
+  /** Real-time timestamp of the last shot, and the gap before it (for timing the draw). */
   firedAt: number;
+  shotGap: number;
   builtAt: number;
+  reaction: Reaction | null;
+  reactAt: number;
+  /** Current opacity of the hero (eases toward OCCLUDING_ALPHA while an enemy is behind it). */
+  fade: number;
+  /** Area above the tile covered by the hero, for occlusion checks (world units). */
+  coverLeft: number;
+  coverRight: number;
+  coverTop: number;
   seen: number;
 }
 
@@ -65,15 +125,10 @@ interface ProjectileView {
   seen: number;
 }
 
-/** Where each tower level's defender stands, in art pixels from the base's top. */
-const BASE_TOPS: Record<TowerTypeId, number[]> = (() => {
-  const art = towerArt();
-  return {
-    basic: art.basic.bases.map((b) => b.top),
-    sniper: art.sniper.bases.map((b) => b.top),
-    rapid: art.rapid.bases.map((b) => b.top),
-    frost: art.frost.bases.map((b) => b.top),
-  };
+/** Where each hero's picture ends below its pedestal's top, per tower type and level (art pixels). */
+const STAND: Record<TowerTypeId, readonly number[]> = (() => {
+  const art = heroArt();
+  return { basic: art.basic.stand, sniper: art.sniper.stand, rapid: art.rapid.stand, frost: art.frost.stand };
 })();
 
 /**
@@ -115,9 +170,10 @@ export class EntityRenderer {
       view.seen = frame;
     }
 
-    prune(this.towers, frame, (v) => destroyAll(v.shadow, v.base, v.defender));
+    prune(this.towers, frame, (v) => this.destroyTower(v));
     prune(this.enemies, frame, (v) => destroyAll(v.shadow, v.body, v.barBack, v.barFill, v.frost));
     prune(this.projectiles, frame, (v) => this.releaseProjectile(v));
+    this.fadeOccluders();
   }
 
   /** Brief white flash when an enemy takes a hit, and a flinch away from where the shot came from. */
@@ -130,21 +186,50 @@ export class EntityRenderer {
     view.hitDy = dy / len;
   }
 
-  /** Shooting pose when a tower fires. */
+  /** A tower fired: its hero plays the release pose. */
   recoilTower(id: number): void {
     const view = this.towers.get(id);
-    if (view) view.firedAt = this.scene.time.now;
+    if (!view) return;
+    const now = this.scene.time.now;
+    if (Number.isFinite(view.firedAt)) view.shotGap = now - view.firedAt;
+    view.firedAt = now;
+  }
+
+  /**
+   * Every hero reacts: alarmed when a boss appears or lives are lost, cheering when a wave is won (longer
+   * and with a star after a boss wave). A lost life never interrupts the boss alarm.
+   */
+  react(kind: Reaction): void {
+    const now = this.scene.time.now;
+    for (const [id, view] of this.towers) {
+      if (kind === 'leak' && view.reaction === 'boss' && now < view.reactAt + REACTION.boss.ms) continue;
+      view.reaction = kind;
+      view.reactAt = now + ((id * 89) % REACTION_STAGGER_MS);
+    }
+  }
+
+  /** Where each tower's hero stands (for effects such as celebration sparkles). */
+  heroSpots(): { x: number; y: number }[] {
+    return [...this.towers.values()].map((v) => ({ x: (v.coverLeft + v.coverRight) / 2, y: v.coverTop + 6 * ART_SCALE }));
+  }
+
+  /** True when the board is busy enough that minor floating text would clutter it. */
+  get crowded(): boolean {
+    return this.enemies.size >= 12;
   }
 
   /** Where an enemy's body is drawn (for effects that should hit the body, not the feet). */
   enemyCenter(e: Enemy): { x: number; y: number } {
     const art = CREATURE_ART[e.type];
     const { h } = frameSize(art.walk);
-    return { x: e.x, y: e.y + (art.feet - h / 2) * ART_SCALE };
+    const view = this.enemies.get(e.id);
+    const ox = view ? Math.round(view.offX / ART_SCALE) * ART_SCALE : 0;
+    const oy = view ? Math.round(view.offY / ART_SCALE) * ART_SCALE : 0;
+    return { x: e.x + ox, y: e.y + oy + (art.feet - h / 2) * ART_SCALE };
   }
 
   clear(): void {
-    for (const v of this.towers.values()) destroyAll(v.shadow, v.base, v.defender);
+    for (const v of this.towers.values()) this.destroyTower(v);
     for (const v of this.enemies.values()) destroyAll(v.shadow, v.body, v.barBack, v.barFill, v.frost);
     for (const v of this.projectiles.values()) v.img.destroy();
     for (const pool of this.projectilePool.values()) for (const img of pool) img.destroy();
@@ -159,13 +244,18 @@ export class EntityRenderer {
   private createTower(t: Tower, now: number): TowerView {
     const bottom = (t.row + 1) * TILE_SIZE;
     const shadow = this.scene.add
-      .image(t.x, bottom - 2 * ART_SCALE, shadowTexture(this.scene, 18))
+      .image(t.x, bottom - 2 * ART_SCALE, shadowTexture(this.scene, t.type === 'sniper' ? 22 : 18))
       .setScale(ART_SCALE)
       .setDepth(DEPTH.shadows);
-    const base = pixelImage(this.scene, t.x, bottom, `tower-${t.type}-base`, t.level - 1).setOrigin(0.5, 1);
-    const defender = this.scene.add.image(t.x, 0, ATLAS_KEY, this.defenderFrame(t, false, now)).setScale(ART_SCALE).setOrigin(0.5, 1);
+    const pedestal = pixelImage(this.scene, t.x, bottom, heroPedestal(t.type), t.level - 1).setOrigin(0.5, 1);
+    const hero = pixelImage(this.scene, t.x, bottom, heroAnimation(t.type, t.level, 'idle'), 0);
+    const bow = t.type === 'sniper' ? pixelImage(this.scene, t.x, bottom, ballistaBow(t.level, 'loaded'), 0).setOrigin(0, 1) : null;
+    hero.setOrigin(bow ? 0 : 0.5, 1);
     const built = prefersReducedMotion() ? -Infinity : now;
-    const view: TowerView = { shadow, base, defender, level: t.level, firedAt: -Infinity, builtAt: built, seen: 0 };
+    const view: TowerView = {
+      shadow, pedestal, hero, bow, emote: null, level: t.level, firedAt: -Infinity, shotGap: Infinity, builtAt: built,
+      reaction: null, reactAt: 0, fade: 1, coverLeft: 0, coverRight: 0, coverTop: 0, seen: 0,
+    };
     this.applyLevel(view, t);
     this.towers.set(t.id, view);
     return view;
@@ -173,36 +263,135 @@ export class EntityRenderer {
 
   private applyLevel(view: TowerView, t: Tower): void {
     view.level = t.level;
-    view.base.setFrame(frameKey(`tower-${t.type}-base`, t.level - 1));
+    view.pedestal.setFrame(frameKey(heroPedestal(t.type), t.level - 1));
     const depth = unitDepth((t.row + 1) * TILE_SIZE);
-    view.base.setDepth(depth);
-    view.defender.setDepth(depth + 0.01);
+    view.pedestal.setDepth(depth);
+    view.hero.setDepth(depth + 0.01);
+    view.bow?.setDepth(depth + 0.02);
+  }
+
+  private destroyTower(v: TowerView): void {
+    destroyAll(v.shadow, v.pedestal, v.hero);
+    v.bow?.destroy();
+    v.emote?.destroy();
   }
 
   private updateTower(view: TowerView, t: Tower, now: number): void {
-    const shooting = now - view.firedAt < SHOT_POSE_MS;
-    view.defender.setFrame(this.defenderFrame(t, shooting, now));
-    // Archers and mages face their target; the ballista turns instead.
-    if (TOWER_ART[t.type].defender !== 'ballista') view.defender.setFlipX(Math.cos(t.angle) < -0.05);
+    const S = ART_SCALE;
+    const reduced = prefersReducedMotion();
+    const pose = this.heroPose(view, t, now, reduced);
+    view.hero.setFrame(frameKey(heroAnimation(t.type, t.level, pose.anim), pose.frame));
     // New towers drop into place.
     const drop = Math.max(0, 1 - (now - view.builtAt) / BUILD_DROP_MS);
-    const lift = Math.round(drop * drop * 8) * ART_SCALE;
-    const bottom = (t.row + 1) * TILE_SIZE;
-    const baseHeight = view.base.height * ART_SCALE;
-    view.base.setY(bottom - lift).setAlpha(1 - drop * 0.6);
-    const feet = bottom - baseHeight + (BASE_TOPS[t.type][t.level - 1] + DEFENDER_SINK) * ART_SCALE;
-    view.defender.setY(feet - lift).setAlpha(1 - drop * 0.6);
+    const lift = Math.round(drop * drop * 8) * S;
+    const bottom = (t.row + 1) * TILE_SIZE - lift;
+    const deck = bottom - view.pedestal.height * S;
+    view.pedestal.setY(bottom).setAlpha(1 - drop * 0.6);
+    const fade = view.fade * (1 - drop * 0.6);
+    let heroLeft: number;
+    if (view.bow) {
+      // Brakk stands behind his crossbow; it aims at the target and kicks back when it fires.
+      const L = BALLISTA_LAYOUT;
+      const left = t.x - (L.width / 2) * S;
+      const bow = pose.bow;
+      const kick = now - view.firedAt < HERO.recoilMs && !reduced;
+      const kx = kick ? -Math.round(Math.cos(t.angle)) : 0;
+      const ky = kick ? -Math.round(Math.sin(t.angle) * 0.7) : 0;
+      view.bow
+        .setFrame(frameKey(ballistaBow(t.level, bow), directionIndex(t.angle, BALLISTA_DIRECTIONS)))
+        .setPosition(left + (L.width * S - view.bow.width * S) + kx * S, deck + L.bowBelowDeck * S + ky * S)
+        .setAlpha(fade);
+      view.hero.setPosition(left + L.heroX * S, deck + L.heroBelowDeck * S + pose.hop * S);
+      heroLeft = left;
+      view.coverLeft = left;
+      view.coverRight = left + L.width * S;
+    } else {
+      // Archers and mages turn to face their target.
+      view.hero.setFlipX(Math.cos(t.angle) < -0.05);
+      view.hero.setPosition(t.x, deck + (STAND[t.type][t.level - 1] + 1) * S + pose.hop * S);
+      heroLeft = t.x - (view.hero.width / 2) * S;
+      view.coverLeft = heroLeft;
+      view.coverRight = heroLeft + view.hero.width * S;
+    }
+    view.hero.setAlpha(fade);
+    const heroTop = view.hero.y - view.hero.height * S;
+    view.coverTop = Math.min(heroTop, view.bow ? view.bow.y - view.bow.height * S : heroTop);
+    this.updateEmote(view, t, now, heroTop, reduced);
   }
 
-  private defenderFrame(t: Tower, shooting: boolean, now: number): string {
-    switch (TOWER_ART[t.type].defender) {
-      case 'ballista':
-        return frameKey(shooting ? 'tower-sniper-fired' : 'tower-sniper-loaded', directionIndex(t.angle, BALLISTA_DIRECTIONS));
-      case 'mage':
-        // The staff crystal pulses while idle and flares when casting.
-        return frameKey(`tower-${t.type}-cast`, shooting ? 2 : Math.floor(now / 450 + t.id) % 2);
-      case 'archer':
-        return frameKey(`tower-${t.type}-shoot`, shooting ? 1 : 0);
+  /** The hero's animation and frame right now, plus the Ballista's crossbow state and a hop (art px). */
+  private heroPose(view: TowerView, t: Tower, now: number, reduced: boolean): { anim: HeroAnim; frame: number; hop: number; bow: 'loaded' | 'cocking' | 'fired' } {
+    const ballista = view.bow !== null;
+    const attackFrames = ballista ? 3 : 2;
+    const since = now - view.firedAt;
+    const gap = view.shotGap;
+    const engaged = since < Math.max(HERO.engagedMs, Number.isFinite(gap) ? gap * 1.5 : 0);
+    const release = Math.min(ballista ? HERO.ballistaReleaseMs : HERO.releaseMs, gap * HERO.releaseShare);
+    if (since < release) return { anim: 'attack', frame: attackFrames - 1, hop: 0, bow: 'fired' };
+    if (engaged) {
+      if (ballista) {
+        // After a shot the bow stays slack for a moment, then Brakk cranks it back with his wrench.
+        if (since < gap * 0.5) return { anim: 'idle', frame: 0, hop: 0, bow: 'fired' };
+        if (since > gap - Math.min(HERO.ballistaCrankMs, gap * 0.5)) {
+          return { anim: 'attack', frame: Math.floor(now / 160) % 2, hop: 0, bow: 'cocking' };
+        }
+        return { anim: 'idle', frame: 0, hop: 0, bow: 'cocking' };
+      }
+      if (gap < HERO.flurryGapMs) return { anim: 'attack', frame: Math.floor(now / HERO.flurryFrameMs) % 2, hop: 0, bow: 'loaded' };
+      if (since > gap - Math.min(HERO.drawMs, gap * HERO.drawShare)) return { anim: 'attack', frame: 0, hop: 0, bow: 'loaded' };
+    }
+    const r = view.reaction ? REACTION[view.reaction] : null;
+    const into = now - view.reactAt;
+    if (r && into >= 0 && into < r.ms) {
+      const frame = Math.floor(into / r.frameMs) % 2;
+      const hop = view.reaction === 'bossVictory' && frame === 1 && !reduced ? -2 : 0;
+      return { anim: r.anim, frame, hop, bow: 'loaded' };
+    }
+    const step = Math.floor((now + t.id * 137) / HERO.idleFrameMs) % HERO.idleSequence.length;
+    return { anim: 'idle', frame: reduced ? 0 : HERO.idleSequence[step], hop: 0, bow: ballista && engaged ? 'cocking' : 'loaded' };
+  }
+
+  /** The reaction mark (! for a boss, a sweat drop for lost lives, a star for a boss wave won). */
+  private updateEmote(view: TowerView, t: Tower, now: number, heroTop: number, reduced: boolean): void {
+    const r = view.reaction ? REACTION[view.reaction] : null;
+    const into = now - view.reactAt;
+    const show = !!r?.emote && into >= 0 && into < r.ms;
+    if (!show) {
+      view.emote?.setVisible(false);
+      if (r && into >= r.ms) view.reaction = null;
+      return;
+    }
+    view.emote ??= pixelImage(this.scene, 0, 0, r.emote!, 0).setOrigin(0.5, 1).setDepth(DEPTH.bars + 3);
+    const bob = reduced ? 0 : Math.floor(into / 160) % 2;
+    // Over the hero's head, just above the empty headroom at the top of the frame.
+    const x = view.bow ? view.hero.x + 6 * ART_SCALE : t.x;
+    view.emote
+      .setTexture(ATLAS_KEY, frameKey(r.emote!, 0))
+      .setPosition(x, heroTop + (2 - bob) * ART_SCALE)
+      .setVisible(true);
+  }
+
+  /** Heroes standing in front of an enemy fade, so nothing on the road hides behind a tall tower. */
+  private fadeOccluders(): void {
+    for (const tv of this.towers.values()) {
+      const tileTop = tv.pedestal.y - TILE_SIZE;
+      let hides = false;
+      if (tv.coverTop < tileTop) {
+        for (const ev of this.enemies.values()) {
+          const top = ev.drawnFeet - ev.height;
+          if (ev.drawnFeet <= tv.coverTop || top >= tileTop) continue;
+          const half = ev.width / 2;
+          if (ev.drawnX + half <= tv.coverLeft || ev.drawnX - half >= tv.coverRight) continue;
+          // Only enemies standing behind the tower (higher up the screen) can be hidden by it.
+          if (ev.drawnFeet < tv.pedestal.y) {
+            hides = true;
+            break;
+          }
+        }
+      }
+      const target = hides ? OCCLUDING_ALPHA : 1;
+      tv.fade += (target - tv.fade) * 0.25;
+      if (Math.abs(target - tv.fade) < 0.02) tv.fade = target;
     }
   }
 
@@ -224,7 +413,8 @@ export class EntityRenderer {
     const barFill = this.scene.add.rectangle(0, 0, barW, ART_SCALE, PALETTE.hpHigh).setOrigin(0, 0).setDepth(DEPTH.bars + 1);
     const frost = pixelImage(this.scene, e.x, e.y, 'snowflake', 0).setDepth(DEPTH.bars + 2).setVisible(false);
     const view: EnemyView = {
-      shadow, body, barBack, barFill, frost, art, height: h * ART_SCALE, facing: 1, hitAt: -Infinity, hitDx: 0, hitDy: 0, seen: 0,
+      shadow, body, barBack, barFill, frost, art, height: h * ART_SCALE, width: w * ART_SCALE, facing: 1, hitAt: -Infinity,
+      hitDx: 0, hitDy: 0, offX: 0, offY: 0, drawnX: e.x, drawnFeet: e.y, seen: 0,
     };
     this.enemies.set(e.id, view);
     return view;
@@ -233,6 +423,18 @@ export class EntityRenderer {
   private updateEnemy(view: EnemyView, e: Enemy, alpha: number, now: number): void {
     let x = lerp(e.prevX, e.x, alpha);
     let y = lerp(e.prevY, e.y, alpha);
+    // Each creature keeps to its own side of the road (by id) so a pack spreads out instead of stacking.
+    // Drawing only: the simulation still moves it along the centre line.
+    const mx = e.x - e.prevX;
+    const my = e.y - e.prevY;
+    const moved = Math.hypot(mx, my);
+    if (moved > 0.01 && e.type !== 'boss') {
+      const side = (((e.id * 37) % (2 * SPREAD + 1)) - SPREAD) * ART_SCALE;
+      view.offX += ((-my / moved) * side - view.offX) * 0.15;
+      view.offY += ((mx / moved) * side * 0.6 - view.offY) * 0.15;
+    }
+    x += Math.round(view.offX / ART_SCALE) * ART_SCALE;
+    y += Math.round(view.offY / ART_SCALE) * ART_SCALE;
     if (now - view.hitAt < FLINCH_MS) {
       x += Math.round(view.hitDx) * ART_SCALE;
       y += Math.round(view.hitDy) * ART_SCALE;
@@ -244,6 +446,8 @@ export class EntityRenderer {
     const step = Math.floor(e.distance / view.art.stride) % 4;
     view.body.setFrame(frameKey(view.art.walk, step)).setPosition(x, feet).setFlipX(view.facing < 0).setDepth(unitDepth(feet));
     view.shadow.setPosition(x, feet - ART_SCALE);
+    view.drawnX = x;
+    view.drawnFeet = feet;
     if (now - view.hitAt < FLASH_MS) view.body.setTintFill(0xffffff);
     else if (e.slowFactor < 1) view.body.setTint(PALETTE.slowed);
     else view.body.clearTint();

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameSession } from '../src/game/GameSession';
+import { Persistence } from '../src/game/persistence';
 
 describe('GameSession', () => {
   it('cycles game speed 1x → 2x → 3x → 1x and keeps it across restarts', () => {
@@ -15,6 +16,15 @@ describe('GameSession', () => {
     session.cycleSpeed();
     expect(session.speed).toBe(1);
     expect(seen).toEqual([2, 3, 1]);
+  });
+
+  it('remembers whether the tower shop is collapsed', () => {
+    const store = new Map<string, string>();
+    const persistence = new Persistence({ getItem: (k) => store.get(k) ?? null, setItem: (k, v) => void store.set(k, v) });
+    const session = new GameSession(persistence);
+    expect(session.shopCollapsed).toBe(false);
+    session.setShopCollapsed(true);
+    expect(new GameSession(persistence).shopCollapsed).toBe(true);
   });
 
   it('build selection and built-tower selection are mutually exclusive', () => {

@@ -15,9 +15,9 @@ import { ART_SCALE, ATLAS_KEY, bitmapCanvas, frameCount, textTexture } from './p
 /**
  * Caps on simultaneously alive cosmetic effects. Heavy fire (many towers at 3x) can request thousands
  * per second; beyond a cap new cosmetic effects are simply skipped until older ones finish, so frame
- * cost stays bounded. Important feedback (leaks, upgrades, sales, banners) is never capped.
+ * cost stays bounded and late waves stay readable. Important feedback (leaks, upgrades, sales, banners) is never capped.
  */
-export const EFFECT_CAPS = { minor: 120, particle: 160, text: 14 } as const;
+export const EFFECT_CAPS = { minor: 70, particle: 90, text: 10 } as const;
 type EffectKind = keyof typeof EFFECT_CAPS;
 
 class EffectBudget {
@@ -72,6 +72,8 @@ export function attachEffects(
 ): { update: () => void; detach: () => void } {
   const budget = new EffectBudget();
   let lastThump = -Infinity;
+  /** Whether the wave in progress has a boss (its clear gets the bigger celebration). */
+  let bossWave = false;
   const playing: Flipbook[] = [];
   const pool: Phaser.GameObjects.Image[] = [];
 
@@ -121,12 +123,17 @@ export function attachEffects(
   const subs = [
     bus.on('towerFired', ({ tower }) => entities.recoilTower(tower.id)),
 
-    bus.on('waveStarted', ({ wave }) => banner(scene, world, `WAVE ${wave}`, PALETTE.waveText)),
+    bus.on('waveStarted', ({ wave }) => {
+      bossWave = false;
+      banner(scene, world, `WAVE ${wave}`, PALETTE.waveText);
+    }),
 
     bus.on('enemySpawned', ({ enemy }) => {
       if (enemy.type !== 'boss') return;
+      bossWave = true;
       banner(scene, world, `${ENEMIES.boss.name.toUpperCase()} APPROACHES!`, PALETTE.bossText);
       shake(450, 0.006);
+      entities.react('boss');
     }),
 
     bus.on('projectileHit', ({ projectile, enemy, crit, damage }) => {
@@ -155,6 +162,14 @@ export function attachEffects(
     bus.on('splash', ({ x, y, radius }) => playTextures(explosionTextures(scene, radius / ART_SCALE), x, y, 55, 'minor')),
 
     bus.on('waveCleared', ({ interest }) => {
+      // Heroes celebrate: briefly after a normal wave, with stars and sparkles after a boss wave.
+      entities.react(bossWave ? 'bossVictory' : 'victory');
+      if (bossWave) {
+        for (const spot of entities.heroSpots()) {
+          for (const [dx, dy] of [[-6, -4], [6, -8], [0, -12]]) play('sparkle', spot.x + dx * ART_SCALE, spot.y + dy * ART_SCALE, 90, 'particle');
+        }
+      }
+      bossWave = false;
       if (interest <= 0) return;
       floatText(world.width / 2, 14 * ART_SCALE, `+${interest} INTEREST`, PALETTE.gold, true);
     }),
@@ -163,7 +178,8 @@ export function attachEffects(
       const at = entities.enemyCenter(enemy);
       play('death-dust', at.x, at.y, 60, 'particle');
       play('coin', at.x, at.y - 3 * ART_SCALE, 70, 'particle', 7 * ART_SCALE);
-      floatText(at.x + 5 * ART_SCALE, at.y - 6 * ART_SCALE, `+${enemy.reward}`, PALETTE.gold);
+      // In a crowd the coin alone says "gold"; the number would just add noise.
+      if (!entities.crowded || enemy.type === 'boss') floatText(at.x + 5 * ART_SCALE, at.y - 6 * ART_SCALE, `+${enemy.reward}`, PALETTE.gold);
     }),
 
     bus.on('towerPlaced', ({ tower }) => play('build-dust', tower.x, tower.y + TILE_SIZE * 0.35, 60, null)),
@@ -182,6 +198,7 @@ export function attachEffects(
 
     bus.on('enemyLeaked', () => {
       shake(160, 0.004);
+      entities.react('leak');
       const flash = scene.add
         .rectangle(exit.x, exit.y, 6 * ART_SCALE, TILE_SIZE * 1.2, PALETTE.leak, 0.75)
         .setDepth(DEPTH.effects);

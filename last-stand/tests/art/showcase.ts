@@ -2,7 +2,7 @@ import { blank, blit, ellipse, type Bitmap } from '../../src/art/bitmap';
 import { textBitmap } from '../../src/art/font';
 import { COLORS } from '../../src/art/palette';
 import { creatureFrames } from '../../src/art/sprites/creatures';
-import { towerPortrait } from '../../src/art/sprites/towers';
+import { heroTower } from '../../src/art/sprites/characters';
 import { paintTerrain } from '../../src/art/terrain';
 
 /** Every tower at every level and every creature, on meadow ground, labelled: the review lineup. */
@@ -26,7 +26,7 @@ export function showcase(): Bitmap {
     const t = textBitmap(text, COLORS.white0);
     blit(img, t, Math.round(x - t.w / 2), y);
   };
-  const towers: [Parameters<typeof towerPortrait>[0], string][] = [
+  const towers: [Parameters<typeof heroTower>[0], string][] = [
     ['basic', 'ARCHER'],
     ['rapid', 'RANGER'],
     ['sniper', 'BALLISTA'],
@@ -37,7 +37,7 @@ export function showcase(): Bitmap {
     const gy = i < 2 ? 0 : 56;
     label(name, gx + 64, gy + 3);
     for (let level = 1; level <= 3; level++) {
-      const art = towerPortrait(type, level);
+      const art = heroTower(type, level);
       const cx = gx + 22 + (level - 1) * 40;
       const base = gy + 50;
       shadow(cx, base, 18);

@@ -160,3 +160,62 @@ test('the board actually renders (grid, path and towers are drawn)', async ({ pa
   // Measured ~3x in Chromium; an unrendered board would be ~1x.
   expect(drawn.length).toBeGreaterThan(blank.length * 2);
 });
+
+test('the left shop shows each hero, and a tower can be dragged from it onto the map', async ({ page }) => {
+  const errors = trackErrors(page);
+  await startRun(page);
+  await expect(page.locator('.tower-hero')).toHaveText(['Wren', 'Brakk', 'Fen', 'Old Rime']);
+  const gold0 = await stat(page, 'gold');
+  const card = (await page.locator('.tower-btn').first().boundingBox())!;
+
+  // Dropped on a free tile: built there.
+  const [x, y] = await tileCenter(page, 3, 3);
+  await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, y, { steps: 6 });
+  await expect(page.locator('.tower-btn').first()).toHaveClass(/selected/);
+  await page.mouse.up();
+  await expect.poll(() => stat(page, 'gold')).toBe(gold0 - 50);
+
+  // Dropped back on the shop: nothing is built.
+  await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 120, { steps: 4 });
+  await page.mouse.move(card.x + card.width / 2, card.y + card.height + 40, { steps: 4 });
+  await page.mouse.up();
+  await expect(page.locator('.tower-btn').first()).not.toHaveClass(/selected/);
+  expect(await stat(page, 'gold')).toBe(gold0 - 50);
+  expect(errors).toEqual([]);
+});
+
+test('the shop collapses to a rail that gives the map more room, and stays collapsed', async ({ page }) => {
+  await startRun(page);
+  const width = () => page.locator('#game-container').evaluate((el) => el.getBoundingClientRect().width);
+  const expanded = await width();
+  await page.locator('#shop-toggle').click();
+  await expect(page.locator('#shop')).toHaveClass(/collapsed/);
+  await expect(page.locator('#shop-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(width).toBeGreaterThan(expanded + 100);
+  // Click-to-place still works from the rail.
+  await page.locator('.tower-btn').first().click();
+  await expect(page.locator('.tower-btn').first()).toHaveClass(/selected/);
+  await page.reload();
+  await expect(page.locator('#shop')).toHaveClass(/collapsed/);
+  await page.locator('#shop-toggle').click();
+  await expect(page.locator('#shop')).not.toHaveClass(/collapsed/);
+});
+
+test('the tower panel previews the next level and changes targeting', async ({ page }) => {
+  await startRun(page);
+  await page.keyboard.press('1');
+  await clickTile(page, 3, 3);
+  await page.keyboard.press('Escape');
+  await clickTile(page, 3, 3);
+  await expect(page.locator('#tp-hero')).toHaveText('Wren · Recruit');
+  await expect(page.locator('#tp-next-rank')).toContainText('Veteran');
+  await expect(page.locator('#tp-targeting .tgt-btn.active')).toHaveText('First');
+  await page.locator('#tp-targeting .tgt-btn', { hasText: 'Strongest' }).click();
+  await expect(page.locator('#tp-targeting .tgt-btn.active')).toHaveText('Strongest');
+  await page.keyboard.press('t');
+  await expect(page.locator('#tp-targeting .tgt-btn.active')).toHaveText('Fastest');
+});

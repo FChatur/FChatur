@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allSprites, buildAtlas } from '../src/art/atlas';
+import { allSprites, buildAtlas, heroAnimation, heroGhost, heroPedestal } from '../src/art/atlas';
 import { get } from '../src/art/bitmap';
 import { CREATURE_ART, TOWER_ART } from '../src/art/catalog';
 import { hasGlyph, textBitmap } from '../src/art/font';
@@ -31,7 +31,7 @@ describe('pixel art', () => {
 
   it('keeps every frame of an animation the same size', () => {
     for (const [name, frames] of Object.entries(sprites)) {
-      if (name.endsWith('-base') || name.endsWith('-portrait')) continue; // one image per level, not an animation
+      if (name.endsWith('-pedestal') || name.endsWith('-ghost')) continue; // one image per level, not an animation
       for (const f of frames) expect([f.w, f.h], name).toEqual([frames[0].w, frames[0].h]);
     }
   });
@@ -44,15 +44,23 @@ describe('pixel art', () => {
     }
     for (const t of TOWER_ORDER) {
       const art = TOWER_ART[t];
-      expect(sprites[`tower-${t}-base`]?.length, t).toBe(TOWERS[t].levels.length);
-      expect(sprites[`tower-${t}-portrait`]?.length, t).toBe(TOWERS[t].levels.length);
+      expect(sprites[heroPedestal(t)]?.length, t).toBe(TOWERS[t].levels.length);
+      expect(sprites[heroGhost(t)]?.length, t).toBe(TOWERS[t].levels.length);
+      for (let level = 1; level <= TOWERS[t].levels.length; level++) {
+        for (const anim of ['idle', 'attack', 'victory', 'alarm']) {
+          expect(sprites[heroAnimation(t, level, anim)]?.length, `${t} ${level} ${anim}`).toBeGreaterThan(0);
+        }
+      }
       expect(sprites[art.projectile]?.length, art.projectile).toBeGreaterThan(0);
       expect(sprites[art.impact]?.length, art.impact).toBeGreaterThan(0);
     }
   });
 
-  it('tower bases are exactly one tile wide, so towers never overlap their neighbours', () => {
-    for (const t of TOWER_ORDER) for (const b of sprites[`tower-${t}-base`]) expect(b.w).toBe(ART_TILE);
+  it('tower pedestals are exactly one tile wide; whole towers overhang their tile by at most 3 pixels a side', () => {
+    for (const t of TOWER_ORDER) {
+      for (const b of sprites[heroPedestal(t)]) expect(b.w).toBe(ART_TILE);
+      for (const g of sprites[heroGhost(t)]) expect(g.w, t).toBeLessThanOrEqual(ART_TILE + 6);
+    }
   });
 
   it('packs every frame into the atlas without overlaps', () => {

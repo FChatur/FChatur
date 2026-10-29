@@ -4,13 +4,14 @@ import { shadedColumn } from '../shapes';
 import { banner, bracing, crenellations, leafClump, planks, post, stoneWall } from './build';
 
 /**
- * Tower characters (issue #2 proposal; not yet used by the game). Each tower is a named hero with big
+ * Tower characters (issue #2). Each tower is a named hero with big
  * head proportions so faces and poses read at gameplay scale, standing on a compact pedestal that
  * evolves with the upgrade level. Heroes are drawn in layers: a body, then arms/weapon per animation
  * frame, then per-level accessories, then one ink outline around the whole figure.
  */
 
-export type HeroAnim = 'idle' | 'attack' | 'victory';
+/** `alarm`: a short reaction when a boss appears or the line is breached. */
+export type HeroAnim = 'idle' | 'attack' | 'victory' | 'alarm';
 export type TowerKind = 'basic' | 'sniper' | 'rapid' | 'frost';
 
 export interface HeroArt {
@@ -127,6 +128,7 @@ function archer(level: number): Record<HeroAnim, Bitmap[]> {
   }
   const blink = patch(body, [[4, 8, 'k'], [4, 9, 'k']]);
   const happy = patch(body, [[4, 8, 'k'], [4, 9, 'F'], [6, 8, 'k'], [6, 9, 'k'], [6, 10, 'k']]);
+  const startled = patch(body, [[4, 7, 'W'], [4, 8, 'k'], [4, 9, 'W'], [4, 10, 'k'], [6, 8, 'f'], [6, 9, 'k'], [5, 2, '.'], [4, 2, '.'], [3, 3, '.'], [2, 2, 'd'], [1, 3, 'd'], [2, 3, 'd']]);
   const at = (rows: readonly string[]) => ({ rows, y: HEAD_ROOM });
   const bow = (arms: string[]) => (level >= 3 ? arms.map((r) => r.replace(/w/g, 'g')) : arms);
   const frame = (b: readonly string[], arms: string[], bob = 0, more: Layer[] = []) =>
@@ -135,6 +137,8 @@ function archer(level: number): Record<HeroAnim, Bitmap[]> {
     idle: [frame(body, ARCHER_ARMS.ready), frame(body, ARCHER_ARMS.ready, 1), frame(blink, ARCHER_ARMS.ready)],
     attack: [frame(body, ARCHER_ARMS.draw), frame(body, ARCHER_ARMS.loose)],
     victory: [frame(happy, [], 0, [{ rows: bow(ARCHER_CHEER), y: 0 }]), frame(happy, [], 1, [{ rows: bow(ARCHER_CHEER), y: 1 }])],
+    // Startled: wide eyes, open mouth, hood tail flicked up, an arrow nocked at once.
+    alarm: [frame(startled, ARCHER_ARMS.draw), frame(startled, ARCHER_ARMS.draw, 1)],
   };
 }
 
@@ -237,6 +241,7 @@ function ranger(level: number): Record<HeroAnim, Bitmap[]> {
   const bow = (arms: string[]) => (level >= 3 ? arms.map((r) => r.replace(/w/g, 'l')) : arms);
   const blink = patch(body, [[3, 8, 'k'], [3, 9, 'k']]);
   const happy = patch(body, [[3, 8, 'k'], [3, 9, 'F'], [5, 8, 'k'], [5, 9, 'k']]);
+  const alert = patch(body, [[3, 2, '.'], [3, 3, '.'], [2, 3, 'f'], [1, 4, 'f'], [3, 7, 'W'], [5, 8, 'f'], [5, 9, 'k']]);
   const frame = (b: readonly string[], arms: string[], bob = 0, lean = 0, more: Layer[] = []) =>
     compose(W, H, RANGER_LEGEND, [
       ...extras.map((e) => ({ ...e, y: e.y + bob, x: (e.x ?? 0) + lean })),
@@ -251,7 +256,9 @@ function ranger(level: number): Record<HeroAnim, Bitmap[]> {
     // Leans into each shot.
     attack: [frame(body, RANGER_ARMS.draw, 0, 1), frame(body, RANGER_ARMS.loose, 0, 0)],
     // A hop with the bow thrown up.
-    victory: [frame(happy, [], -1 + 1, 0, [{ rows: bow(RANGER_CHEER), y: 1 }]), frame(happy, [], 1, 0, [{ rows: bow(RANGER_CHEER), y: 2 }])],
+    victory: [frame(happy, [], 0, 0, [{ rows: bow(RANGER_CHEER), y: 1 }]), frame(happy, [], 1, 0, [{ rows: bow(RANGER_CHEER), y: 2 }])],
+    // Ducks low with the ear pricked up and an arrow already drawn.
+    alarm: [frame(alert, RANGER_ARMS.draw, 2, -1), frame(alert, RANGER_ARMS.draw, 1, -1)],
   };
 }
 
@@ -332,7 +339,8 @@ function dwarf(level: number): Record<HeroAnim, Bitmap[]> {
   // tool apron; level 3 has a gold-crested helmet and gold goggles.
   // Goggles always sit up on the helmet so his face stays readable: brass (1), with a leather tool
   // apron and a lamp (2), then gold goggles and a gold-crested helmet (3).
-  extras.push({ y: HEAD_ROOM + 1, rows: [level >= 3 ? '...yllylly..' : '...gllglg...'] });
+  const goggles = level >= 3 ? '...yllylly..' : '...gllglg...';
+  const helmetGoggles: Layer = { y: HEAD_ROOM + 1, rows: [goggles] };
   if (level >= 2) {
     extras.push({ y: HEAD_ROOM + 9, rows: ['...bVVVVb...', '...bVvvVb...', '....bbbb....'] });
     extras.push({ y: HEAD_ROOM - 1, rows: ['........yW..'] });
@@ -343,29 +351,36 @@ function dwarf(level: number): Record<HeroAnim, Bitmap[]> {
   }
   const blink = patch(body, [[3, 4, 'f'], [3, 7, 'f']]);
   const grin = patch(body, [[5, 4, 'k'], [5, 5, 'W'], [5, 6, 'W'], [5, 7, 'k']]);
-  const frame = (b: readonly string[], tool: readonly string[], bob = 0) =>
-    compose(W, H, DWARF_LEGEND, [{ rows: b, y: HEAD_ROOM + bob }, ...extras.map((e) => ({ ...e, y: e.y + bob })), { rows: tool, y: HEAD_ROOM + bob }]);
+  const frame = (b: readonly string[], tool: readonly string[], bob = 0, eyes: Layer = helmetGoggles) =>
+    compose(W, H, DWARF_LEGEND, [{ rows: b, y: HEAD_ROOM + bob }, ...[eyes, ...extras].map((e) => ({ ...e, y: e.y + bob })), { rows: tool, y: HEAD_ROOM + bob }]);
+  // Battle mode: goggles snapped down over the eyes.
+  const battle: Layer = { y: HEAD_ROOM + 3, rows: [level >= 3 ? '..yllyylly..' : '..gllgglg...'] };
   const cheer = ['...........c', '..........cC', '...........f', '...........f'];
   return {
     idle: [frame(body, DWARF_WRENCH[0]), frame(blink, DWARF_WRENCH[0]), frame(body, DWARF_WRENCH[0], 1)],
     // Wind-up: wrench raised; the shot: swung down hard, the dwarf braced (a pixel lower).
     attack: [frame(body, DWARF_WRENCH[1]), frame(body, DWARF_WRENCH[1], -1), frame(grin, DWARF_WRENCH[2], 1)],
-    victory: [frame(grin, cheer.map((r, i) => (i === 0 ? r : r)), 0), frame(grin, ['............', ...cheer], -1)],
+    victory: [frame(grin, cheer, 0), frame(grin, ['............', ...cheer], -1)],
+    // Goggles down, wrench up: ready for a fight.
+    alarm: [frame(grin, DWARF_WRENCH[1], 0, battle), frame(grin, DWARF_WRENCH[1], 1, battle)],
   };
 }
 
 const BALLISTA_DIRECTIONS = 8;
 
-/** The oversized crossbow, aiming in one of 8 directions, at a level (wood → iron-banded → steel). */
+/**
+ * The oversized crossbow (bigger than Brakk himself), aiming in one of 8 directions, at a level
+ * (wood → iron-banded → steel and gold). 21×17 with its outline.
+ */
 function siegeBow(dir: number, state: 'loaded' | 'fired' | 'cocking', level: number): Bitmap {
-  const b = blank(24, 18);
+  const b = blank(19, 15);
   const a = (dir / BALLISTA_DIRECTIONS) * Math.PI * 2;
   const dx = Math.cos(a);
   const dy = Math.sin(a) * 0.7;
   const px = -Math.sin(a);
   const py = Math.cos(a) * 0.7;
-  const cx = 12;
-  const cy = 9;
+  const cx = 9;
+  const cy = 7;
   const at = (along: number, across = 0): [number, number] => [cx + dx * along + px * across, cy + dy * along + py * across];
   const seg = (a0: number, c0: number, a1: number, c1: number, color: number) => {
     const p0 = at(a0, c0);
@@ -375,46 +390,47 @@ function siegeBow(dir: number, state: 'loaded' | 'fired' | 'cocking', level: num
   const metal = level >= 3;
   const arm = (i: number) => (metal ? [COLORS.steel1, COLORS.steel2, COLORS.steel3][i] : [COLORS.wood0, COLORS.wood1, COLORS.wood2][i]);
   // Wheeled carriage (level 1) or iron turntable.
-  rect(b, cx - 6, cy + 3, 12, 3, level === 1 ? COLORS.wood1 : COLORS.steel1);
-  rect(b, cx - 6, cy + 3, 12, 1, level === 1 ? COLORS.wood2 : COLORS.steel2);
-  for (const wx of [cx - 6, cx + 4]) {
+  rect(b, cx - 5, cy + 3, 11, 3, level === 1 ? COLORS.wood1 : COLORS.steel1);
+  rect(b, cx - 5, cy + 3, 11, 1, level === 1 ? COLORS.wood2 : COLORS.steel2);
+  for (const wx of [cx - 5, cx + 3]) {
     rect(b, wx, cy + 5, 3, 3, COLORS.wood0);
     set(b, wx + 1, cy + 6, level >= 2 ? COLORS.steel3 : COLORS.wood2);
   }
   // Stock: four pixels thick; iron bands from level 2; gears from level 3.
-  seg(-7, 1.5, 6, 1.5, COLORS.wood0);
-  seg(-7, 0.5, 6, 0.5, COLORS.wood1);
-  seg(-7, -0.5, 6, -0.5, COLORS.wood2);
-  seg(-7, -1.5, 6, -1.5, COLORS.wood3);
-  if (level >= 2) for (const along of [-5, -1, 3]) seg(along, -1.5, along, 1.5, COLORS.steel2);
+  seg(-6, 1.5, 5, 1.5, COLORS.wood0);
+  seg(-6, 0.5, 5, 0.5, COLORS.wood1);
+  seg(-6, -0.5, 5, -0.5, COLORS.wood2);
+  seg(-6, -1.5, 5, -1.5, COLORS.wood3);
+  if (level >= 2) for (const along of [-4, -1, 2]) seg(along, -1.5, along, 1.5, COLORS.steel2);
   if (metal) {
-    const g = at(-5, 0);
+    const g = at(-4, 0);
     for (const [ox, oy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) set(b, g[0] + ox, g[1] + oy, COLORS.gold3);
     set(b, g[0], g[1], COLORS.gold4);
   }
   // Huge bow arms; drawn further back while cocking.
   const pullBack = state === 'cocking' ? -1 : 0;
+  const span = 8;
   for (const side of [-1, 1]) {
-    seg(4, 0, 1 + pullBack, side * 9.5, arm(0));
-    seg(4.7, 0, 1.7 + pullBack, side * 9.5, arm(1));
-    seg(5.4, 0, 2.4 + pullBack, side * 9.5, arm(2));
-    const tip = at(1.4 + pullBack, side * 9.8);
+    seg(3.5, 0, 1 + pullBack, side * span, arm(0));
+    seg(4.2, 0, 1.7 + pullBack, side * span, arm(1));
+    seg(4.9, 0, 2.4 + pullBack, side * span, arm(2));
+    const tip = at(1.4 + pullBack, side * (span + 0.3));
     set(b, tip[0], tip[1], metal ? COLORS.gold4 : COLORS.steel4);
   }
-  const tipL = at(1.4 + pullBack, -9.8);
-  const tipR = at(1.4 + pullBack, 9.8);
-  const pull = state === 'fired' ? at(2.4) : at(state === 'cocking' ? -3 : -5.5);
+  const tipL = at(1.4 + pullBack, -(span + 0.3));
+  const tipR = at(1.4 + pullBack, span + 0.3);
+  const pull = state === 'fired' ? at(2.4) : at(state === 'cocking' ? -2.5 : -4.5);
   line(b, tipL[0], tipL[1], pull[0], pull[1], COLORS.stone4);
   line(b, tipR[0], tipR[1], pull[0], pull[1], COLORS.stone4);
   if (state === 'loaded') {
-    seg(-5.5, 0, 8, 0, COLORS.wood3);
-    seg(-5.5, 0.6, 8, 0.6, COLORS.wood1);
-    for (const along of [8.2, 9, 9.8]) {
+    seg(-4.5, 0, 7, 0, COLORS.wood3);
+    seg(-4.5, 0.6, 7, 0.6, COLORS.wood1);
+    for (const along of [7.2, 8, 8.8]) {
       const h = at(along);
       set(b, h[0], h[1], metal ? COLORS.gold4 : COLORS.steel4);
     }
     for (const side of [-1, 1]) {
-      const barb = at(8.4, side * 1.2);
+      const barb = at(7.4, side * 1.2);
       set(b, barb[0], barb[1], COLORS.steel3);
     }
   }
@@ -498,6 +514,7 @@ function frostMage(level: number): Record<HeroAnim, Bitmap[]> {
     return { y: top + 5 - (state === 2 ? 1 : 0), x: state === 2 ? -1 : 0, rows: crystal };
   };
   const blink = patch(body, [[8, 5, 'i'], [8, 8, 'i']]);
+  const flare = patch(body, [[8, 5, 'W'], [8, 8, 'W']]);
   const frame = (b: readonly string[], state: 0 | 1 | 2, bob = 0, staffUp = 0) =>
     compose(W, H, MAGE_LEGEND, [
       ...hatTip.map((l) => ({ ...l, y: l.y + bob })),
@@ -510,6 +527,8 @@ function frostMage(level: number): Record<HeroAnim, Bitmap[]> {
     idle: [frame(body, 0), frame(body, 1, 1), frame(blink, 0)],
     attack: [frame(body, 1, 0, 1), frame(body, 2, 0, 2)],
     victory: [frame(body, 2, 0, 3), frame(body, 1, -1, 3)],
+    // Eyes flare white under the brim, the hat jolts up and the crystal blazes.
+    alarm: [frame(flare, 2, -1, 2), frame(flare, 1, 0, 1)],
   };
 }
 
@@ -547,7 +566,15 @@ const FROST_PEDESTALS = [
 
 // ================================================================ assembly
 
+let heroCache: Record<TowerKind, HeroArt> | null = null;
+
+/** Every hero's frames (built once; the result is shared, so don't modify it). */
 export function heroArt(): Record<TowerKind, HeroArt> {
+  heroCache ??= buildHeroArt();
+  return heroCache;
+}
+
+function buildHeroArt(): Record<TowerKind, HeroArt> {
   const levels = [1, 2, 3];
   return {
     basic: { pedestals: ARCHER_PEDESTALS, frames: levels.map(archer), stand: [1, 1, 1] },
@@ -558,6 +585,30 @@ export function heroArt(): Record<TowerKind, HeroArt> {
 }
 
 export { siegeBow, BALLISTA_DIRECTIONS };
+
+/**
+ * How the Ballista's three parts stack, in art pixels: a 22-wide picture (the tile plus 3 on each side)
+ * with the pedestal centred, Brakk at the left behind the crossbow, the crossbow right-aligned in front.
+ * `...BelowDeck`: how far each part's bottom edge sits below the pedestal's top.
+ */
+export const BALLISTA_LAYOUT = { width: 22, pedestalX: 3, heroX: 0, heroBelowDeck: 3, bowBelowDeck: 9 } as const;
+
+/** Little reaction marks drawn over a hero's head. */
+export type Emote = 'alert' | 'sweat' | 'star';
+
+export function heroEmotes(): Record<Emote, Bitmap> {
+  const legend: Legend = { r: 'red3', R: 'red4', b: 'frost3', B: 'frost5', y: 'gold3', Y: 'gold4' };
+  const make = (rows: string[]) => outlined(fromRows(rows, legend));
+  return {
+    // A boss is coming.
+    alert: make(['RR', 'rr', 'rr', 'rr', '..', 'rr']),
+    // Lives were lost.
+    sweat: make(['.B.', '.b.', 'bBb', 'bbb', '.b.']),
+    // A boss wave won.
+    star: make(['..Y..', '.YyY.', 'YyyyY', '.yyy.', '.y.y.']),
+  };
+}
+
 
 /**
  * A complete tower picture at a level for previews and UI portraits: pedestal with the hero on top
@@ -574,17 +625,16 @@ export function heroTower(kind: TowerKind, level: number, anim: HeroAnim = 'idle
     blit(out, hero, Math.floor((out.w - hero.w) / 2) + (kind === 'frost' ? 0 : 0), heroTop - hero.h + art.stand[level - 1] + 1);
     return out;
   }
-  // Ballista: engineer stands behind-left, the big crossbow in front on the deck.
+  // Ballista: Brakk stands behind his crossbow, which is bigger than he is and sits in front on the deck.
   const state = anim === 'attack' ? (['cocking', 'cocking', 'fired'] as const)[frame % 3] : 'loaded';
   const bow = siegeBow(dir, state, level);
   const recoil = anim === 'attack' && frame % 3 === 2 ? -1 : 0;
-  const W = 30;
+  const L = BALLISTA_LAYOUT;
   const H = ped.h + 22;
-  const out = blank(W, H);
+  const out = blank(L.width, H);
   const deck = H - ped.h;
-  blit(out, ped, Math.floor((W - ped.w) / 2), deck);
-  // The crossbow sits on the deck; the engineer stands at its left, slightly in front.
-  blit(out, bow, W - bow.w - 1 + recoil, deck - bow.h + 8);
-  blit(out, hero, 0, deck - hero.h + 6);
+  blit(out, ped, L.pedestalX, deck);
+  blit(out, hero, L.heroX, deck - hero.h + L.heroBelowDeck);
+  blit(out, bow, L.width - bow.w + recoil, deck - bow.h + L.bowBelowDeck);
   return out;
 }
