@@ -6,7 +6,10 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
-Phase 6 (visual identity and combat prototype) in progress on the development branch; not released yet.
+## [0.6.0] - 2026-10-29 (Phase 6: pixel-art fantasy redesign and tower heroes)
+
+Approved by the owner after playtesting the hosted preview. Starting gold and tower stats are unchanged;
+the free starter Archer is the one economy change.
 
 ### Added
 - Per-tower targeting modes: First, Last, Strongest and Fastest. Each built tower keeps its own mode;
@@ -16,12 +19,12 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
   actually dealt per gold in bot runs, swap tests on the Mixed build, early-game openings, and Frostbite
   on/off.
 
-- Visual Prototype V2 (issue #1, review only): warmer palette and sunlight, composed forest edge with
+- Visual Prototype V2 (issue #1): warmer palette and sunlight, composed forest edge with
   dappled shade, flower meadows, pond, torch-lit cave and gatehouse, ambient life (torches, butterflies,
   falling leaves, swaying grass); distinct Archer, Ranger, Ballista and Frost Mage towers with visible
   upgrade progression; more expressive enemies; hit flinch, slowed-enemy snowflakes, ballista thump and
   see-through explosions. Details and measurements: docs/VISUAL_PROTOTYPE.md section 8.
-- Tower personality (issue #2, review only): every tower is a named hero (Wren the Archer, Brakk the
+- Tower personality (issue #2): every tower is a named hero (Wren the Archer, Brakk the
   dwarf Ballista engineer, Fen the elf Ranger, Old Rime the Frost Mage) on a structure that grows with
   the three upgrade levels. Heroes draw and release in time with their shots, react to a boss (alarm,
   red "!") and lost lives (sweat drop), cheer after each wave and celebrate boss waves with stars and

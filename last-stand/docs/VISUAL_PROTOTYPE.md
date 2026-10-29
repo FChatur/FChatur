@@ -207,7 +207,7 @@ more. Humans play differently, so the playtest stays the final judge.
 ## 8. Visual Prototype V2: colour, life and polish (GitHub issue #1)
 
 Owner feedback on V1: "A little more polished! Pixelated is also cool, but it lacks color and life."
-V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Review-only: not on `main`.
+V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Released in 0.6.0.
 
 ### What V2 changes (implemented in code, visible in the game on the development branch)
 - **Colour and light:** warmer, more saturated meadow greens and cooler, deeper forest greens, so the
@@ -253,8 +253,8 @@ V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Revi
 
 Goal: four defenders players recognise and get attached to, not four interchangeable buildings. Each
 tower becomes a named hero standing on a structure that grows with them. Nothing here changes stats,
-targeting or the simulation. The owner approved this direction; the implementation (section 9.1) is on the
-development branch for review and is not on `main` yet.
+targeting or the simulation. The owner approved this direction and, after playtesting a hosted preview, the
+implementation (section 9.1), which was released in 0.6.0.
 
 ### Proposal stage (art code and preview tooling)
 - `src/art/sprites/characters.ts`: the four heroes, three levels each, with idle (3 frames), attack
