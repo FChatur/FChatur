@@ -1,0 +1,162 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Issue #2 shop mockup. Run `npm run art` first (writes art-preview/), then open with ?view=select|place|drag. -->
+<base href="../../art-preview/"><title>Last Stand heroes shop mockup</title>
+<style>
+@font-face { font-family:'Pixelify Sans'; font-weight:400; src:url(../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2); }
+@font-face { font-family:'Pixelify Sans'; font-weight:600; src:url(../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-600-normal.woff2); }
+:root { --ink:#1a1424; --panel:#2c2438; --panel2:#3b3150; --edge:#5c4a3a; --gold:#f2c94c; --text:#f4efe4; --muted:#d4c8b6; --red:#de5d4f; }
+* { box-sizing:border-box; }
+body { margin:0; width:1600px; height:900px; overflow:hidden; background:#1f4636; color:var(--text); font-family:'Pixelify Sans', sans-serif; position:relative; }
+img { image-rendering:pixelated; display:block; }
+header { position:absolute; inset:0 0 auto 0; height:52px; background:var(--ink); border-bottom:3px solid var(--edge); display:flex; align-items:center; gap:16px; padding:0 18px; }
+.logo { font-weight:600; font-size:24px; letter-spacing:3px; color:var(--gold); text-shadow:2px 2px 0 #6b3f12; } .logo span { color:var(--text); }
+.stats { margin-left:auto; display:flex; gap:10px; }
+.stat { background:var(--panel); border:2px solid var(--edge); padding:4px 14px; font-size:24px; font-weight:600; display:flex; gap:8px; align-items:center; }
+.stat small { font-size:13px; color:var(--muted); font-weight:400; letter-spacing:1px; }
+main { position:absolute; right:0; top:55px; bottom:52px; overflow:hidden; background:#1f4636; }
+main > img.board { position:absolute; }
+footer { position:absolute; inset:auto 0 0 0; height:52px; background:var(--ink); border-top:3px solid var(--edge); display:flex; align-items:center; gap:10px; padding:0 14px; }
+footer .hint { flex:1; font-size:17px; color:#e6dccb; }
+.btn { font-family:inherit; font-size:17px; background:var(--panel2); color:var(--text); border:2px solid var(--edge); box-shadow:inset -2px -2px 0 #1a1424, inset 2px 2px 0 #5a4c70; padding:6px 12px; }
+.start { background:#7c4e33; border-color:#d9972f; color:var(--gold); font-weight:600; }
+
+/* ---------------- expanded shop */
+aside.shop { position:absolute; left:0; top:55px; bottom:52px; width:268px; background:var(--ink); border-right:3px solid var(--edge); padding:10px; display:flex; flex-direction:column; gap:9px; }
+.shop h2 { margin:0 0 2px; font-size:16px; letter-spacing:3px; color:var(--muted); display:flex; justify-content:space-between; align-items:center; }
+.toggle { width:34px; height:30px; padding:0; font-size:18px; color:var(--gold); }
+.card { --accent:#de5d4f; position:relative; display:grid; grid-template-columns:102px 1fr; gap:0 10px; background:linear-gradient(90deg, color-mix(in srgb, var(--accent) 22%, #2c2438), #2c2438 70%); border:3px solid var(--edge); border-left:6px solid var(--accent); padding:6px; height:136px; }
+.card .portrait { width:102px; height:120px; border:2px solid #1a1424; }
+.card .info { display:flex; flex-direction:column; gap:3px; padding-top:2px; }
+.card .name { font-size:20px; font-weight:600; line-height:1.05; }
+.card .hero { font-size:14px; color:var(--accent); font-weight:600; letter-spacing:1px; }
+.card .role { font-size:14px; color:var(--muted); line-height:1.2; }
+.card .price { margin-top:auto; font-size:21px; font-weight:600; color:var(--gold); display:flex; align-items:center; gap:6px; }
+.coin { width:14px; height:14px; background:#f2c94c; box-shadow:inset -3px -3px 0 #a3631c; border:2px solid #1a1424; }
+.card kbd { position:absolute; right:6px; top:6px; font-family:inherit; font-size:14px; border:2px solid var(--edge); background:#1a1424; padding:0 6px; color:var(--muted); }
+.card.selected { border-color:#fbe7a1; box-shadow:0 0 0 2px #1a1424, 0 0 16px color-mix(in srgb, var(--accent) 70%, transparent); }
+.card.selected::after { content:var(--tag,'PLACING'); position:absolute; left:8px; bottom:4px; font-size:12px; font-weight:600; background:#fbe7a1; color:#1a1424; padding:0 5px; }
+.card.poor { filter:saturate(.35) brightness(.75); } .card.poor .price { color:var(--red); }
+.card.poor .portrait { opacity:.8; }
+.card .lock { font-size:13px; color:#ff9a8a; }
+
+/* ---------------- collapsed rail */
+aside.rail { position:absolute; left:0; top:55px; bottom:52px; width:84px; background:var(--ink); border-right:3px solid var(--edge); padding:8px 6px; display:flex; flex-direction:column; gap:8px; align-items:center; }
+.mini { --accent:#de5d4f; position:relative; width:72px; border:3px solid var(--edge); border-bottom:5px solid var(--accent); background:#2c2438; }
+.mini img { width:68px; height:80px; }
+.mini .c { text-align:center; font-size:16px; font-weight:600; color:var(--gold); background:#1a1424; }
+.mini kbd { position:absolute; right:2px; top:2px; font-family:inherit; font-size:12px; background:#1a1424; border:1px solid var(--edge); padding:0 3px; color:var(--muted); }
+.mini.poor { filter:saturate(.35) brightness(.75); } .mini.poor .c { color:var(--red); }
+.mini.selected { border-color:#fbe7a1; box-shadow:0 0 12px color-mix(in srgb, var(--accent) 70%, transparent); }
+
+/* ---------------- selected tower panel (compact, far side) */
+.panel { --accent:#de5d4f; position:absolute; right:14px; top:69px; width:272px; background:#1a1424; border:3px solid var(--edge); border-top:6px solid var(--accent); }
+.ph { display:flex; gap:10px; padding:8px; background:var(--panel); align-items:flex-start; }
+.ph img { width:68px; height:88px; border:2px solid #1a1424; }
+.ph h3 { margin:0; font-size:20px; } .ph .hero { color:var(--accent); font-weight:600; font-size:14px; letter-spacing:1px; }
+.stars { color:var(--gold); font-size:16px; letter-spacing:2px; } .stars i { color:#5c4a3a; font-style:normal; }
+.close { margin-left:auto; padding:0 8px; }
+.sec { padding:8px 10px; border-top:2px solid #3b3150; }
+.sec h4 { margin:0 0 6px; font-size:12px; letter-spacing:2px; color:var(--muted); font-weight:400; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; font-size:16px; } .grid2 div { display:flex; justify-content:space-between; } .grid2 span:first-child { color:var(--muted); }
+.up { display:flex; align-items:center; gap:8px; } .up img { width:68px; height:88px; border:2px solid #1a1424; } .arrow { font-size:26px; color:var(--gold); }
+.up ul { margin:0; padding:0 0 0 14px; font-size:14px; color:#a3d765; }
+.tgt { display:grid; grid-template-columns:repeat(4,1fr); gap:3px; } .tgt .btn { padding:5px 0; font-size:15px; } .tgt .on { background:#d9972f; color:#1a1424; border-color:#fbe7a1; font-weight:600; }
+.acts { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:8px 10px 10px; }
+.acts .u { background:#467d42; border-color:#a6cf73; font-weight:600; } .acts .s { background:#4a1628; border-color:#de5d4f; }
+.acts small { display:block; font-size:14px; color:var(--gold); }
+.ghost { position:absolute; opacity:.85; pointer-events:none; }
+.note { position:absolute; background:#fbe7a1; color:#1a1424; font-size:15px; font-weight:600; padding:4px 8px; border:2px solid #1a1424; }
+</style></head>
+<body>
+<header><div class="logo">LAST <span>STAND</span></div>
+  <div class="stats"><div class="stat"><small>WAVE</small>27</div><div class="stat"><span style="color:#f2c94c">● 65</span></div><div class="stat"><span style="color:#de5d4f">♥ 16</span></div></div>
+  <button class="btn">♪</button></header>
+
+<aside class="shop" id="shop">
+  <h2>TOWERS <button class="btn toggle" title="Collapse the shop">«</button></h2>
+  <div class="card" style="--accent:#de5d4f"><img class="portrait" src="card-basic.png"><div class="info"><div class="name">Archer</div><div class="hero">WREN</div><div class="role">Dependable all-rounder</div><div class="price"><span class="coin"></span>50</div></div><kbd>1</kbd></div>
+  <div class="card" style="--accent:#d9972f"><img class="portrait" src="card-sniper.png"><div class="info"><div class="name">Ballista</div><div class="hero">BRAKK</div><div class="role">Heavy artillery · any range</div><div class="price"><span class="coin"></span>110</div></div><kbd>2</kbd></div>
+  <div class="card" style="--accent:#72ba4c"><img class="portrait" src="card-rapid.png"><div class="info"><div class="name">Ranger</div><div class="hero">FEN</div><div class="role">Rapid-fire sharpshooter</div><div class="price"><span class="coin"></span>70</div></div><kbd>3</kbd></div>
+  <div class="card" style="--accent:#6cbcf0"><img class="portrait" src="card-frost.png"><div class="info"><div class="name">Frost Mage</div><div class="hero">OLD RIME</div><div class="role">Slows the horde</div><div class="price"><span class="coin"></span>60</div></div><kbd>4</kbd></div>
+</aside>
+<aside class="rail" id="rail" style="display:none">
+  <button class="btn toggle" title="Expand the shop">»</button>
+  <div class="mini" style="--accent:#de5d4f"><img src="mini-basic.png"><div class="c">50</div><kbd>1</kbd></div>
+  <div class="mini" style="--accent:#d9972f"><img src="mini-sniper.png"><div class="c">110</div><kbd>2</kbd></div>
+  <div class="mini" style="--accent:#72ba4c"><img src="mini-rapid.png"><div class="c">70</div><kbd>3</kbd></div>
+  <div class="mini" style="--accent:#6cbcf0"><img src="mini-frost.png"><div class="c">60</div><kbd>4</kbd></div>
+</aside>
+
+<main id="main"><img class="board" id="board" src="heroes-combat-4x.png"></main>
+
+<div class="panel" id="panel" style="--accent:#de5d4f">
+  <div class="ph"><img src="lvl-basic-2.png"><div><h3>Archer</h3><div class="hero">WREN · VETERAN</div><div class="stars">★★<i>★</i></div></div><button class="btn close">×</button></div>
+  <div class="sec"><div class="grid2"><div><span>Damage</span><span>16</span></div><div><span>Speed</span><span>1.6/s</span></div><div><span>Range</span><span>3.0</span></div><div><span>Kills</span><span>41</span></div></div></div>
+  <div class="sec"><h4>NEXT: CAPTAIN</h4><div class="up"><img src="lvl-basic-3.png"><ul><li>Damage 16 → 26</li><li>Speed 1.6 → 1.8/s</li><li>Range 3.0 → 3.25</li><li>Gold hood, red cape, keep</li></ul></div></div>
+  <div class="sec"><h4>TARGETING</h4><div class="tgt"><button class="btn on">First</button><button class="btn">Last</button><button class="btn">Strong</button><button class="btn">Fast</button></div></div>
+  <div class="acts"><button class="btn u" style="background:#3b3150;border-color:#5c4a3a;color:#a89cb8">Upgrade <small style="color:#ff8a7a">80 · need 15</small></button><button class="btn s">Sell <small>+66</small></button></div>
+</div>
+<footer><div class="hint" id="hint">Drag a tower onto the map, or press 1–4 and click a tile · T changes targeting</div>
+  <div style="display:flex"><button class="btn" style="background:#5c3628;color:#f2c94c">1x</button><button class="btn">2x</button><button class="btn">3x</button></div>
+  <button class="btn">Pause</button><button class="btn">Auto Wave: On</button><button class="btn start">Wave 27 in progress</button></footer>
+<script>
+const view = (location.search.match(/view=(\w+)/) || [, 'select'])[1];
+const collapsed = view === 'drag';
+const sideW = collapsed ? 87 : 271;
+const GOLD = 65, COST = [50, 110, 70, 60];
+const cards = [...document.querySelectorAll(collapsed ? '.mini' : '.card')];
+cards.forEach((c, i) => {
+  if (COST[i] > GOLD) {
+    c.classList.add('poor');
+    const info = c.querySelector('.info');
+    if (info) info.insertAdjacentHTML('beforeend', `<div class="lock">Need ${COST[i] - GOLD} more gold</div>`);
+  }
+});
+const pick = { place: 3, drag: 0 }[view];
+if (pick !== undefined) cards[pick].classList.add('selected');
+if (view === 'drag') cards[0].style.setProperty('--tag', "'DRAGGING'");
+const main = document.getElementById('main');
+main.style.left = sideW + 'px';
+if (collapsed) {
+  document.getElementById('shop').style.display = 'none';
+  document.getElementById('rail').style.display = 'flex';
+}
+if (view !== 'select') document.getElementById('panel').style.display = 'none';
+document.getElementById('hint').textContent = {
+  select: 'Archer selected · upgrade, sell or change targeting · click empty ground to deselect',
+  place: 'Frost Mage: click a free tile to build · right-click or Esc to cancel',
+  drag: 'Release on a free tile to build · release elsewhere or press Esc to cancel',
+}[view];
+// The still is the map (1280x768 at 4x) plus a forest margin; the map starts at (mx, 32) inside it.
+const b = document.getElementById('board');
+const mx = collapsed ? 120 : 64;
+if (collapsed) b.src = 'heroes-combat-wide-4x.png';
+const areaW = 1600 - sideW, areaH = 900 - 55 - 52;
+const bl = Math.round(areaW / 2 - (mx + 640)), bt = Math.round(areaH / 2 - (32 + 384));
+b.style.left = bl + 'px'; b.style.top = bt + 'px';
+const tile = (c, r) => [sideW + bl + mx + c * 64, 55 + bt + 32 + r * 64];
+const svg = (inner) => document.body.insertAdjacentHTML('beforeend', `<svg style="position:absolute;left:0;top:0;pointer-events:none" width="1600" height="900">${inner}</svg>`);
+function ghost(kind, c, r, w, h) {
+  const [x, y] = tile(c, r);
+  document.body.insertAdjacentHTML('beforeend', `<img class="ghost" src="ghost-${kind}.png" style="left:${x + 32 - w * 2}px;top:${y + 64 - h * 4}px;width:${w * 4}px;height:${h * 4}px">`);
+  return [x, y];
+}
+if (view === 'select') {
+  const [x, y] = tile(8, 7);
+  svg(`<circle cx="${x + 32}" cy="${y + 32}" r="192" fill="#ffffff14" stroke="#ffffffcc" stroke-width="4"/><rect x="${x + 2}" y="${y + 2}" width="60" height="60" fill="none" stroke="#fbe7a1" stroke-width="4"/>`);
+}
+const grid = () => Array.from({ length: 240 }, (_, i) => { const [gx, gy] = tile(i % 20, Math.floor(i / 20)); return `<rect x="${gx}" y="${gy}" width="64" height="64" fill="none" stroke="#ffffff14"/>`; }).join('');
+if (view === 'place') {
+  const [x, y] = tile(11, 8);
+  svg(grid() + `<circle cx="${x + 32}" cy="${y + 32}" r="160" fill="#6cbcf022" stroke="#9ed6f5dd" stroke-width="4"/><rect x="${x}" y="${y}" width="64" height="64" fill="#6cbcf033" stroke="#9ed6f5" stroke-width="4"/>`);
+  ghost('frost', 11, 8, 18, 30);
+}
+if (view === 'drag') {
+  const [x, y] = tile(6, 6);
+  svg(grid() + `<circle cx="${x + 32}" cy="${y + 32}" r="176" fill="#a6cf7320" stroke="#a6cf73dd" stroke-width="4"/><rect x="${x}" y="${y}" width="64" height="64" fill="#a6cf7333" stroke="#a6cf73" stroke-width="4"/>`);
+  ghost('basic', 6, 6, 18, 27);
+  document.body.insertAdjacentHTML('beforeend', `<div class="note" style="left:${x - 30}px;top:${y - 120}px">Wren · 50 gold · drop to build</div>`);
+}
+</script>
+</body></html>
