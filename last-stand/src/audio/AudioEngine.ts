@@ -89,6 +89,8 @@ export class AudioEngine {
       this.master.connect(limiter).connect(this.output).connect(ctx.destination);
       ctx.addEventListener('statechange', () => this.mirrorState());
       this._ctx = ctx;
+      // Some browsers (Firefox) create the context already running, with no statechange event.
+      this.mirrorState();
       this.output.gain.value = 0;
       this.applyVolumes(true);
       this.update();
