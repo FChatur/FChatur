@@ -7,7 +7,3 @@ test-results/
 playwright-report/
 tower-report.md
 art-preview/
-# Soundtrack withheld from the public repository until its licensing is verified (docs/AUDIO.md).
-# Remove these two lines when restoring it.
-assets-src/music/
-public/audio/music/

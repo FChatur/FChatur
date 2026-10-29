@@ -6,8 +6,7 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
-Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release. Release blocker: the
-soundtrack's licensing for public distribution is still being verified (docs/AUDIO.md section 4).
+Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release.
 
 ### Added
 - Background music: "Picnic at the Tower Gate" (AI-generated with Google Gemini, credited in the main
@@ -27,9 +26,8 @@ soundtrack's licensing for public distribution is still being verified (docs/AUD
   (the audio context is suspended) while the tab is hidden or the game is muted, and resumes with a fade.
   A limiter keeps stacked sounds from clipping.
 - The soundtrack master is kept unmodified in assets-src/; tools/prepare-music.py rebuilds the game files
-  (loop, trim, one gain change; no creative changes). For now the master and the game files are withheld
-  from the repository (ignored by git) until licensing is verified. A build without them runs without
-  music and hides the credit, and the e2e music tests skip; restoring the files turns it all back on.
+  (loop, trim, one gain change; no creative changes). If the files are missing, the build still runs
+  without music: the credit is hidden and the e2e music tests skip.
 - Roadmap: Audio & Music is Phase 7 (v0.7.0); maps, stars and Freeplay (issue #4) move to Phase 8 (v0.8.0)
   with their features unchanged.
 

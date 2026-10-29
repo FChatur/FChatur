@@ -67,44 +67,11 @@ prepared, and its provenance and licensing.
   SHA-256 `c1007df19380a31ad3276916370a55a53d6001764889bac9e47c408cdc9ffb6b`).
 - Game files: `public/audio/music/picnic-at-the-tower-gate/`, built by `tools/prepare-music.py`, which
   needs Python 3 with numpy, and ffmpeg.
-- **Both are currently withheld from the repository** (section 4). Both paths are listed in
-  `.gitignore`, so a local copy can't be committed by accident. The owner keeps them, with checksums
-  and restore steps, in a private archive outside the repository.
-- **Without the files:**
-  - the build notices (`__SOUNDTRACK_AVAILABLE__` in `vite.config.ts`);
-  - the game runs with sound effects, the volume settings and the music state machine, but no music:
-    `data-music="unavailable"`, no requests and no errors;
-  - the menu credit is hidden;
-  - the e2e music tests skip, with a note saying so.
-- **Restoring:** put the files back at those paths (or rebuild the game files from the master with the
-  script), delete the two lines from `.gitignore`, and commit. Everything switches back on with no code
-  changes.
-
-**Technical edits only.** The melody, instruments, arrangement and mix are untouched; no remixing,
-regeneration, EQ, compression or limiting.
-
-| Edit | Detail |
-| --- | --- |
-| Loop | Self-similarity analysis found that bars 18–66 repeat: the music at 39.344 s returns at 144.072 s, exactly 48 bars later. The game plays 0–39.6 s once as an intro, then loops 104.73 s (48 bars). At the join, an 80 ms equal-power crossfade lands on the downbeat. |
-| Trim | The end of the second main section, the outro and the 2.4 s of trailing silence (144.3–177 s) are not used. |
-| Level | One linear gain change of −3.9 dB brings the loop to −16 LUFS. The source peaked at +0.5 dBTP, clipping over full scale; it now peaks at −3.4 dBTP. |
-| DC offset | A constant offset of about 0.005 was removed. It's inaudible, but it wastes headroom and can click at edits. |
-
-**Loop quality checks**
-- The join's transient measures like an ordinary drum hit in the track: no spike in spectral flux.
-- At the join, the two sides differ in level by 0.5 dB.
-- Rebuilding intro + loop + loop from the encoded chunks gives joins that are smoother than the music
-  itself: the largest sample step at a join is 0.034, against 0.107 at the 99.9th percentile of the
-  music.
-- The browser tests repeat this with each browser's own decoders (below).
-
-**Formats**
-- **Ogg Opus at 96 kbps** (2.1 MB): current Chrome, Edge, Firefox and Safari.
-- **AAC at 160 kbps** (3.1 MB): a fallback, in `.mp4` files (the same container as `.m4a`; `.mp4` is
-  served correctly by more hosts).
-- The game tries Opus first and falls back if the browser can't decode it.
-- Opus at 96 kbps is close to transparent for this material; the source is itself a lossy 192 kbps
-  MP3. Re-encoding as AAC at 160 kbps measured slightly closer to the source, but it is 50% larger.
+- **If the files are ever missing**, the game still builds and runs without music.
+  - The build detects this (`__SOUNDTRACK_AVAILABLE__` in `vite.config.ts`).
+  - Sound effects and settings keep working; `data-music="unavailable"`, with no requests and no errors.
+  - The menu credit is hidden and the e2e music tests skip.
+  - Putting the files back re-enables everything.
 
 ## 3. Memory: from ~51 MB to ~11 MB
 
@@ -183,26 +150,16 @@ small memory.
 - **The repository has no license file.** The code is therefore "all rights reserved". The music is
   listed separately here so it is not mistaken for code under a future license.
 
-### Owner's confirmations (status 2026-10-29)
+### Owner's decision (2026-10-29)
 
-**Public distribution of the audio is on hold** until the licensing is verified. Nothing goes to `main`
-or the public site without the owner's approval.
+Last Stand is a personal, non-commercial hobby project for the owner and friends. The owner has read
+the points above and **accepts the licensing risk**:
+- The prompt was written for Last Stand. It asked for an original, whimsical fantasy game soundtrack,
+  with no named artist or existing song.
+- The track is credited in the game as AI-generated with Google Gemini.
+- The owner accepts that the track has no exclusive copyright and that others could reuse it.
 
-| # | Point | Status |
-| --- | --- | --- |
-| 1 | Product and plan | Made with Google Gemini's music-generation feature. **Pending:** the exact account plan. |
-| 2 | Terms allow distribution in a public game and repository | **Pending:** Google's public documentation reviewed by the owner; explicit permission not yet verified. |
-| 3 | Prompt | Confirmed: written for Last Stand, asking for an original, whimsical fantasy game soundtrack, with no named artist or existing song. |
-| 4 | Generation date | 2026-10-29, matching the C2PA time-stamp. **Pending:** check against the Gemini history. |
-| 5 | AI credit, no exclusive copyright | Confirmed: credited as AI-generated with Google Gemini; the owner accepts that others could reuse it. |
+If the game is ever commercialised, the licensing will be revisited or the soundtrack replaced.
 
-**The composition is preserved.** Only the technical edits in section 2 are allowed.
-
-**Withheld from the repository (owner's decision, 2026-10-29).** This repository is public.
-- The master MP3 and the game's music files were removed from the development branch
-  (`claude/last-stand-tower-defense-h0g381`) in a normal commit; history was not rewritten.
-- They no longer appear in the branch, but stay downloadable from its earlier commits (from 81924c7 up
-  to the removal) for anyone who looks them up.
-- The public game site (`main`) never had them.
-- The copies kept outside the repository are a private archive page and the private hosted preview,
-  both visible only to the owner.
+The music was briefly removed from the repository while this was considered (commit 419d291), then
+restored. The composition is preserved; only the technical edits in section 2 are allowed.
