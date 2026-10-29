@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "balance": "vitest run --config vitest.balance.config.ts",
     "test:slow": "vitest run --config vitest.slow.config.ts",
+    "art": "vitest run --config vitest.art.config.ts",
     "test:e2e": "npm run build && playwright test"
   },
   "dependencies": {

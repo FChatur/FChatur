@@ -21,6 +21,11 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
   falling leaves, swaying grass); distinct Archer, Ranger, Ballista and Frost Mage towers with visible
   upgrade progression; more expressive enemies; hit flinch, slowed-enemy snowflakes, ballista thump and
   see-through explosions. Details and measurements: docs/VISUAL_PROTOTYPE.md section 8.
+- Tower character art direction (issue #2, review only, not used by the game yet): four named heroes
+  (Wren the Archer, Brakk the Ballista engineer, Fen the Ranger, Old Rime the Frost Mage) with three
+  upgrade stages each and idle, attack and victory frames; `npm run art` renders the lineup, stages,
+  animated reels, shop portraits, placement ghosts and a crowded combat still. Left shop mockup:
+  docs/mockups/heroes-shop.html. Proposal: docs/VISUAL_PROTOTYPE.md section 9.
 
 ### Docs
 - Phase 6 proposal: [docs/VISUAL_PROTOTYPE.md](docs/VISUAL_PROTOTYPE.md) (pixel-art specification, asset

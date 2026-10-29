@@ -52,3 +52,52 @@ function crc32(buf: Buffer): number {
   for (const byte of buf) c = CRC_TABLE[(c ^ byte) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
+
+/** Animated PNG (APNG): every frame the same size, `delays` in milliseconds, looping forever. */
+export function encodeApng(frames: Bitmap[], delays: number[], scale = 1): Buffer {
+  const w = frames[0].w * scale;
+  const h = frames[0].h * scale;
+  const raw = (b: Bitmap) => {
+    const out = Buffer.alloc((w * 4 + 1) * h);
+    for (let y = 0; y < h; y++) {
+      const row = y * (w * 4 + 1);
+      for (let x = 0; x < w; x++) {
+        const si = (Math.floor(y / scale) * b.w + Math.floor(x / scale)) * 4;
+        out.set(b.data.subarray(si, si + 4), row + 1 + x * 4);
+      }
+    }
+    return deflateSync(out);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(w, 0);
+  header.writeUInt32BE(h, 4);
+  header[8] = 8;
+  header[9] = 6;
+  const actl = Buffer.alloc(8);
+  actl.writeUInt32BE(frames.length, 0);
+  actl.writeUInt32BE(0, 4);
+  const chunks = [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', header), chunk('acTL', actl)];
+  let seq = 0;
+  frames.forEach((f, i) => {
+    const fctl = Buffer.alloc(26);
+    fctl.writeUInt32BE(seq++, 0);
+    fctl.writeUInt32BE(w, 4);
+    fctl.writeUInt32BE(h, 8);
+    fctl.writeUInt32BE(0, 12);
+    fctl.writeUInt32BE(0, 16);
+    fctl.writeUInt16BE(delays[i] ?? 100, 20);
+    fctl.writeUInt16BE(1000, 22);
+    fctl[24] = 0; // dispose: none
+    fctl[25] = 0; // blend: source (replace)
+    chunks.push(chunk('fcTL', fctl));
+    const data = raw(f);
+    if (i === 0) chunks.push(chunk('IDAT', data));
+    else {
+      const seqBuf = Buffer.alloc(4);
+      seqBuf.writeUInt32BE(seq++, 0);
+      chunks.push(chunk('fdAT', Buffer.concat([seqBuf, data])));
+    }
+  });
+  chunks.push(chunk('IEND', Buffer.alloc(0)));
+  return Buffer.concat(chunks);
+}

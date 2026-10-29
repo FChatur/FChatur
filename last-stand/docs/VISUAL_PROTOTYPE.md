@@ -248,3 +248,103 @@ V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Revi
   the ground fixed that.
 - Legibility: checked at actual scale (4× at 1600×1012, 3× at 1366×768): the whole map fits at a whole
   scale, the road is the strongest shape, slowed and damaged enemies are distinguishable.
+
+## 9. Tower personality and character identity (GitHub issue #2)
+
+Goal: four defenders players recognise and get attached to, not four interchangeable buildings. Each
+tower becomes a named hero standing on a structure that grows with them. Review-only: nothing here is on
+`main`, and nothing below changes stats, targeting or the simulation.
+
+### What exists now (art code and preview tooling, not wired into the game)
+- `src/art/sprites/characters.ts`: the four heroes, three levels each, with idle (3 frames), attack
+  (2 frames; Ballista 3) and victory (2 frames) poses, plus their pedestals. Same pipeline as V2: palette
+  colours only, auto ink outline, 3 world px per art px, rasterised at runtime.
+- `tests/art/heroes.art.ts` and `tests/art/combat.ts` (`npm run art`, output in `art-preview/`): lineup at
+  real scale (4×) and enlarged (10×), the upgrade stages, animated reels (APNG) per hero at level 1 and 3,
+  shop portraits, transparent placement ghosts and a crowded wave-27 still.
+- `docs/mockups/heroes-shop.html`: the left shop and tower panel, built from those images
+  (`?view=select`, `?view=place`, `?view=drag`). Run `npm run art` first.
+- The game itself still draws the V2 towers and the v0.5.0 interface.
+
+### The four heroes
+Sprite sizes are in art px (one tile = 16): 18 wide, 26–36 tall, so every hero stands about 1.6–2.2 tiles
+tall on a one-tile footprint; the Ballista is 30 wide.
+
+**Wren, Archer (dependable starter).**
+- Silhouette: crimson hood with a long tail that kinks in the wind, a cheeky grin, and a bow held across
+  the body. The only red hero, so a group of them reads at a glance.
+- Animation: a calm idle with a slight breathing bob; a deliberate full draw (arrow at the cheek), then a
+  loose with the arm thrown forward. Victory: the bow raised overhead.
+- Upgrades: L1 timber lookout → L2 stone tower with banner, feather in the hood and a steel pauldron →
+  L3 keep with crest and twin banners, gold-trimmed hood, red cape and gilded bow.
+- Feedback: an arrow per shot (unchanged); the draw/loose frames line up with the projectile spawn.
+
+**Brakk, Ballista (heavy hitter).**
+- Silhouette: a stocky dwarf engineer, steel helmet with goggles pushed up, ginger beard, blue overalls,
+  next to a crossbow nearly twice his size. The widest sprite in the game, on purpose.
+- Animation: idle tapping the frame with a wrench; attack is three beats: wind-up (wrench raised, bow
+  cocking), release (the bow kicks back), recovery. The bow keeps V2's eight aiming directions.
+- Upgrades: L1 plank deck, wooden bow → L2 stone emplacement with sandbags, iron-banded bow, apron and
+  lamp → L3 iron bunker with banner, steel and gold bow, gold helmet crest and goggles.
+- Feedback: V2's camera kick and the damage number (the only tower that shows numbers), bolt impact
+  burst.
+
+**Fen, Ranger (energetic sharpshooter).**
+- Silhouette: a lean blond elf with a pointed ear and a green cloak flaring behind; narrower and more
+  forward-leaning than Wren, green instead of red, no hood over the face.
+- Animation: a bouncy idle; attacks alternate two quick shots while leaning into them, so at 5–7.5 shots/s
+  he looks busy without strobing. Victory: a little hop.
+- Upgrades: L1 mossy stump → L2 sapling platform, leaf circlet and second quiver → L3 great tree with
+  lanterns, gold-edged cloak, glowing bow and a falcon circling above his head.
+- Feedback: many small arrows, no numbers, no particles (keeps late waves clean).
+
+**Old Rime, Frost Mage (mysterious spellcaster).**
+- Silhouette: an oversized star-spangled blue hat, glowing eyes in the brim shadow, a white beard and a
+  staff with a crystal. The tallest hero; the hat is what you spot first.
+- Animation: idle with the crystal pulsing; attack raises the staff as the crystal blazes; victory has
+  the crystal flaring overhead.
+- Upgrades: L1 rune stone → L2 frozen pillar with ice, taller hat with a bent tip → L3 floating ice dais
+  over a rune circle, a crystal on the hat and gold stars on the robe.
+- Feedback: the frost bolt, then V2's bobbing snowflake on every slowed enemy.
+
+### Shop, ghost, panel and upgrade preview (proposed interface)
+- One portrait per hero is used everywhere: the shop card, the collapsed rail, the placement ghost (the
+  real sprite, semi-transparent, with its range ring), the selected-tower panel and the upgrade preview
+  (current level → next level, with the stat changes and what visibly changes).
+- Expanded shop (~270 px): large portrait, tower name, hero name in the tower's accent colour, a one-line
+  role, cost and hotkey. Accents: Archer crimson, Ballista brass, Ranger leaf green, Frost ice blue.
+- States: selected for building (bright frame, glow in the accent colour, "PLACING" tag); unaffordable
+  (desaturated and dimmed, cost in red, "Need N more gold"); the same states on the rail.
+- Collapsed rail (~85 px): portraits, cost and hotkey only; the board gains ~185 px of width, which the
+  forest margin fills.
+- Click-to-place and drag-and-drop both stay; the ghost and range ring follow the pointer in both.
+
+### Late-wave clutter (proposed)
+- Health bars: thin (1 art px fill in an ink frame), shown only on damaged enemies.
+- Damage numbers: only for heavy single hits (Ballista); never for Ranger or Frost ticks.
+- Particles: impacts are a few pixels, capped per frame; slowed enemies carry one snowflake each.
+- Overlapping enemies: a small sideways draw offset per enemy (render only, the path and simulation stay
+  the same) so a pack spreads instead of stacking into one blob. Not in the mockup yet.
+- Tall heroes occluding the road behind them: draw towers and enemies sorted by their feet; if that is
+  not enough, fade a tower when the pointer or an enemy is behind it.
+
+### Options and tradeoffs
+1. **Hero on a pedestal (proposed)** vs **structure-first** (V2: the building is the identity).
+   Heroes give the attachment the issue asks for and read better at real scale; the cost is height:
+   sprites reach about 2 tiles, so they overlap the tile above (see occlusion above).
+2. **Ballista footprint:** keep the 30-px-wide crossbow (proposed: it says "heavy artillery" instantly)
+   or shrink it to about 22 px so it never overhangs a neighbouring tile. The footprint and placement
+   rules stay one tile either way.
+3. **Hero names on cards:** shown under the tower name (proposed) or left out for a plainer UI. Names
+   are flavour only; no other text or rules change.
+4. **Reaction animations:** idle, attack and victory are drawn. Hit/ability is covered by the attack
+   frames and effects. A short "alarmed" reaction (e.g. when a boss spawns or a life is lost) is not
+   drawn yet; it would be one extra frame per hero.
+5. **Victory timing:** play it when a wave is cleared (proposed) or only after a boss wave, to keep it
+   special.
+
+### After approval (implementation outline)
+Replace the V2 tower sprites with the heroes in the atlas; drive idle, attack (on the shot event) and
+victory (on wave clear) in `EntityRenderer`; build the left shop, rail, ghost and panel from the mockup;
+add the declutter rules; then unit, browser and performance checks (wave-50 benchmark against V2's
+18 fps) and screenshots for review.
