@@ -36,6 +36,11 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
 - Late-wave declutter: heroes fade while an enemy is behind them; creatures spread across the road
   instead of stacking (drawing only); no "+gold" numbers in crowds; lower caps on cosmetic effects.
   Crowded wave 50: 16.5 → 20 fps in the same environment. Details: docs/VISUAL_PROTOTYPE.md section 9.1.
+- Free starter Archer: the first Wren built in a run costs 0 gold (the shop card and tooltip show
+  "Free"). She sells for 0 gold at any level, even after paid upgrades, and selling her doesn't give the
+  free build back. Every later Archer costs 50 and sells normally. Set by `freeStarterTower` in
+  `config/balance.ts`. Balance bots (3 seeds): Mixed reaches wave 44 instead of 40 (median), Turrets +
+  upgrades 34 instead of 33; the other strategies are unchanged.
 - `npm run art` renders hero previews (lineup, stages, poses, animated reels) to art-preview/.
 
 ### Docs

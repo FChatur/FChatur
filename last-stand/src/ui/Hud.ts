@@ -194,7 +194,7 @@ export class Hud {
           <span class="tower-hero">${hero.name}</span>
           <span class="tower-name">${cfg.name}</span>
           <span class="tower-role">${hero.role}</span>
-          <span class="tower-cost"><span class="coin" aria-hidden="true"></span>${cfg.cost}</span>
+          <span class="tower-cost"><span class="coin" aria-hidden="true"></span><span class="tower-cost-value">${cfg.cost}</span></span>
           <span class="tower-need"></span>
         </span>
         <kbd>${cfg.hotkey}</kbd>`;
@@ -421,7 +421,9 @@ export class Hud {
     this.lastHealth = sim.health;
 
     for (const [id, btn] of this.towerButtons) {
-      const short = TOWERS[id].cost - sim.gold;
+      const cost = sim.buildCost(id);
+      const short = cost - sim.gold;
+      btn.querySelector('.tower-cost-value')!.textContent = cost === 0 ? 'Free' : String(cost);
       btn.classList.toggle('selected', this.session.selectedTower === id || this.session.drag?.type === id);
       btn.classList.toggle('unaffordable', short > 0);
       btn.querySelector('.tower-need')!.textContent = short > 0 ? `Need ${short} more` : '';
@@ -482,7 +484,7 @@ export class Hud {
     const active = s.screen === 'playing' && !s.paused && sim.phase !== 'draft' && sim.phase !== 'gameover';
     if (active && this.shopHover) {
       const btn = this.towerButtons.get(this.shopHover)!;
-      this.tooltip.show(towerInfo(this.shopHover), btn.getBoundingClientRect(), ['right', 'below']);
+      this.tooltip.show(towerInfo(this.shopHover, { cost: sim.buildCost(this.shopHover) }), btn.getBoundingClientRect(), ['right', 'below']);
       return;
     }
     const t = s.hoveredTower;
@@ -618,6 +620,7 @@ export class Hud {
     el('tp-upgrade-cost').textContent = next ? `${next.upgradeCost}g` : '(max)';
     this.panelUpgrade.classList.toggle('unaffordable', !upgrade.ok && upgrade.reason === 'insufficient-gold');
     el('tp-sell-value').textContent = `+${sim.sellValue(tower)}g`;
+    this.panelSell.title = tower.free ? 'Your free starter tower: selling it returns no gold.' : '';
   }
 
   private hintText(): string {

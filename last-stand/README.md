@@ -36,6 +36,8 @@ Tested automatically in Chromium, Firefox and WebKit on every change. Mobile/tou
 | Mute sound | Speaker button (top right) | `M` |
 | Restart after game over | Play again | `R` |
 
+**Your first Archer each run is free** (it sells for nothing, even after upgrades).
+
 **Towers** (each manned by a hero who grows with its three upgrade levels): Archer, Wren (balanced),
 Ballista, Brakk the dwarf engineer (global range: hits the toughest enemy anywhere on the map, slow but
 heavy), Ranger, Fen the elf (fast weak shots, poor against armor), Frost Mage, Old Rime (slows what he hits).

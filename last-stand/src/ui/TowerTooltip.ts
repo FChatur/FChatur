@@ -45,7 +45,7 @@ export class TowerTooltip {
 function render(info: TowerInfo): string {
   const badge =
     info.badge.kind === 'cost'
-      ? `<span class="tt-cost">${COIN_ICON}${info.badge.gold}</span>`
+      ? `<span class="tt-cost">${COIN_ICON}${info.badge.gold === 0 ? 'Free' : info.badge.gold}</span>`
       : `<span class="tt-level">Level ${info.badge.level}/${info.badge.max}</span>`;
   const stats = info.stats
     .map(

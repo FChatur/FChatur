@@ -40,6 +40,7 @@ export interface EnemyMix {
   maxShare: number;
 }
 
+import type { TowerTypeId } from './towers';
 import type { Rarity } from './upgrades';
 
 export interface RogueliteBalance {
@@ -56,6 +57,11 @@ export interface BalanceConfig {
   startingHealth: number;
   /** Fraction of all gold spent on a tower (build + upgrades) returned when it is sold. */
   sellRefundRatio: number;
+  /**
+   * The first tower of this type built in a run costs nothing (a free starter), once per run: selling it
+   * refunds nothing, even after upgrades, and doesn't give the free build back. Null: no free tower.
+   */
+  freeStarterTower: TowerTypeId | null;
   /** Armor can never reduce a hit below this fraction of its damage. */
   armorMinDamageFraction: number;
   /** Auto Wave: seconds of game time between a cleared wave (or an upgrade pick) and the next wave. */
@@ -68,6 +74,7 @@ export const BALANCE: BalanceConfig = {
   startingGold: 120,
   startingHealth: 20,
   sellRefundRatio: 0.7,
+  freeStarterTower: 'basic',
   armorMinDamageFraction: 0.25,
   autoWaveDelay: 3,
   waves: {

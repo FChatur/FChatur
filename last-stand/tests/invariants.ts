@@ -29,10 +29,13 @@ export function checkInvariants(sim: Simulation, startHealth: number, context: s
     if (sim.towerAt(t.col, t.row) !== t) fail(`tile index out of sync at ${key}`);
     if (t.level < 1 || t.level > MAX_TOWER_LEVEL) fail(`tower level ${t.level}`);
     if (!TARGETING_MODES.includes(t.targeting)) fail(`tower targeting ${t.targeting}`);
-    if (t.invested < TOWERS[t.type].cost) fail(`tower invested ${t.invested}`);
+    // The run's free starter tower cost nothing and always sells for nothing.
+    if (t.invested < (t.free ? 0 : TOWERS[t.type].cost)) fail(`tower invested ${t.invested}`);
+    if (t.free && sim.sellValue(t) !== 0) fail(`free tower sells for ${sim.sellValue(t)}`);
     if (!(t.fireInterval > 0) || !Number.isFinite(t.fireInterval)) fail(`fire interval ${t.fireInterval}`);
     if (!Number.isFinite(t.cooldown) || !Number.isFinite(t.angle)) fail('tower cooldown/angle not finite');
   }
+  if (sim.towers.filter((t) => t.free).length > 1) fail('more than one free tower');
 
   for (const e of sim.enemies) {
     if (!e.alive) fail('dead enemy left in list after step');
