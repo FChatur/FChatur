@@ -1,6 +1,9 @@
 # Art direction study: enhanced pixel art vs illustrated 2D
 
-Status: **proposal for the owner's approval.** Nothing in the game has changed.
+Status: **reviewed; neither style approved yet.** The owner found Manny generic: the problem is
+character design as much as rendering. Follow-up work: character studies for Manny, Wren and Bones
+(`docs/prototypes/characters.html`) and an investigation into how polished art gets made
+([ART_PRODUCTION.md](ART_PRODUCTION.md)). Nothing in the game has changed.
 - Prototype: `docs/prototypes/manny.html` (open it in a browser; also published as a private hosted page).
 - Manny the Manhandler is a concept used only for this test, not an approved tower.
 

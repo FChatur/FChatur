@@ -14,6 +14,10 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   Manhandler) drawn as enhanced pixel art and as illustrated 2D (docs/prototypes/manny.html), with
   tradeoffs and a recommendation. The proposal also adds Bloons-style free placement
   (docs/mockups/free-placement.html) and a proposed order of work.
+- Character studies (docs/prototypes/characters.html) for Manny the Manhandler, a redesigned Wren and Bones
+  the skeleton mage: personalities and hooks, hero art, silhouettes, expressions, storyboard roughs and
+  palettes. Plus an investigation of how polished 2D art is made and what needs an artist
+  (docs/ART_PRODUCTION.md). Concepts only; no troops added.
 
 ## [0.6.0] - 2026-10-29 (Phase 6: pixel-art fantasy redesign and tower heroes)
 
