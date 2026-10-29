@@ -6,6 +6,11 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+### Docs
+- Phase 7 (v0.7.0) design proposal for maps, stars and Freeplay (issue #4): docs/PROGRESSION.md, with
+  bot evidence on wave-50 reachability, four candidate maps (`npm run art` renders them) and mockups
+  (docs/mockups/progression.html). Not implemented yet; awaiting the owner's approval.
+
 ## [0.6.0] - 2026-10-29 (Phase 6: pixel-art fantasy redesign and tower heroes)
 
 Approved by the owner after playtesting the hosted preview. Starting gold and tower stats are unchanged;

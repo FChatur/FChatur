@@ -128,7 +128,7 @@ turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTO
 - Scope limits: no new maps, towers, enemies, upgrades or major systems. Released in 0.6.0
   after the owner playtested a hosted preview.
 
-### Phase 7: Maps and map selection (planned, after Phase 6 is approved)
+### Phase 7: Maps and map selection (design proposal awaiting approval: [PROGRESSION.md](PROGRESSION.md))
 - **Additional maps**, each balanced individually against the shared difficulty expectations (see
   section 6), and a way to choose between them.
 

@@ -1,0 +1,190 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Issue #4 mockups. Run `npm run art` first (writes art-preview/), then open with ?view=select|victory|freeplay|mselect|mvictory. -->
+<base href="../../art-preview/"><title>Last Stand map select mockup</title>
+<style>
+@font-face { font-family: 'Digits'; src: url(../node_modules/@fontsource/jersey-10/files/jersey-10-latin-400-normal.woff2); unicode-range: U+0030-0039; font-weight: 100 900; size-adjust: 125%; }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 400; src: url(../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-400-normal.woff2); }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 600; src: url(../node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-600-normal.woff2); }
+:root { --bg:#1a1424; --panel:#2c2438; --panel-2:#3b3150; --edge:#5c4a3a; --text:#f4efe4; --muted:#b4aec4; --accent:#a3d765; --gold:#f2c94c; --gold-hi:#fbe7a1; --health:#de5d4f; --wave:#6cbcf0;
+  --beginner:#72ba4c; --intermediate:#6cbcf0; --advanced:#d9972f; --expert:#de5d4f; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:'Digits','Pixelify Sans',sans-serif; overflow:hidden; }
+img { image-rendering:pixelated; display:block; }
+.view { display:none; } .view.on { display:block; }
+.btn { font:inherit; font-weight:600; border:2px solid var(--edge); border-radius:4px; background:var(--panel-2); color:var(--text); padding:10px 18px; cursor:pointer; }
+.btn-primary { background:var(--accent); border-color:#cfe88a; color:var(--bg); }
+.btn-gold { background:var(--gold); border-color:var(--gold-hi); color:var(--bg); }
+kbd { font:inherit; font-size:11px; border:1px solid currentColor; border-radius:3px; padding:0 4px; opacity:.6; }
+.stars { display:inline-flex; gap:3px; vertical-align:middle; }
+.star { width:22px; height:22px; }
+.star.big { width:84px; height:84px; }
+/* ---------- desktop map select */
+.top { height:68px; display:flex; align-items:center; gap:16px; padding:0 22px; background:var(--panel); border-bottom:2px solid var(--edge); }
+.logo { font-weight:600; letter-spacing:.2em; font-size:18px; } .logo span { color:var(--accent); margin-left:.4em; }
+.crumb { color:var(--muted); font-size:15px; }
+.total { margin-left:auto; display:flex; align-items:center; gap:8px; padding:6px 14px; border:2px solid var(--edge); border-radius:6px; background:var(--bg); font-size:22px; font-weight:600; color:var(--gold); }
+.total small { font-size:11px; color:var(--muted); letter-spacing:.12em; font-weight:400; }
+.goal { display:flex; align-items:center; gap:10px; margin:14px 22px 0; padding:10px 14px; border:2px dashed #6b5a46; border-radius:6px; color:var(--gold-hi); font-size:15px; }
+.goal b { color:var(--text); }
+.layout { display:grid; grid-template-columns: 1fr 440px; gap:18px; padding:14px 22px; height:calc(900px - 68px - 62px); }
+.tiers { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; align-content:start; }
+.tier h2 { margin:0 0 8px; display:flex; align-items:center; gap:8px; font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--tc); }
+.tier h2 .pips { display:flex; gap:3px; } .tier h2 .pips i { width:8px; height:8px; background:var(--tc); display:block; } .tier h2 .pips i.off { background:#3b3150; }
+.tier h2 .count { margin-left:auto; font-size:13px; color:var(--muted); letter-spacing:0; text-transform:none; }
+.card { position:relative; border:2px solid var(--edge); border-top:5px solid var(--tc); border-radius:4px; background:var(--panel); overflow:hidden; margin-bottom:12px; }
+.card .thumb { width:100%; aspect-ratio: 352/224; background:#1f4636; }
+.card .thumb img { width:100%; height:100%; }
+.card .meta { padding:8px 10px 10px; display:grid; gap:4px; }
+.card .name { font-size:18px; font-weight:600; }
+.card .row { display:flex; align-items:center; justify-content:space-between; font-size:13px; color:var(--muted); }
+.card .row b { color:var(--text); font-weight:600; }
+.ribbon { position:absolute; top:10px; right:-30px; transform:rotate(35deg); background:var(--gold); color:var(--bg); font-size:11px; font-weight:600; padding:2px 34px; letter-spacing:.08em; }
+.card.selected { border-color:var(--gold-hi); box-shadow:0 0 0 2px var(--bg), 0 0 18px var(--tc); }
+.card.locked .thumb img { filter: grayscale(1) brightness(.45) blur(1px); }
+.lock { position:absolute; inset:0 0 auto 0; aspect-ratio:352/224; display:grid; place-items:center; text-align:center; color:var(--text); font-size:14px; padding:0 18px; }
+.lock svg { width:34px; height:34px; margin:0 auto 6px; display:block; }
+.ghost { border:2px dashed #4a3f5c; border-radius:4px; padding:18px 10px; text-align:center; color:#7d7590; font-size:13px; }
+.detail { background:var(--panel); border:2px solid var(--edge); border-top:6px solid var(--advanced); border-radius:4px; display:flex; flex-direction:column; overflow:hidden; }
+.detail .big { width:100%; }
+.detail .body { padding:12px 16px 16px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.detail h3 { margin:0; font-size:26px; } .detail .tierline { color:var(--advanced); font-weight:600; font-size:14px; letter-spacing:.1em; text-transform:uppercase; }
+.detail p { margin:0; color:var(--muted); font-size:14px; line-height:1.4; }
+.facts { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+.fact { background:var(--bg); border:1px solid #3b3150; border-radius:4px; padding:6px 8px; } .fact small { display:block; color:var(--muted); font-size:11px; letter-spacing:.1em; text-transform:uppercase; } .fact b { font-size:18px; }
+.goals { display:grid; gap:4px; font-size:14px; } .goals div { display:flex; align-items:center; gap:8px; } .goals .stars .star { width:16px; height:16px; }
+.actions { display:flex; gap:10px; margin-top:auto; } .actions .btn { flex:1; padding:12px; font-size:17px; }
+/* ---------- victory */
+.stage { position:relative; width:1600px; height:900px; }
+.stage > img { position:absolute; inset:0; width:1600px; height:900px; }
+.dim { position:absolute; inset:0; background:rgba(26,20,36,.72); }
+.victory { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:720px; background:var(--panel); border:3px solid var(--gold); border-radius:6px; box-shadow:0 0 0 3px var(--bg), 0 20px 60px rgba(0,0,0,.6), 0 0 80px rgba(242,201,76,.25); text-align:center; padding:24px 28px 26px; }
+.victory .kicker { color:var(--gold); letter-spacing:.3em; font-size:14px; font-weight:600; }
+.victory h1 { margin:4px 0 2px; font-size:44px; letter-spacing:.12em; color:var(--gold-hi); text-shadow:3px 3px 0 #6b3f12; }
+.victory .sub { color:var(--muted); font-size:16px; }
+.bigstars { display:flex; justify-content:center; align-items:flex-end; gap:14px; margin:16px 0 4px; }
+.bigstars .star:nth-child(2) { width:104px; height:104px; }
+.starhint { font-size:13px; color:var(--muted); margin-bottom:14px; } .starhint b { color:var(--gold-hi); }
+.vstats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:0 0 14px; }
+.vstats div { background:var(--bg); border:1px solid #3b3150; border-radius:4px; padding:8px; } .vstats small { display:block; color:var(--muted); font-size:11px; letter-spacing:.1em; text-transform:uppercase; } .vstats b { font-size:22px; }
+.unlock { display:flex; align-items:center; gap:12px; text-align:left; background:linear-gradient(90deg, rgba(217,151,47,.25), transparent); border:2px solid var(--advanced); border-radius:4px; padding:8px; margin-bottom:16px; }
+.unlock img { width:120px; border:2px solid var(--bg); } .unlock small { color:var(--advanced); letter-spacing:.15em; font-weight:600; font-size:12px; } .unlock b { display:block; font-size:20px; } .unlock span { color:var(--muted); font-size:13px; }
+.choice { display:grid; grid-template-columns:1fr 1fr; gap:12px; } .choice .btn { padding:14px 10px; font-size:18px; } .choice .btn small { display:block; font-weight:400; font-size:12px; opacity:.85; margin-top:3px; }
+.saved { margin-top:10px; font-size:12px; color:var(--accent); }
+/* ---------- freeplay HUD */
+.hud { position:absolute; left:0; right:0; top:0; height:68px; background:var(--panel); border-bottom:2px solid var(--edge); display:flex; align-items:center; gap:14px; padding:0 20px; }
+.chip { padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; letter-spacing:.12em; }
+.chip.free { background:#704199; color:var(--text); border:2px solid #9a62c2; }
+.stat { display:flex; align-items:baseline; gap:8px; padding:6px 12px; border:2px solid var(--edge); border-radius:6px; background:var(--bg); font-size:22px; font-weight:600; min-width:110px; } .stat small { font-size:11px; color:var(--muted); letter-spacing:.12em; font-weight:400; }
+.milestone { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); } .bar { width:180px; height:10px; background:var(--bg); border:2px solid var(--edge); } .bar i { display:block; height:100%; width:52%; background:#9a62c2; }
+.toast { position:absolute; left:50%; top:110px; transform:translateX(-50%); background:var(--panel); border:3px solid #9a62c2; border-radius:6px; padding:12px 22px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+.toast small { color:#c9a4e8; letter-spacing:.25em; font-size:12px; font-weight:600; } .toast b { display:block; font-size:28px; color:var(--text); } .toast span { color:var(--muted); font-size:13px; }
+/* ---------- mobile */
+.phone { width:390px; height:844px; overflow:hidden; }
+.mtop { height:56px; display:flex; align-items:center; padding:0 14px; gap:10px; background:var(--panel); border-bottom:2px solid var(--edge); }
+.mtabs { display:flex; gap:6px; padding:10px 12px; overflow:hidden; border-bottom:2px solid #2c2438; }
+.mtab { flex:none; padding:7px 10px; border:2px solid var(--edge); border-radius:4px; font-size:13px; font-weight:600; color:var(--muted); background:var(--panel); }
+.mtab.on { color:var(--bg); background:var(--tc); border-color:var(--tc); }
+.mlist { padding:10px 12px; display:grid; gap:10px; }
+.mcard { display:grid; grid-template-columns:132px 1fr; gap:10px; background:var(--panel); border:2px solid var(--edge); border-left:5px solid var(--tc); border-radius:4px; padding:6px; align-items:center; }
+.mcard img { width:132px; } .mcard .name { font-size:17px; font-weight:600; } .mcard .row { font-size:12px; color:var(--muted); }
+.mbtn { margin-top:6px; width:100%; padding:9px; font-size:15px; }
+.mvictory { padding:18px 16px; text-align:center; }
+.mvictory h1 { font-size:34px; margin:6px 0 0; color:var(--gold-hi); letter-spacing:.1em; text-shadow:3px 3px 0 #6b3f12; }
+.mvictory .bigstars .star { width:64px; height:64px; } .mvictory .bigstars .star:nth-child(2) { width:80px; height:80px; }
+.mvictory .vstats { grid-template-columns:1fr 1fr; }
+.mvictory .choice { grid-template-columns:1fr; }
+</style></head><body>
+
+<!-- ================= desktop map select ================= -->
+<section class="view" id="select">
+  <header class="top"><div class="logo">LAST<span>STAND</span></div><div class="crumb">Choose your battlefield</div>
+    <div class="total"><small>STARS</small><span id="tot"></span>4 / 12</div><button class="btn">Settings</button></header>
+  <div class="goal"><span class="stars" data-n="1" data-max="1"></span> Next goal: <b>earn ★★ on Switchback</b> (clear wave 50 with at least 10 of 20 lives) · or try <b>Ridge Pass</b>, newly unlocked.</div>
+  <div class="layout">
+    <div class="tiers">
+      <div class="tier" style="--tc:var(--beginner)"><h2><span class="pips"><i></i><i class="off"></i><i class="off"></i><i class="off"></i></span>Beginner<span class="count">3/3 ★</span></h2>
+        <div class="card" style="--tc:var(--beginner)"><div class="ribbon">CLEARED</div><div class="thumb"><img src="map-millbrook.png"></div>
+          <div class="meta"><div class="name">Millbrook Meadows</div><div class="row"><span class="stars" data-n="3"></span><span>Best <b>63</b> · Freeplay</span></div></div></div>
+        <div class="ghost">More Beginner maps in later updates</div></div>
+      <div class="tier" style="--tc:var(--intermediate)"><h2><span class="pips"><i></i><i></i><i class="off"></i><i class="off"></i></span>Intermediate<span class="count">1/3 ★</span></h2>
+        <div class="card" style="--tc:var(--intermediate)"><div class="ribbon">CLEARED</div><div class="thumb"><img src="map-switchback.png"></div>
+          <div class="meta"><div class="name">Switchback</div><div class="row"><span class="stars" data-n="1"></span><span>Best <b>51</b></span></div></div></div></div>
+      <div class="tier" style="--tc:var(--advanced)"><h2><span class="pips"><i></i><i></i><i></i><i class="off"></i></span>Advanced<span class="count">0/3 ★</span></h2>
+        <div class="card selected" style="--tc:var(--advanced)"><div class="thumb"><img src="map-ridge-pass.png"></div>
+          <div class="meta"><div class="name">Ridge Pass</div><div class="row"><span class="stars" data-n="0"></span><span>Best <b>34</b></span></div></div></div></div>
+      <div class="tier" style="--tc:var(--expert)"><h2><span class="pips"><i></i><i></i><i></i><i></i></span>Expert<span class="count">locked</span></h2>
+        <div class="card locked" style="--tc:var(--expert)"><div class="thumb"><img src="map-gauntlet.png"></div>
+          <div class="lock"><div><svg viewBox="0 0 10 12"><rect x="2" y="0" width="6" height="2" fill="#b4aec4"/><rect x="1" y="1" width="2" height="5" fill="#b4aec4"/><rect x="7" y="1" width="2" height="5" fill="#b4aec4"/><rect x="0" y="5" width="10" height="7" fill="#f2c94c"/><rect x="4" y="7" width="2" height="3" fill="#6b3f12"/></svg>Clear any Advanced map<br>to unlock</div></div>
+          <div class="meta"><div class="name">The Gauntlet</div><div class="row"><span>Locked</span><span>—</span></div></div></div></div>
+    </div>
+    <aside class="detail">
+      <img class="big" src="map-ridge-pass.png">
+      <div class="body">
+        <div class="tierline">Advanced · new</div><h3>Ridge Pass</h3>
+        <p>A short mountain road. Cliffs fill the inside of every bend, so the best corner spots are gone: spread your towers along the straights and lean on range.</p>
+        <div class="facts"><div class="fact"><small>Road</small><b>31</b> tiles</div><div class="fact"><small>Build tiles</small><b>181</b></div><div class="fact"><small>Best wave</small><b>34</b></div></div>
+        <div class="goals"><div><span class="stars" data-n="1" data-max="1"></span>Clear wave 50</div><div><span class="stars" data-n="2" data-max="2"></span>…with at least 10 of 20 lives</div><div><span class="stars" data-n="3" data-max="3"></span>…without losing a life</div></div>
+        <div class="actions"><button class="btn">Back <kbd>Esc</kbd></button><button class="btn btn-primary">Play Ridge Pass <kbd>Enter</kbd></button></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= victory at wave 50 ================= -->
+<section class="view" id="victory"><div class="stage"><img src="heroes-combat-4x.png" style="object-fit:cover"><div class="dim"></div>
+  <div class="victory">
+    <div class="kicker">WAVE 50 CLEARED</div><h1>VICTORY</h1><div class="sub">Switchback · Intermediate</div>
+    <div class="bigstars"><span class="star big lit"></span><span class="star big lit"></span><span class="star big"></span></div>
+    <div class="starhint">14 of 20 lives left: <b>2 stars</b>. Lose no lives for the third.</div>
+    <div class="vstats"><div><small>Lives</small><b>14/20</b></div><div><small>Kills</small><b>1,284</b></div><div><small>Towers</small><b>17</b></div><div><small>Gold earned</small><b>9,410</b></div></div>
+    <div class="unlock"><img src="map-ridge-pass.png"><div><small>NEW MAP UNLOCKED</small><b>Ridge Pass</b><span>Advanced · cliffs take the corners</span></div></div>
+    <div class="choice"><button class="btn">Claim Victory<small>Return to maps</small></button><button class="btn btn-gold">Continue Freeplay ▶<small>Keep your towers. Endless waves.</small></button></div>
+    <div class="saved">✓ Completion and 2 stars saved. Freeplay can't change them.</div>
+  </div></div></section>
+
+<!-- ================= freeplay HUD + milestone ================= -->
+<section class="view" id="freeplay"><div class="stage"><img src="heroes-combat-4x.png" style="object-fit:cover">
+  <div class="hud"><div class="logo">LAST<span>STAND</span></div><span class="chip free">FREEPLAY</span>
+    <div class="milestone">Next milestone <b style="color:var(--text)">wave 100</b><div class="bar"><i></i></div></div>
+    <div style="margin-left:auto; display:flex; gap:10px"><div class="stat" style="color:var(--wave)"><small>WAVE</small>87</div><div class="stat" style="color:var(--gold)"><small>GOLD</small>2,416</div><div class="stat" style="color:var(--health)"><small>HEALTH</small>9</div></div></div>
+  <div class="toast"><small>FREEPLAY MILESTONE</small><b>Wave 75 reached!</b><span>New best on Switchback · stars unchanged (★★)</span></div>
+</div></section>
+
+<!-- ================= mobile map select ================= -->
+<section class="view" id="mselect"><div class="phone">
+  <div class="mtop"><div class="logo" style="font-size:15px">LAST<span>STAND</span></div><div class="total" style="font-size:18px; padding:4px 10px">4/12 ★</div></div>
+  <div class="goal" style="margin:10px 12px 0; font-size:13px">Next: <b>★★ on Switchback</b></div>
+  <div class="mtabs"><span class="mtab" style="--tc:var(--beginner)">Beginner 3★</span><span class="mtab on" style="--tc:var(--intermediate)">Intermediate 1★</span><span class="mtab" style="--tc:var(--advanced)">Advanced</span><span class="mtab">Expert 🔒</span></div>
+  <div class="mlist">
+    <div class="mcard" style="--tc:var(--intermediate)"><img src="map-switchback.png"><div><div class="name">Switchback</div><div class="row"><span class="stars" data-n="1"></span> · Best 51</div><button class="btn btn-primary mbtn">Play</button></div></div>
+    <div class="ghost">More Intermediate maps later</div>
+  </div>
+</div></section>
+
+<!-- ================= mobile victory ================= -->
+<section class="view" id="mvictory"><div class="phone" style="background:var(--panel)">
+  <div class="mvictory"><div class="kicker" style="color:var(--gold); letter-spacing:.3em; font-size:12px; font-weight:600">WAVE 50 CLEARED</div><h1>VICTORY</h1>
+    <div style="color:var(--muted); font-size:14px">Switchback · Intermediate</div>
+    <div class="bigstars"><span class="star big lit"></span><span class="star big lit"></span><span class="star big"></span></div>
+    <div class="starhint">14 of 20 lives: <b>2 stars</b></div>
+    <div class="vstats"><div><small>Lives</small><b>14/20</b></div><div><small>Kills</small><b>1,284</b></div><div><small>Towers</small><b>17</b></div><div><small>Gold</small><b>9,410</b></div></div>
+    <div class="unlock"><img src="map-ridge-pass.png" style="width:96px"><div><small>UNLOCKED</small><b>Ridge Pass</b></div></div>
+    <div class="choice"><button class="btn btn-gold">Continue Freeplay ▶<small>Keep your towers</small></button><button class="btn">Claim Victory<small>Back to maps</small></button></div>
+    <div class="saved">✓ Stars saved</div></div>
+</div></section>
+
+<script>
+// A pixel-art star (11×10): gold when lit, an outline when not.
+const STAR = ['.....#.....','....###....','....###....','###########','.#########.','..#######..','..#######..','.####.####.','.###...###.','.##.....##.'];
+function starSvg(lit) {
+  let r = '';
+  STAR.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === '#') r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${lit ? (y < 4 ? '#fbe7a1' : '#f2c94c') : '#3b3150'}"/>`; }));
+  return `<svg viewBox="-0.5 -0.5 12 11" shape-rendering="crispEdges">${r}</svg>`;
+}
+document.querySelectorAll('.stars').forEach((el) => { const n = +el.dataset.n, max = +(el.dataset.max || 3); el.innerHTML = Array.from({ length: max }, (_, i) => `<span class="star">${starSvg(i < n)}</span>`).join(''); });
+document.querySelectorAll('.star.big').forEach((el) => (el.innerHTML = starSvg(el.classList.contains('lit'))));
+const view = (location.search.match(/view=(\w+)/) || [, 'select'])[1];
+document.getElementById(view).classList.add('on');
+</script>
+</body></html>
