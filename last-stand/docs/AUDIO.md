@@ -171,16 +171,22 @@ small memory.
 - **The repository has no license file.** The code is therefore "all rights reserved". The music is
   listed separately here so it is not mistaken for code under a future license.
 
-### Needs the owner's confirmation before public release
+### Owner's confirmations (status 2026-10-29)
 
-1. **Which Gemini product and plan** made the track, and that the account is the owner's personal,
-   adult account: the Gemini app (free or Google AI Plus, Pro or Ultra), AI Studio, the API, or
-   Workspace. The applicable commercial-use rules depend on it.
-2. **That you have read the current terms** for that product (Google Terms of Service, the Gemini Apps
-   terms, the Generative AI Prohibited Use Policy) and that they allow distributing the track in a free,
-   public web game and a public repository.
-3. **The prompt** used, for the record. Confirm that it did not ask for a named artist's style or voice,
-   or for an existing song.
-4. **The generation date**, 2026-10-29: confirm it matches your account history.
-5. **Accept** that the track is labelled AI-generated in the game, and that others may legally reuse it
-   (no copyright).
+**Public distribution of the audio is on hold** until the licensing is verified. Nothing goes to `main`
+or the public site without the owner's approval.
+
+| # | Point | Status |
+| --- | --- | --- |
+| 1 | Product and plan | Made with Google Gemini's music-generation feature. **Pending:** the exact account plan. |
+| 2 | Terms allow distribution in a public game and repository | **Pending:** Google's public documentation reviewed by the owner; explicit permission not yet verified. |
+| 3 | Prompt | Confirmed: written for Last Stand, asking for an original, whimsical fantasy game soundtrack, with no named artist or existing song. |
+| 4 | Generation date | 2026-10-29, matching the C2PA time-stamp. **Pending:** check against the Gemini history. |
+| 5 | AI credit, no exclusive copyright | Confirmed: credited as AI-generated with Google Gemini; the owner accepts that others could reuse it. |
+
+**The composition is preserved.** Only the technical edits in section 2 are allowed.
+
+**Exposure so far:** this repository is public. The development branch
+(`claude/last-stand-tower-defense-h0g381`) already contains the master MP3 and the game's music
+files, so they can be downloaded from GitHub, though nothing links to them. The public game site
+(`main`) does not have them. The hosted preview is private to the owner.

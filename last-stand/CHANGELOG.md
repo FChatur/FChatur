@@ -6,7 +6,8 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
-Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release.
+Planned as 0.7.0 (Audio & Music), awaiting the owner's approval to release. Release blocker: the
+soundtrack's licensing for public distribution is still being verified (docs/AUDIO.md section 4).
 
 ### Added
 - Background music: "Picnic at the Tower Gate" (AI-generated with Google Gemini, credited in the main
