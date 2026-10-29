@@ -8,10 +8,13 @@ const RAMPS = {
   ink: [0x1a1424, 0x2c2438],
   stone: [0x3b3950, 0x565670, 0x77788f, 0x9c9db0, 0xc7c8d4],
   wood: [0x3d2421, 0x5c3628, 0x7c4e33, 0xa06b42, 0xc8945d],
-  dirt: [0x5e432f, 0x7d5c3c, 0x9c774b, 0xbb9660, 0xd6b47c],
-  grass: [0x24452c, 0x33603a, 0x467d42, 0x5f994b, 0x7fb558, 0xa6cf73],
-  leaf: [0x16302a, 0x1f4636, 0x2f6243, 0x46804f, 0x68a05c],
-  goblin: [0x3f5223, 0x617a2c, 0x8aa637, 0xb5cc50],
+  dirt: [0x5a3a26, 0x7e5432, 0xa57446, 0xc99a5e, 0xe6c389],
+  /** Warm, saturated meadow greens; the last tone is sunlit grass. */
+  grass: [0x1e4527, 0x2b6131, 0x3c7f38, 0x529e40, 0x72ba4c, 0xa3d765, 0xcfe88a],
+  /** Cooler, deeper greens for tree canopies, so the forest frames the warmer clearing. */
+  leaf: [0x0f2a24, 0x174536, 0x23643f, 0x368449, 0x59a653, 0x8fcb6a],
+  /** Olive-khaki, so goblins stand out from the meadow greens. */
+  goblin: [0x4f4a1f, 0x7f7a2a, 0xb3ac3f, 0xdfd76a],
   orc: [0x3a4430, 0x55623f, 0x738352, 0x95a46a],
   ogre: [0x5a3326, 0x87513a, 0xb27652, 0xd6a079],
   skin: [0x6b3f33, 0xa3664e, 0xd6987a, 0xf0c4a3],
@@ -21,6 +24,8 @@ const RAMPS = {
   gold: [0x6b3f12, 0xa3631c, 0xd9972f, 0xf2c94c, 0xfbe7a1],
   frost: [0x1d2b55, 0x28509a, 0x3b82d6, 0x6cbcf0, 0xb8e8ff, 0xeffaff],
   arcane: [0x2e1d45, 0x4b2d6e, 0x704199, 0x9a62c2],
+  pink: [0x8f2f5a, 0xd65c86, 0xf59ab6],
+  water: [0x1d3f6b, 0x2a6a9e, 0x4b9cc9, 0x96d6ee],
   white: [0xf4efe4],
 } as const;
 
@@ -39,6 +44,15 @@ export function shade(ramp: Ramp, index: number): number {
 
 export function rampLength(ramp: Ramp): number {
   return RAMPS[ramp].length;
+}
+
+const RAMP_OF = new Map<number, { ramp: Ramp; index: number }>();
+for (const [ramp, shades] of Object.entries(RAMPS)) shades.forEach((c, index) => RAMP_OF.set(c, { ramp: ramp as Ramp, index }));
+
+/** The same colour `steps` lighter (+) or darker (-) within its ramp; unchanged if not a ramp colour. */
+export function shift(color: number, steps: number): number {
+  const at = RAMP_OF.get(color);
+  return at ? shade(at.ramp, at.index + steps) : color;
 }
 
 /** Outline colour for sprites. */

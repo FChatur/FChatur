@@ -1,4 +1,4 @@
-import { blank, blit, ellipse, outlined, rect, set, type Bitmap } from '../bitmap';
+import { blank, ellipse, outlined, rect, set, type Bitmap } from '../bitmap';
 import { seeded } from '../noise';
 import { COLORS } from '../palette';
 import { shadedEllipse } from '../shapes';
@@ -20,8 +20,10 @@ export function tree(seed: number): Bitmap {
   leafClump(b, 7, 11, 5, 4, seed * 5 + 2);
   leafClump(b, 15, 11, 5, 4, seed * 7 + 3);
   // A few highlight leaves on the lit side.
-  for (let i = 0; i < 6; i++) set(b, 6 + Math.floor(r() * 7), 3 + Math.floor(r() * 5), COLORS.grass5);
-  if (r() < 0.3) for (let i = 0; i < 3; i++) set(b, 5 + Math.floor(r() * 12), 6 + Math.floor(r() * 8), COLORS.red3);
+  for (let i = 0; i < 6; i++) set(b, 6 + Math.floor(r() * 7), 3 + Math.floor(r() * 5), COLORS.leaf5);
+  // Some trees carry fruit or blossom, for small dots of colour in the forest.
+  const fruit = [COLORS.red3, COLORS.gold3, COLORS.pink2][Math.floor(r() * 3)];
+  if (r() < 0.4) for (let i = 0; i < 4; i++) set(b, 5 + Math.floor(r() * 12), 6 + Math.floor(r() * 8), fruit);
   return outlined(b, COLORS.leaf0);
 }
 
@@ -82,11 +84,4 @@ export function stump(seed: number): Bitmap {
   set(b, 4, 2, COLORS.wood2);
   if (seed % 2) set(b, 0, 5, COLORS.wood1);
   return outlined(b);
-}
-
-/** A soft ground shadow (drawn into the terrain under props). */
-export function groundShadow(target: Bitmap, cx: number, bottom: number, w: number, color: number): void {
-  const s = blank(target.w, target.h);
-  ellipse(s, cx + 1, bottom - 1, w / 2, Math.max(1.5, w / 6), color);
-  blit(target, s, 0, 0);
 }

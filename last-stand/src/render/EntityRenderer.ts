@@ -13,6 +13,8 @@ import { ART_SCALE, ATLAS_KEY, frameSize, pixelImage, shadowTexture } from './pi
 
 /** Real-time durations (ms). Animated in sync(), so no tweens are needed. */
 const FLASH_MS = 70;
+/** Hit creatures flinch one art pixel away from the shot for this long. */
+const FLINCH_MS = 80;
 /** How long a defender shows its "just shot" pose. */
 const SHOT_POSE_MS = 150;
 /** Drop-in when a tower is built. */
@@ -24,7 +26,12 @@ interface EnemyView {
   body: Phaser.GameObjects.Image;
   barBack: Phaser.GameObjects.Rectangle;
   barFill: Phaser.GameObjects.Rectangle;
+  /** Snowflake shown over slowed creatures. */
+  frost: Phaser.GameObjects.Image;
   art: CreatureArt;
+  /** Direction of the last hit (unit vector), for the flinch. */
+  hitDx: number;
+  hitDy: number;
   /** Body height in world units, for placing the health bar. */
   height: number;
   facing: 1 | -1;
@@ -109,14 +116,18 @@ export class EntityRenderer {
     }
 
     prune(this.towers, frame, (v) => destroyAll(v.shadow, v.base, v.defender));
-    prune(this.enemies, frame, (v) => destroyAll(v.shadow, v.body, v.barBack, v.barFill));
+    prune(this.enemies, frame, (v) => destroyAll(v.shadow, v.body, v.barBack, v.barFill, v.frost));
     prune(this.projectiles, frame, (v) => this.releaseProjectile(v));
   }
 
-  /** Brief white flash when an enemy takes a hit. */
-  flashEnemy(id: number): void {
+  /** Brief white flash when an enemy takes a hit, and a flinch away from where the shot came from. */
+  flashEnemy(id: number, dx = 0, dy = 0): void {
     const view = this.enemies.get(id);
-    if (view) view.hitAt = this.scene.time.now;
+    if (!view) return;
+    view.hitAt = this.scene.time.now;
+    const len = Math.hypot(dx, dy) || 1;
+    view.hitDx = dx / len;
+    view.hitDy = dy / len;
   }
 
   /** Shooting pose when a tower fires. */
@@ -134,7 +145,7 @@ export class EntityRenderer {
 
   clear(): void {
     for (const v of this.towers.values()) destroyAll(v.shadow, v.base, v.defender);
-    for (const v of this.enemies.values()) destroyAll(v.shadow, v.body, v.barBack, v.barFill);
+    for (const v of this.enemies.values()) destroyAll(v.shadow, v.body, v.barBack, v.barFill, v.frost);
     for (const v of this.projectiles.values()) v.img.destroy();
     for (const pool of this.projectilePool.values()) for (const img of pool) img.destroy();
     this.projectilePool.clear();
@@ -152,7 +163,7 @@ export class EntityRenderer {
       .setScale(ART_SCALE)
       .setDepth(DEPTH.shadows);
     const base = pixelImage(this.scene, t.x, bottom, `tower-${t.type}-base`, t.level - 1).setOrigin(0.5, 1);
-    const defender = this.scene.add.image(t.x, 0, ATLAS_KEY, this.defenderFrame(t, false)).setScale(ART_SCALE).setOrigin(0.5, 1);
+    const defender = this.scene.add.image(t.x, 0, ATLAS_KEY, this.defenderFrame(t, false, now)).setScale(ART_SCALE).setOrigin(0.5, 1);
     const built = prefersReducedMotion() ? -Infinity : now;
     const view: TowerView = { shadow, base, defender, level: t.level, firedAt: -Infinity, builtAt: built, seen: 0 };
     this.applyLevel(view, t);
@@ -170,7 +181,7 @@ export class EntityRenderer {
 
   private updateTower(view: TowerView, t: Tower, now: number): void {
     const shooting = now - view.firedAt < SHOT_POSE_MS;
-    view.defender.setFrame(this.defenderFrame(t, shooting));
+    view.defender.setFrame(this.defenderFrame(t, shooting, now));
     // Archers and mages face their target; the ballista turns instead.
     if (TOWER_ART[t.type].defender !== 'ballista') view.defender.setFlipX(Math.cos(t.angle) < -0.05);
     // New towers drop into place.
@@ -183,12 +194,13 @@ export class EntityRenderer {
     view.defender.setY(feet - lift).setAlpha(1 - drop * 0.6);
   }
 
-  private defenderFrame(t: Tower, shooting: boolean): string {
+  private defenderFrame(t: Tower, shooting: boolean, now: number): string {
     switch (TOWER_ART[t.type].defender) {
       case 'ballista':
         return frameKey(shooting ? 'tower-sniper-fired' : 'tower-sniper-loaded', directionIndex(t.angle, BALLISTA_DIRECTIONS));
       case 'mage':
-        return frameKey(`tower-${t.type}-cast`, shooting ? 1 : 0);
+        // The staff crystal pulses while idle and flares when casting.
+        return frameKey(`tower-${t.type}-cast`, shooting ? 2 : Math.floor(now / 450 + t.id) % 2);
       case 'archer':
         return frameKey(`tower-${t.type}-shoot`, shooting ? 1 : 0);
     }
@@ -210,14 +222,21 @@ export class EntityRenderer {
       .setOrigin(0, 0)
       .setDepth(DEPTH.bars);
     const barFill = this.scene.add.rectangle(0, 0, barW, ART_SCALE, PALETTE.hpHigh).setOrigin(0, 0).setDepth(DEPTH.bars + 1);
-    const view: EnemyView = { shadow, body, barBack, barFill, art, height: h * ART_SCALE, facing: 1, hitAt: -Infinity, seen: 0 };
+    const frost = pixelImage(this.scene, e.x, e.y, 'snowflake', 0).setDepth(DEPTH.bars + 2).setVisible(false);
+    const view: EnemyView = {
+      shadow, body, barBack, barFill, frost, art, height: h * ART_SCALE, facing: 1, hitAt: -Infinity, hitDx: 0, hitDy: 0, seen: 0,
+    };
     this.enemies.set(e.id, view);
     return view;
   }
 
   private updateEnemy(view: EnemyView, e: Enemy, alpha: number, now: number): void {
-    const x = lerp(e.prevX, e.x, alpha);
-    const y = lerp(e.prevY, e.y, alpha);
+    let x = lerp(e.prevX, e.x, alpha);
+    let y = lerp(e.prevY, e.y, alpha);
+    if (now - view.hitAt < FLINCH_MS) {
+      x += Math.round(view.hitDx) * ART_SCALE;
+      y += Math.round(view.hitDy) * ART_SCALE;
+    }
     const feet = y + view.art.feet * ART_SCALE;
     const dx = e.x - e.prevX;
     if (Math.abs(dx) > 0.01) view.facing = dx < 0 ? -1 : 1;
@@ -228,6 +247,13 @@ export class EntityRenderer {
     if (now - view.hitAt < FLASH_MS) view.body.setTintFill(0xffffff);
     else if (e.slowFactor < 1) view.body.setTint(PALETTE.slowed);
     else view.body.clearTint();
+    // Slowed creatures carry a bobbing snowflake, readable even in a crowd.
+    const slowed = e.slowFactor < 1;
+    view.frost.setVisible(slowed);
+    if (slowed) {
+      const bob = Math.floor(now / 250) % 2;
+      view.frost.setPosition(x + 5 * ART_SCALE * view.facing, feet - view.height - (2 + bob) * ART_SCALE);
+    }
     this.updateHpBar(view, e, x, feet - view.height - 4 * ART_SCALE);
   }
 

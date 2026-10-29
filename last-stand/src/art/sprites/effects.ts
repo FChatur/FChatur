@@ -88,37 +88,46 @@ function heavyImpact(): Bitmap[] {
   });
 }
 
-/** Explosion sized to a splash radius (art pixels): flash, fireball, smoke. */
+/**
+ * Explosion sized to a splash radius (art pixels): a small fiery core and an expanding shockwave ring.
+ * Mostly empty inside, so enemies caught in the blast stay visible.
+ */
 export function explosionFrames(radius: number): Bitmap[] {
   const r = Math.max(4, Math.round(radius));
   const size = r * 2 + 3;
-  const c = size / 2;
-  const stages: [number, number, number][] = [
-    [0.45, COLORS.white0, COLORS.gold4],
-    [0.75, COLORS.gold3, COLORS.white0],
-    [1, COLORS.red3, COLORS.gold3],
-    [0.95, COLORS.stone2, COLORS.red3],
-    [0.8, COLORS.stone2, COLORS.stone3],
-  ];
-  return stages.map(([scale, outer, inner], f) => {
-    const b = blank(size, size);
-    if (f < 3) {
-      ellipse(b, c, c, r * scale, r * scale * 0.85, outer);
-      ellipse(b, c - r * 0.15, c - r * 0.18, r * scale * 0.55, r * scale * 0.45, inner);
-      return b;
-    }
-    // Smoke: a few round puffs drifting apart, not a dithered disc.
+  const c = Math.floor(size / 2);
+  const frames: Bitmap[] = [];
+  // Flash: a compact white-gold burst.
+  let b = blank(size, size);
+  ellipse(b, c + 0.5, c + 0.5, r * 0.32, r * 0.28, COLORS.gold3);
+  ellipse(b, c + 0.5, c + 0.5, r * 0.18, r * 0.16, COLORS.white0);
+  frames.push(b);
+  // Ring expanding outward, fire fading in the middle.
+  for (const [t, ringColor, core] of [
+    [0.55, COLORS.gold4, COLORS.red3],
+    [0.8, COLORS.gold3, COLORS.red2],
+    [1, COLORS.red3, -1],
+  ] as const) {
+    b = blank(size, size);
+    ring(b, c, c, Math.round(r * t), ringColor);
+    if (t < 1) ring(b, c, c, Math.round(r * t) - 1, COLORS.red3);
+    if (core >= 0) ellipse(b, c + 0.5, c + 0.5, r * 0.2, r * 0.17, core);
     for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.4;
-      const d = r * (f === 3 ? 0.45 : 0.6);
-      const pr = r * (f === 3 ? 0.42 : 0.3);
-      const px = c + Math.cos(a) * d;
-      const py = c + Math.sin(a) * d * 0.8;
-      ellipse(b, px, py, pr, pr * 0.85, outer);
-      ellipse(b, px - pr * 0.3, py - pr * 0.3, pr * 0.5, pr * 0.4, inner);
+      const a = (i / 6) * Math.PI * 2 + t * 3;
+      set(b, c + Math.cos(a) * r * t * 0.6, c + Math.sin(a) * r * t * 0.6, COLORS.gold4);
     }
-    return b;
-  });
+    frames.push(b);
+  }
+  // A last wisp of smoke on the ring.
+  b = blank(size, size);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + 0.3;
+    const px = c + Math.cos(a) * r * 0.9;
+    const py = c + Math.sin(a) * r * 0.9;
+    ellipse(b, px, py, 1.4, 1.2, COLORS.stone3);
+  }
+  frames.push(b);
+  return frames;
 }
 
 const COIN: Legend = { y: 'gold3', Y: 'gold4', d: 'gold2', D: 'gold1' };

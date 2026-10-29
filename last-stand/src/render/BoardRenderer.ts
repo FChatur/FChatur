@@ -2,10 +2,13 @@ import Phaser from 'phaser';
 import { paintTerrain, type Terrain } from '../art/terrain';
 import type { MapConfig } from '../config/maps';
 import type { Path } from '../core/Path';
+import { Ambient } from './Ambient';
 import { ART_SCALE, bitmapTexture } from './pixel';
 import { DEPTH } from './palette';
 
 export interface BoardView {
+  /** Advances ambient animation (call every frame). */
+  update(): void;
   destroy(): void;
 }
 
@@ -42,5 +45,12 @@ export function drawBoard(scene: Phaser.Scene, map: MapConfig, path: Path): Boar
     .setOrigin(0, 0)
     .setScale(ART_SCALE)
     .setDepth(DEPTH.terrain);
-  return { destroy: () => image.destroy() };
+  const ambient = new Ambient(scene, terrain);
+  return {
+    update: () => ambient.update(),
+    destroy: () => {
+      ambient.destroy();
+      image.destroy();
+    },
+  };
 }

@@ -23,7 +23,7 @@ test('build, inspect, upgrade and sell a tower', async ({ page }) => {
   // Shop tooltip.
   await page.locator('.tower-btn').first().hover();
   await expect(page.locator('#tower-tooltip')).toBeVisible();
-  await expect(page.locator('#tower-tooltip h3')).toHaveText('Turret');
+  await expect(page.locator('#tower-tooltip h3')).toHaveText('Archer Tower');
 
   // Build with the hotkey and a click; building costs gold.
   await page.keyboard.press('1');
@@ -37,7 +37,7 @@ test('build, inspect, upgrade and sell a tower', async ({ page }) => {
   await expect(page.locator('#tower-tooltip .tt-level')).toHaveText('Level 1/3');
   await page.mouse.click(x, y);
   await expect(page.locator('#tower-panel')).toBeVisible();
-  await expect(page.locator('#tp-name')).toHaveText('Turret');
+  await expect(page.locator('#tp-name')).toHaveText('Archer Tower');
 
   // Upgrade (45g) then sell.
   await page.locator('#tp-upgrade').click();
@@ -122,14 +122,14 @@ test('resizing keeps the board sharp and clicks on the right tile', async ({ pag
   await expect.poll(() => stat(page, 'gold')).toBe(gold0 - 50);
   // Clicking the same tile now selects that tower: the click landed where intended.
   await clickTile(page, 3, 3);
-  await expect(page.locator('#tp-name')).toHaveText('Turret');
+  await expect(page.locator('#tp-name')).toHaveText('Archer Tower');
 });
 
 test('keyboard focus on a shop tower shows its tooltip', async ({ page }) => {
   await startRun(page);
   await page.locator('.tower-btn').nth(1).focus();
   await expect(page.locator('#tower-tooltip')).toBeVisible();
-  await expect(page.locator('#tower-tooltip h3')).toHaveText('Sniper');
+  await expect(page.locator('#tower-tooltip h3')).toHaveText('Ballista Tower');
   await expect(page.locator('#tower-tooltip .tt-stats')).toContainText('Global');
 });
 

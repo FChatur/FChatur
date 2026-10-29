@@ -203,3 +203,48 @@ more. Humans play differently, so the playtest stays the final judge.
 | Drag-and-drop edge cases (leaving the window, Esc, right-click, touch) | Pointer capture, explicit cancel paths, end-to-end tests |
 | End-to-end tests assumed the canvas is exactly the map | Tests read the map's on-screen rectangle from the page instead |
 | Rotated pixel art looks broken | Directional frames and flips instead of rotation |
+
+## 8. Visual Prototype V2: colour, life and polish (GitHub issue #1)
+
+Owner feedback on V1: "A little more polished! Pixelated is also cool, but it lacks color and life."
+V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Review-only: not on `main`.
+
+### What V2 changes (implemented in code, visible in the game on the development branch)
+- **Colour and light:** warmer, more saturated meadow greens and cooler, deeper forest greens, so the
+  clearing glows against the forest frame; warmer road earth with a dark rim, so the path is the
+  strongest shape on the map. Sunlit glades and shaded hollows instead of one flat green; warm sunlight
+  from the upper left is baked into the ground (no per-frame cost). New pink and water colours.
+- **Living battlefield:** a composed tree line hugging the clearing, canopies casting dappled shade;
+  undergrowth, flower meadows in one or two colours each, a pond with lily pads and reeds, a
+  timber-framed cave with torches and eyes blinking in the dark, a gatehouse with torches. Ambient
+  motion: flickering torches, butterflies over meadows, falling leaves, swaying grass at the edge.
+  Everything ambient stays behind creatures and towers, and is off with reduced motion.
+- **Distinct towers:** Archer = red, steel and stone, rectangular (watchtower → keep with twin banners);
+  Ranger = green and organic (treehouse with leafy boughs, lantern, rope ladder; pale-green hooded ranger
+  with a longbow); Ballista = heavy artillery (sandbags, iron bands, bolt rack, larger iron-banded
+  crossbow); Frost Mage = magical (pale spire with glowing runes and ice shards; wizard whose staff
+  crystal pulses and flares when casting). Each upgrade level adds visible material, height or regalia.
+- **Expressive enemies:** olive-khaki goblins (they no longer blend into the grass) with red eyes;
+  wolves with a dark back and red eyes; orcs with horned helmets, glowing eyes and a red cape; the ogre
+  with glowing eyes.
+- **Combat impact:** creatures flinch one pixel away from each hit as they flash; slowed creatures carry
+  a bobbing snowflake; ballista hits add a small, rate-limited camera kick; explosions are a fiery core
+  and an expanding shockwave ring (V1's solid blasts hid the enemies inside them).
+
+### Proposed only (shown in mockups, not built yet)
+- The interface: collapsible left sidebar shop with large cards, drag-and-drop building with ghost and
+  build grid, and the redesigned tower panel with targeting buttons. The game logic behind it exists
+  (targeting modes, drag state, release-to-build); the HTML interface is still v0.5.0's. V2 mockups use
+  bigger, higher-contrast text and a smaller, opaque tower panel placed on the side of the board away
+  from the selected tower.
+
+### Results (measured on the development branch)
+- Unit tests 143/143; production build passes; browser tests 9/9 in Chromium (Firefox and WebKit run in
+  CI; not installed locally). Two browser tests were updated for the new tower names and one helper to
+  find the map on the larger canvas.
+- Crowded wave 50 (20 maxed towers, 31 enemies, 3x, 1600×1012, headless software rendering, so compare
+  relatively): v0.5.0 10.8 fps, V1 16.3 fps, V2 18 fps (p95 frame 66.7 ms vs 116.7 ms on v0.5.0). A
+  first V2 attempt drew sunlight as a full-screen translucent layer and dropped to 13.7 fps; baking it into
+  the ground fixed that.
+- Legibility: checked at actual scale (4× at 1600×1012, 3× at 1366×768): the whole map fits at a whole
+  scale, the road is the strongest shape, slowed and damaged enemies are distinguishable.
