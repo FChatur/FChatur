@@ -45,6 +45,9 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
 - `npm run art` renders hero previews (lineup, stages, poses, animated reels) to art-preview/.
 
 ### Docs
+- Wave-50 performance investigation (docs/VISUAL_PROTOTYPE.md section 9.1): the ~20 fps figure is the
+  test container's software renderer; the game's own work is about 2 ms per frame, 7.8 ms with a 4x
+  slower CPU.
 - Phase 6 proposal: [docs/VISUAL_PROTOTYPE.md](docs/VISUAL_PROTOTYPE.md) (pixel-art specification, asset
   approach, interface layout, steps and risks, combat balance evidence). Roadmap: Phase 6, then Phase 7
   (maps and map selection).
