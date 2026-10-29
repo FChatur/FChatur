@@ -157,11 +157,30 @@ describe('free starter Archer', () => {
     expect(sim.buildCost('basic')).toBe(0);
   });
 
-  it('is once per run: a new run has its own free Archer', () => {
+  it('stays used for the rest of the run: waves, upgrade picks and pausing never reset it', () => {
+    const { sim } = makeSim({ startingGold: 1000 });
+    const free = sim.placeTower('basic', 3, 3)!;
+    sim.sellTower(free);
+    for (let wave = 1; wave <= 6; wave++) {
+      sim.startWave();
+      runUntil(sim, () => sim.phase !== 'wave');
+      if (sim.phase === 'draft') sim.chooseUpgrade(sim.draftChoices[0]);
+      expect(sim.buildCost('basic'), `after wave ${wave}`).toBe(ARCHER);
+    }
+  });
+
+  it('resets only when a new run starts (restart, back to the menu, or play again)', () => {
     const session = new GameSession();
+    session.play();
     session.sim.placeTower('basic', 2, 4);
+    session.setPaused(true);
+    session.setPaused(false);
     expect(session.sim.buildCost('basic')).toBe(ARCHER);
     session.restart();
+    expect(session.sim.buildCost('basic')).toBe(0);
+    session.sim.placeTower('basic', 2, 4);
+    session.toMenu();
+    session.play();
     expect(session.sim.buildCost('basic')).toBe(0);
   });
 

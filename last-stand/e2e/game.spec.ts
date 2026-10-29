@@ -239,3 +239,23 @@ test('the tower panel previews the next level and changes targeting', async ({ p
   await page.keyboard.press('t');
   await expect(page.locator('#tp-targeting .tgt-btn.active')).toHaveText('Fastest');
 });
+
+test('the free Archer is used once per run and comes back only with a new run', async ({ page }) => {
+  await startRun(page);
+  const archerCost = page.locator('.tower-btn').first().locator('.tower-cost-value');
+  await expect(archerCost).toHaveText('Free');
+  await page.keyboard.press('1');
+  await clickTile(page, 3, 3);
+  await expect(archerCost).toHaveText('50');
+  // Selling it and pausing don't bring it back.
+  await page.keyboard.press('Escape');
+  await clickTile(page, 3, 3);
+  await page.keyboard.press('s');
+  await page.keyboard.press('p');
+  await page.keyboard.press('p');
+  await expect(archerCost).toHaveText('50');
+  // A new run does.
+  await page.keyboard.press('p');
+  await page.locator('#btn-pause-restart').click();
+  await expect(archerCost).toHaveText('Free');
+});
