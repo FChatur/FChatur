@@ -37,6 +37,17 @@
         </button>
       </header>
 
+      <div id="middle">
+      <aside id="shop" class="shop" aria-label="Tower shop">
+        <div class="shop-head">
+          <h2 class="shop-title">Towers</h2>
+          <button id="shop-toggle" class="shop-toggle" aria-controls="shop" aria-expanded="true" title="Collapse the shop">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5M14 3 9 8l5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          </button>
+        </div>
+        <div id="tower-bar" class="shop-cards"></div>
+        <p class="shop-help">Drag onto the map, or press 1–4 and click a tile.</p>
+      </aside>
       <main id="stage">
         <div id="game-container"></div>
 
@@ -53,12 +64,26 @@
 
         <aside id="tower-panel" class="tower-panel hidden" aria-live="polite">
           <header class="tp-header">
-            <span class="tp-swatch"></span>
-            <h2 id="tp-name">Tower</h2>
-            <span id="tp-level" class="tp-level">LV 1</span>
+            <span class="tp-portrait"><img id="tp-portrait" alt="" /></span>
+            <div class="tp-titles">
+              <p id="tp-hero" class="tp-hero">Hero</p>
+              <h2 id="tp-name">Tower</h2>
+              <span id="tp-level" class="tp-level">LV 1</span>
+            </div>
             <button id="tp-close" class="tp-close" aria-label="Close">&times;</button>
           </header>
           <dl id="tp-stats" class="tp-stats"></dl>
+          <section id="tp-preview" class="tp-preview" aria-label="Next level">
+            <h3>Next: <span id="tp-next-rank"></span></h3>
+            <div class="tp-preview-row">
+              <span class="tp-portrait tp-portrait-next"><img id="tp-next-portrait" alt="" /></span>
+              <p id="tp-next-looks"></p>
+            </div>
+          </section>
+          <section class="tp-targeting" aria-label="Targeting">
+            <h3>Targeting <kbd>T</kbd></h3>
+            <div id="tp-targeting" class="tp-targeting-buttons" role="group"></div>
+          </section>
           <div class="tp-actions">
             <button id="tp-upgrade" class="btn btn-primary">Upgrade <span id="tp-upgrade-cost"></span> <kbd>U</kbd></button>
             <button id="tp-sell" class="btn btn-danger">Sell <span id="tp-sell-value"></span> <kbd>S</kbd></button>
@@ -113,8 +138,8 @@
               <button id="btn-menu-autowave" class="btn"></button>
             </div>
             <dl class="menu-controls">
-              <dt>1–4</dt><dd>Pick a tower, click a tile to build</dd>
-              <dt>Click tower</dt><dd>Upgrade (U) or sell (S)</dd>
+              <dt>1–4</dt><dd>Pick a tower, click a tile to build (or drag it from the shop)</dd>
+              <dt>Click tower</dt><dd>Upgrade (U), sell (S), targeting (T)</dd>
               <dt>Space</dt><dd>Send the next wave</dd>
               <dt>A</dt><dd>Auto Wave on / off</dd>
               <dt>F</dt><dd>Game speed 1x / 2x / 3x</dd>
@@ -124,9 +149,9 @@
           </div>
         </div>
       </main>
+      </div>
 
       <footer id="bottom-bar">
-        <div id="tower-bar" aria-label="Towers"></div>
         <p id="hint" aria-live="polite"></p>
         <div id="speed-control" class="speed-control" role="group" aria-label="Game speed" title="Game speed (F)"></div>
         <button id="btn-pause" class="btn" title="Pause (P)">Pause <kbd>P</kbd></button>
@@ -137,6 +162,7 @@
       </footer>
     </div>
     <div id="tower-tooltip" class="tower-tooltip hidden" role="tooltip"></div>
+    <img id="drag-avatar" class="drag-avatar hidden" alt="" />
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

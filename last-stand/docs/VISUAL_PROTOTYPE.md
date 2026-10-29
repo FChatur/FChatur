@@ -252,10 +252,11 @@ V2 keeps the pixel-art direction and makes it warmer, livelier and clearer. Revi
 ## 9. Tower personality and character identity (GitHub issue #2)
 
 Goal: four defenders players recognise and get attached to, not four interchangeable buildings. Each
-tower becomes a named hero standing on a structure that grows with them. Review-only: nothing here is on
-`main`, and nothing below changes stats, targeting or the simulation.
+tower becomes a named hero standing on a structure that grows with them. Nothing here changes stats,
+targeting or the simulation. The owner approved this direction; the implementation (section 9.1) is on the
+development branch for review and is not on `main` yet.
 
-### What exists now (art code and preview tooling, not wired into the game)
+### Proposal stage (art code and preview tooling)
 - `src/art/sprites/characters.ts`: the four heroes, three levels each, with idle (3 frames), attack
   (2 frames; Ballista 3) and victory (2 frames) poses, plus their pedestals. Same pipeline as V2: palette
   colours only, auto ink outline, 3 world px per art px, rasterised at runtime.
@@ -264,11 +265,11 @@ tower becomes a named hero standing on a structure that grows with them. Review-
   shop portraits, transparent placement ghosts and a crowded wave-27 still.
 - `docs/mockups/heroes-shop.html`: the left shop and tower panel, built from those images
   (`?view=select`, `?view=place`, `?view=drag`). Run `npm run art` first.
-- The game itself still draws the V2 towers and the v0.5.0 interface.
+- At the proposal stage the game still drew the V2 towers and the v0.5.0 interface (both replaced in 9.1).
 
 ### The four heroes
 Sprite sizes are in art px (one tile = 16): 18 wide, 26–36 tall, so every hero stands about 1.6–2.2 tiles
-tall on a one-tile footprint; the Ballista is 30 wide.
+tall on a one-tile footprint; the Ballista is 22 wide (it was 30 in the first mockups).
 
 **Wren, Archer (dependable starter).**
 - Silhouette: crimson hood with a long tail that kinks in the wind, a cheeky grin, and a bow held across
@@ -281,7 +282,7 @@ tall on a one-tile footprint; the Ballista is 30 wide.
 
 **Brakk, Ballista (heavy hitter).**
 - Silhouette: a stocky dwarf engineer, steel helmet with goggles pushed up, ginger beard, blue overalls,
-  next to a crossbow nearly twice his size. The widest sprite in the game, on purpose.
+  standing behind a crossbow bigger than himself. The widest sprite in the game, on purpose.
 - Animation: idle tapping the frame with a wrench; attack is three beats: wind-up (wrench raised, bow
   cocking), release (the bow kicks back), recovery. The bow keeps V2's eight aiming directions.
 - Upgrades: L1 plank deck, wooden bow → L2 stone emplacement with sandbags, iron-banded bow, apron and
@@ -348,3 +349,79 @@ Replace the V2 tower sprites with the heroes in the atlas; drive idle, attack (o
 victory (on wave clear) in `EntityRenderer`; build the left shop, rail, ghost and panel from the mockup;
 add the declutter rules; then unit, browser and performance checks (wave-50 benchmark against V2's
 18 fps) and screenshots for review.
+
+### 9.1 Implementation (approved direction)
+
+Owner decisions on the options above:
+1. Heroes are the main identity; their structures support the progression. Tall sprites must not hide
+   enemies or the path.
+2. The Ballista is 22 px wide (about 1.4 tiles), and Brakk keeps an oversized crossbow and its recoil.
+3. Hero names are shown prominently on the shop cards.
+4. Short reactions are added for a boss appearing and for lives lost.
+5. Brief celebrations after normal waves, bigger ones after boss waves.
+
+What was built (all rendering and interface; the simulation, stats and balance are unchanged):
+- **Heroes in the game.** The V2 tower sprites are replaced by the heroes (pedestal plus hero, and
+  Brakk's crossbow as a third layer that aims in 8 directions). Archer, Ranger and Frost Mage heroes
+  turn to face their target.
+- **Animation follows each tower's real rhythm.** Heroes draw (or raise the staff) just before a shot is
+  due and release on the shot. Fen alternates frames in a flurry when he fires very fast. Brakk's bow
+  stays slack after a shot, then he cranks it back with his wrench; the bow kicks back when it fires.
+  Idle animation is staggered per tower, so a row of archers doesn't move in lockstep.
+- **Reactions.**
+  - A boss appears: every hero takes an alarm pose with a red "!".
+  - Lives are lost: a short alarm with a sweat drop. It never cuts the boss alarm short.
+  - Normal wave won: a short cheer (about 0.9 s).
+  - Boss wave won: a longer cheer with hops, a gold star and sparkles over every hero (2.6 s).
+  - Heroes start reacting a fraction of a second apart.
+  - The upgrade draft now opens 1.4 s after its wave is cleared, so the celebration is seen. The game is
+    already halted for the pick, so nothing else changes, and 1–3 still choose at once.
+- **Alarm poses:**
+  - Wren: startled, with the arrow nocked.
+  - Brakk: goggles snapped down, wrench up.
+  - Fen: ducks with his ear pricked.
+  - Old Rime: eyes flare white and the crystal blazes.
+- **Occlusion.** A hero (and Brakk's crossbow) fades to 35% while an enemy is behind the part of the
+  sprite that rises above its tile. Pedestals stay inside their tile, so they never hide the road.
+- **Late-wave declutter.**
+  - Creatures walk up to 3 art px to either side of the road's centre line (by id, eased round
+    corners), so packs spread out instead of stacking. This is drawing only.
+  - The "+gold" number on a kill is skipped while 12 or more enemies are on the board (the coin still
+    pops).
+  - Lower caps on simultaneous cosmetic effects: minor impacts 120 → 70, particles 160 → 90, floating
+    text 14 → 10.
+  - Health bars were already thin and only shown on damaged enemies; damage numbers already appeared
+    only for the Ballista.
+- **Left tower shop (permanent layout).**
+  - Cards show a large portrait (the real level-1 sprite at 4×), the hero's name as the title, the tower
+    name in its accent colour, a role line, cost and hotkey.
+  - States: building (bright frame and glow, "BUILDING" tag) and unaffordable (dimmed, red cost,
+    "Need N more").
+  - A collapse button turns the shop into a narrow rail of portraits, costs and hotkeys. It is
+    remembered between visits (`Settings.shopCollapsed`).
+  - Short windows (under 780 px tall) get compact cards.
+- **Building.** Click-to-place and hotkeys work as before. Pressing a card and moving drags it: the map
+  shows the ghost, the range and the build grid; a portrait follows the pointer off the map. Releasing
+  over the map builds there; releasing anywhere else, or pressing Esc, cancels.
+- **Tower panel.**
+  - Shows the hero's portrait at the current level, the hero's name and rank, and the stats with
+    next-level values.
+  - An upgrade preview shows the next level's portrait, rank and what visibly changes.
+  - Targeting buttons (First, Last, Strongest, Fastest; `T` cycles).
+  - The panel opens on the side of the map away from the selected tower.
+- **Interface theme.** The HTML interface uses the art palette and the Pixelify Sans pixel font, so it
+  matches the battlefield.
+
+Results (development branch, measured in this container):
+- Unit tests 145/145; production build passes.
+- Browser tests 12/12 in Chromium, including new ones for drag-and-drop, the collapsible rail, the
+  panel's upgrade preview and its targeting buttons. Firefox and WebKit run in CI.
+- Crowded wave 50 (20 maxed towers, 31 enemies, 3x speed, 1600×1012, headless software rendering, so
+  compare relatively): V2 baseline 16.2–16.9 fps vs heroes 19.0–20.7 fps; p95 frame time V2
+  66.8–83.3 ms vs heroes 66.7 ms. The earlier "V2 18 fps" was measured on a different container; both builds were
+  re-measured here side by side.
+- Known limits:
+  - With the shop expanded at 1366×768, the map fits at 3× but the scenery margin is narrow, so the
+    cave mouth and the gate are partly trimmed. Collapsing the shop shows them.
+  - At 1280×720 the map drops to 2×, where heroes are small but still distinct by colour and silhouette.
+

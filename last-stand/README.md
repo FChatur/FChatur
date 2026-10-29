@@ -19,11 +19,14 @@ Tested automatically in Chromium, Firefox and WebKit on every change. Mobile/tou
 
 | Action | Mouse | Keyboard |
 | --- | --- | --- |
-| Pick a tower to build | Click it in the build bar | `1` Turret, `2` Sniper, `3` Rapid, `4` Frost |
-| Build | Click a free tile | |
+| Build a tower | Drag its card from the left shop onto a free tile | |
+| Pick a tower to build | Click its card in the left shop | `1` Archer, `2` Ballista, `3` Ranger, `4` Frost Mage |
+| Build the picked tower | Click a free tile | |
+| Collapse / expand the shop | Arrow button at the top of the shop | |
 | Select a built tower | Click it | |
 | Upgrade selected tower (3 levels) | Upgrade button | `U` |
 | Sell selected tower (70% refund) | Sell button | `S` |
+| Targeting (First, Last, Strongest, Fastest) | Buttons in the tower panel | `T` cycles |
 | Cancel / deselect | Right-click | `Esc` |
 | Game speed 1x / 2x / 3x | Speed buttons | `F` cycles |
 | Pick a run upgrade (every 5th wave) | Click a card | `1` `2` `3` |
@@ -33,15 +36,17 @@ Tested automatically in Chromium, Firefox and WebKit on every change. Mobile/tou
 | Mute sound | Speaker button (top right) | `M` |
 | Restart after game over | Play again | `R` |
 
-**Towers:** Turret (balanced), Sniper (global range: hits the toughest enemy anywhere on the map, slow but heavy), Rapid (fast weak shots, poor against armor), Frost (slows what it hits).
+**Towers** (each manned by a hero who grows with its three upgrade levels): Archer, Wren (balanced),
+Ballista, Brakk the dwarf engineer (global range: hits the toughest enemy anywhere on the map, slow but
+heavy), Ranger, Fen the elf (fast weak shots, poor against armor), Frost Mage, Old Rime (slows what he hits).
 
 **Run upgrades:** after every 5th wave you pick 1 of 3 random upgrades that last for the rest of the run.
 Upgrades have rarities (Common, Uncommon, Rare, Legendary), stack up to a limit, and some only appear once
 you've built a matching tower. Current pool: Overclock, Critical Strike, Compound Interest, Frostbite,
 Explosive Rounds, Chain Lightning. New upgrades are added as data in `src/config/upgrades.ts`.
-They combine: Frost + Frostbite + Rapid shreds slowed enemies, Sniper + Critical Strike handles bosses.
+They combine: Frost Mage + Frostbite + Ranger shreds slowed enemies, Ballista + Critical Strike handles bosses.
 
-**Enemies:** Grunt, Runner (fast, from wave 3), Brute (armored, from wave 5), Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Brutes and bosses.
+**Enemies:** Goblin, Wolf (fast, from wave 3), Armored Orc (from wave 5), Ogre Warlord boss (every 10th wave). Armor removes a flat amount from every hit, so prefer big hits against Orcs and bosses.
 
 Hover a tower (in the shop or on the board) for its stats, special mechanics and active bonuses, and to see its range. Enemies that reach the red exit cost health (bosses cost much more); the run ends at 0.
 

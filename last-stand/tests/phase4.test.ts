@@ -20,8 +20,14 @@ describe('persistence', () => {
   it('returns defaults when nothing is stored, and round-trips settings', () => {
     const p = new Persistence(new MemoryStore());
     expect(p.loadSettings()).toEqual(DEFAULT_SETTINGS);
-    p.saveSettings({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false });
-    expect(p.loadSettings()).toEqual({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false });
+    p.saveSettings({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false, shopCollapsed: true });
+    expect(p.loadSettings()).toEqual({ muted: true, volume: 0.3, speed: 3, tutorialDone: true, autoWave: false, shopCollapsed: true });
+  });
+
+  it('settings saved before the shop could collapse load with the shop expanded', () => {
+    const store = new MemoryStore();
+    store.setItem('lastStand.v1.settings', JSON.stringify({ muted: true, volume: 0.3, speed: 2, tutorialDone: true, autoWave: true }));
+    expect(new Persistence(store).loadSettings().shopCollapsed).toBe(false);
   });
 
   it('ignores corrupt or invalid data', () => {

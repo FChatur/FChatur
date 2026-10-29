@@ -264,6 +264,17 @@ export class GameSession {
     this.setAutoWave(!this.settings.autoWave);
   }
 
+  /** Whether the left tower shop is collapsed to its narrow rail (remembered between visits). */
+  get shopCollapsed(): boolean {
+    return this.settings.shopCollapsed;
+  }
+
+  setShopCollapsed(collapsed: boolean): void {
+    if (collapsed === this.settings.shopCollapsed) return;
+    this.settings.shopCollapsed = collapsed;
+    this.saveSettings();
+  }
+
   /** New run. Speed, sound and Auto Wave are player preferences and carry over. */
   restart(): void {
     this.endDrag(false);

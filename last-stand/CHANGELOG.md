@@ -21,11 +21,22 @@ Phase 6 (visual identity and combat prototype) in progress on the development br
   falling leaves, swaying grass); distinct Archer, Ranger, Ballista and Frost Mage towers with visible
   upgrade progression; more expressive enemies; hit flinch, slowed-enemy snowflakes, ballista thump and
   see-through explosions. Details and measurements: docs/VISUAL_PROTOTYPE.md section 8.
-- Tower character art direction (issue #2, review only, not used by the game yet): four named heroes
-  (Wren the Archer, Brakk the Ballista engineer, Fen the Ranger, Old Rime the Frost Mage) with three
-  upgrade stages each and idle, attack and victory frames; `npm run art` renders the lineup, stages,
-  animated reels, shop portraits, placement ghosts and a crowded combat still. Left shop mockup:
-  docs/mockups/heroes-shop.html. Proposal: docs/VISUAL_PROTOTYPE.md section 9.
+- Tower personality (issue #2, review only): every tower is a named hero (Wren the Archer, Brakk the
+  dwarf Ballista engineer, Fen the elf Ranger, Old Rime the Frost Mage) on a structure that grows with
+  the three upgrade levels. Heroes draw and release in time with their shots, react to a boss (alarm,
+  red "!") and lost lives (sweat drop), cheer after each wave and celebrate boss waves with stars and
+  sparkles. The upgrade draft opens 1.4 s after its wave so the celebration is seen. The Ballista is now
+  22 px wide, with Brakk behind an oversized crossbow that recoils.
+- Permanent left tower shop: large hero cards (portrait, hero name, tower, role, cost, hotkey; building
+  and unaffordable states), drag-and-drop from a card onto the map alongside click-to-place, and a
+  collapse button for a narrow rail that is remembered between visits (compact cards on short screens).
+- Tower panel: hero portrait and rank, an upgrade preview (next level's look and stats), and targeting
+  buttons (`T` cycles).
+- Interface restyled with the art palette and the Pixelify Sans pixel font.
+- Late-wave declutter: heroes fade while an enemy is behind them; creatures spread across the road
+  instead of stacking (drawing only); no "+gold" numbers in crowds; lower caps on cosmetic effects.
+  Crowded wave 50: 16.5 → 20 fps in the same environment. Details: docs/VISUAL_PROTOTYPE.md section 9.1.
+- `npm run art` renders hero previews (lineup, stages, poses, animated reels) to art-preview/.
 
 ### Docs
 - Phase 6 proposal: [docs/VISUAL_PROTOTYPE.md](docs/VISUAL_PROTOTYPE.md) (pixel-art specification, asset

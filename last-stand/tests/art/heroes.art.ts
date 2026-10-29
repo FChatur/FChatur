@@ -49,13 +49,14 @@ function label(img: Bitmap, text: string, cx: number, y: number, color: number =
   blit(img, t, Math.round(cx - t.w / 2), y);
 }
 
-/** One animation reel: idle, idle, attack, attack, victory. */
+/** One animation reel: idle, attack, alarm, victory. */
 function reel(kind: TowerKind, level: number): { frames: Bitmap[]; delays: number[] } {
   const art = heroArt()[kind].frames[level - 1];
   const seq: [HeroAnim, number, number][] = [];
   for (let i = 0; i < 2; i++) art.idle.forEach((_, f) => seq.push(['idle', f, f === 2 ? 140 : 380]));
   const shot = kind === 'sniper' ? [420, 260, 520] : kind === 'rapid' ? [90, 110] : [300, 260];
   for (let i = 0; i < (kind === 'rapid' ? 4 : 2); i++) art.attack.forEach((_, f) => seq.push(['attack', f, shot[f] ?? 200]));
+  for (let i = 0; i < 3; i++) art.alarm.forEach((_, f) => seq.push(['alarm', f, 120]));
   for (let i = 0; i < 3; i++) art.victory.forEach((_, f) => seq.push(['victory', f, 220]));
   const W = 36;
   const H = 46;
@@ -95,6 +96,18 @@ it('hero mockups', () => {
     });
   });
   writeFileSync(`${out}/heroes-stages.png`, encodePng(stages, 5));
+
+  // Every pose side by side at level 2: idle, attack, alarm, victory.
+  const ANIMS: HeroAnim[] = ['idle', 'attack', 'alarm', 'victory'];
+  const poses = meadow(4 * 42, 4 * 46);
+  KINDS.forEach((k, r) => {
+    ANIMS.forEach((anim, c) => {
+      const n = heroArt()[k].frames[1][anim].length;
+      stand(poses, heroTower(k, 2, anim, n - 1), c * 42 + 21, r * 46 + 42);
+      if (r === 0) label(poses, anim.toUpperCase(), c * 42 + 21, 1);
+    });
+  });
+  writeFileSync(`${out}/heroes-poses.png`, encodePng(poses, 6));
 
   // Animated reels (APNG) at level 1 and 3, enlarged.
   for (const k of KINDS) {

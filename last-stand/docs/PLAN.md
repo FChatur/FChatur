@@ -120,6 +120,9 @@ turn it into a **pixel-art fantasy** tower defense. Full proposal: [VISUAL_PROTO
   visible projectiles and impacts. Crisp at any resolution (whole-pixel scaling only).
 - Interface: collapsible left sidebar shop with large cards, drag-and-drop building (click-to-build kept),
   clearer tower panel.
+- Tower personality (issue #2, direction approved): each tower is a named hero (Wren, Brakk, Fen, Old
+  Rime) who animates with the tower's fire rhythm, reacts to bosses, lost lives and won waves, and grows
+  with the three upgrade levels. Late-wave declutter and occlusion fading.
 - Per-tower targeting: First, Last, Strongest, Fastest.
 - Combat balance review with new tooling; no stat changes without evidence.
 - Scope limits: no new maps, towers, enemies, upgrades or major systems. Not released to `main` until the

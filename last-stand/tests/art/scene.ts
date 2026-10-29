@@ -1,7 +1,7 @@
 import { blank, blit, ellipse, flipX, type Bitmap } from '../../src/art/bitmap';
 import { COLORS } from '../../src/art/palette';
 import { creatureFrames } from '../../src/art/sprites/creatures';
-import { towerPortrait } from '../../src/art/sprites/towers';
+import { heroTower } from '../../src/art/sprites/characters';
 import { ART_TILE, paintTerrain } from '../../src/art/terrain';
 import { MAPS } from '../../src/config/maps';
 import { TILE_SIZE } from '../../src/config/map';
@@ -22,7 +22,7 @@ export function sceneStill(margin = 3): Bitmap {
   const img = t.image;
   const sprites: { x: number; y: number; art: Bitmap; shadow?: number }[] = [];
   const tower = (type: 'basic' | 'sniper' | 'rapid' | 'frost', level: number, col: number, row: number) => {
-    const art = towerPortrait(type, level);
+    const art = heroTower(type, level);
     sprites.push({ x: t.originX + col * 16 + Math.floor((16 - art.w) / 2), y: t.originY + row * 16 + 15 - art.h, art, shadow: 14 });
   };
   tower('basic', 1, 3, 3);
