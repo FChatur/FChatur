@@ -1,6 +1,8 @@
 # Last Stand visual direction (v0.8.0): process and options
 
-Status: **proposal for the owner's approval** (2026-10-30). Design only: no game changes.
+Status: **Direction A (Storybook Painted) is the lead direction** (owner, 2026-10-30), with stronger
+silhouettes, outlines and colour contrast than the concept sheet. Next step: one polished gameplay scene
+(shared brief plus the A style below), then visual review. B and C are parked. Design only: no game changes.
 
 **Priority (owner, 2026-10-30):** one cohesive, high-quality visual identity for the whole game comes
 first, across:
@@ -155,11 +157,19 @@ Either can be brought back if you want it compared.
 > road.
 
 **A · Storybook Painted** (also attach the concept sheet):
-> Style: match the attached concept sheet's art quality and personality: polished cartoon fantasy,
-> painted cel shading with soft gradients, warm afternoon light from the upper left, thick dark
-> plum-brown outlines, a richly detailed layered environment with cliffs, water, fences and crates, an
-> interface in dark violet with gold trim and illustrated portraits, and glowing golden impact effects.
-> Keep the ground slightly calmer and less detailed than the characters so the enemies stand out.
+> Style: use the attached concept sheet as the foundation for art quality, personality and charm:
+> polished painted cartoon fantasy, cel shading with soft gradients, warm afternoon light from the upper
+> left. Push readability further than the sheet:
+> - every hero and enemy has a bold, simple silhouette, a thick dark plum-brown outline (thicker than any
+>   outline in the environment), a thin warm rim light and a dark contact shadow;
+> - the ground is calm, mid-toned and low in detail, with slightly desaturated greens; the road is
+>   clearly lighter than the grass; props and clutter stay near the map edges, away from the road;
+> - characters are the most saturated, highest-contrast things on the map. Each hero has one signature
+>   colour: Wren red, Brakk rust-orange and brass, Fen deep teal with cream, Old Rime icy blue and white.
+>   Enemies have their own hue families: goblins yellow-green with rusty gear, wolves charcoal grey,
+>   orcs grey-green with steel plates, the Ogre Warlord purple-grey with bone-white horns;
+> - interface in dark violet with gold trim, large crisp legible text, illustrated hero portraits;
+> - glowing golden and icy impact effects that stay compact and never cover a character.
 
 **B · Bold Toon:**
 > Style: bold graphic cartoon. Flat colours with one crisp shadow tone, very thick uniform dark
