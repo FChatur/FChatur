@@ -15,7 +15,8 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   - a review scorecard (readability at full and phone scale, cohesion, polish, production and
     animation fit) and one scene prompt per direction.
   - the owner chose Storybook Painted as the lead direction, with a readability-focused prompt (stronger
-    silhouettes, outlines and colour contrast); one polished scene comes first.
+    silhouettes, outlines and colour contrast); one polished scene comes first. First result saved as
+    docs/art/reference/scene-a-v1.webp for review.
 - Manny-specific work (knockback, balance, his design lab) is on hold, kept as decided; the specs
   and the balance report are marked accordingly.
 - v0.8.0 art direction investigation, with no game changes:
