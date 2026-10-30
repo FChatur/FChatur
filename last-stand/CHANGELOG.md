@@ -7,6 +7,15 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 ## [Unreleased]
 
 ### Docs
+- Visual direction process for the whole game (docs/art/VISUAL_DIRECTION.md), with no game changes:
+  - three distinct directions to compare: Storybook Painted, Bold Toon and Toy Diorama;
+  - each is judged as one complete 1600 × 900 gameplay scene built from the same layout guide
+    (docs/art/reference/scene-layout-guide.png): the four heroes, all enemies and the boss, the map,
+    effects and the full interface, at real gameplay size;
+  - a review scorecard (readability at full and phone scale, cohesion, polish, production and
+    animation fit) and one scene prompt per direction.
+- Manny-specific work (knockback, balance, his design lab) is on hold, kept as decided; the specs
+  and the balance report are marked accordingly.
 - v0.8.0 art direction investigation, with no game changes:
   - illustrated sprites from image-generation tools compared with code-drawn art for quality,
     consistency, animation, asset size and roster growth (docs/ART_PRODUCTION.md section 6);

@@ -1,5 +1,9 @@
 # Manny: asset spec and production workflow (v0.8.0 art test)
 
+> **On hold (owner, 2026-10-30).** Manny-specific work is paused while the game's overall visual
+> direction is settled ([art/VISUAL_DIRECTION.md](VISUAL_DIRECTION.md)). Everything here is kept as
+> decided; no further development time until it's resumed.
+
 Manny is the first character made to the new style reference ([STYLE_REFERENCE.md](STYLE_REFERENCE.md)).
 The workflow here becomes the template for every later hero and enemy.
 

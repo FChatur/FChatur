@@ -1,5 +1,9 @@
 # Manny's knockback: design spec (v0.8.0)
 
+> **On hold (owner, 2026-10-30).** Manny-specific work is paused while the game's overall visual
+> direction is settled ([art/VISUAL_DIRECTION.md](art/VISUAL_DIRECTION.md)). Everything here is kept as
+> decided; no further development time until it's resumed.
+
 Status:
 - **Mechanic approved by the owner** (2026-10-30): enemies move backward along their actual route,
   with fixed tile distances, weight resistance and diminishing returns. The simulation stays
