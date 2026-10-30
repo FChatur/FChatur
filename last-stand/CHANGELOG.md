@@ -6,6 +6,14 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
 
 ## [Unreleased]
 
+### Docs
+- v0.8.0 art direction investigation, with no game changes:
+  - illustrated sprites from image-generation tools compared with code-drawn art for quality,
+    consistency, animation, asset size and roster growth (docs/ART_PRODUCTION.md section 6);
+  - a prompt pack for Manny, Wren, Bones, two enemies and the map ground (docs/art/PROMPTS.md);
+  - a full gameplay-screen concept (docs/prototypes/battle-screen.html). Every art slot can take a
+    generated image, which is keyed, trimmed, kept with the hosted page and animated in the scene.
+
 ## [0.7.0] - 2026-10-29 (Phase 7: Audio & Music)
 
 ### Added

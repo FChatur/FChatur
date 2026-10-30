@@ -95,3 +95,60 @@ cost of memory.
 
 In-game size check: heroes appear about 90–110 px tall at 1600 × 900, so source art should be drawn about
 three times larger (around 300 px tall) to stay sharp on high-density screens.
+
+## 6. A fourth approach: illustrated sprites from image-generation tools (v0.8.0)
+
+Requested by the owner during v0.8.0 planning. The idea: the owner generates illustrated sprites with an
+image tool (for example Gemini) from a shared prompt pack ([art/PROMPTS.md](art/PROMPTS.md)). I clean
+them up, integrate them and animate them in the game.
+
+**What I can and can't do here.**
+- I **can't generate images**: no tool in this environment makes raster art.
+- I **can** write and refine the prompts, review generated images (I can look at them), and process
+  them in code:
+  - background removal and trimming;
+  - size normalisation and atlas packing;
+  - colour grading toward a shared palette;
+  - a uniform outline pass.
+- I can also build all the animation and effects.
+
+The test bench is the gameplay-screen concept (`docs/prototypes/battle-screen.html`). Every slot starts
+with code-drawn art; an uploaded image replaces it in the live scene, and the images are kept with the
+page.
+
+### Comparison
+
+| | Procedural / code-drawn | Illustrated sprites from image tools |
+| --- | --- | --- |
+| **Visual quality** | Clean flat cartoon: crisp, colourful, readable. Ceiling: no painted texture or rich lighting. The concept screen shows this ceiling at gameplay size. | Can reach painted, premium-mobile richness in a single image: lighting, texture, detail, appeal. Risks: a generic "AI look", detail turning to mush at 120 px, garbled hands and small props (a real risk for Manny's fists and gong buckle), and line weight and lighting that differ between images. |
+| **Character consistency** | Perfect. Every pose and expression comes from one drawing in code, in one palette. | **The main weakness.** The same prompt gives a different character each time. Mitigations: one chosen image as the reference for every later image of that character; the first hero as the style reference for the whole cast; few poses per character; colour-grading every asset to one palette; my outline pass. Even then, expect some drift between poses and between characters, more as the roster grows. |
+| **Animation workflow** | A rig in code: unlimited poses, smooth at 60 fps, squash and stretch, cheap expression swaps. | Three workable options: <br>• **Whole-sprite motion** (as in the concept): one image moved, squashed, tilted and launched by code, plus a separate attack-pose image swapped in at the key moment. Cheap and lively; limbs don't move independently. <br>• **Cut-out rig:** the image split into parts (arms, fists, head, cloth) and animated with bones. Much livelier, but the split and the inpainting of hidden areas are manual raster work in Krita or Photopea, a few hours per character. I can't do this reliably. <br>• **Frame-by-frame generation:** a new image per frame. Not practical: consistency between frames is too poor. <br>Effects (smears, sparks, dust, numbers) stay code-drawn in every case, which also ties the look together. |
+| **Performance and asset size** | Code is tiny: kilobytes per character. Art is baked to textures at load, so memory matches illustrated art at the same resolution. | Per hero at game size, about 300 px tall at 2× for sharp phone screens: ~25–50 KB WebP and ~0.3 MB of GPU memory per pose. Five poses ≈ 150–250 KB download and ~1.5 MB GPU. A roster of 20 heroes and 20 enemies ≈ 6–10 MB in all, loaded per map (~2 MB). An illustrated map ground at 1336 × 768 ≈ 300–600 KB and ~4 MB GPU. All fine for phones. Frame-by-frame sheets (48 frames per hero) would be ~10× larger and are ruled out. |
+| **Growing the roster** | Each character is my design and drawing time; consistency is automatic and quality is capped. | Each character is generation and selection time (yours, plus tool quotas), then my processing and integration. Fast for a still that looks good; slower for a set of poses that match. Drift grows with every addition, so a written style guide and the reference images become essential. |
+| **Rights** | Original code-drawn art. | AI-generated, treated like the soundtrack (docs/AUDIO.md section 4, the owner's decision for this non-commercial project). |
+
+### Assessment
+
+- **Quality:** illustrated sprites are the only route without an artist that can plausibly reach the
+  polish you're after.
+- **Consistency and animation:** these are the real risks, and only real images can show whether
+  they're acceptable.
+- **The likely best result is a hybrid:**
+  - illustrated key poses for each character (idle, attack, and perhaps hit and victory);
+  - animated by code with whole-sprite motion;
+  - all effects, the road and the interface drawn in code;
+  - every asset passed through the same grading and outline step.
+- **A later upgrade:** a cut-out rig for the main heroes, if someone with a raster editor can separate
+  the parts.
+
+### The test (no gameplay changes)
+
+1. Generate the nine slots in the prompt pack, starting with Manny.
+2. Add them to the concept page and look at the full screen at real size, on a computer and on a phone.
+3. Judge four things:
+   - Does Manny read as charismatic and ridiculous at gameplay size?
+   - Are Wren and Bones recognisable and full of personality?
+   - Do the three look like one cast?
+   - Does each attack pose match its idle image?
+4. Then decide the art direction. If consistency fails, the fallbacks are commissioning an artist for
+   the key poses, or the code-drawn style with the lessons from the test.
