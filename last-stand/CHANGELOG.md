@@ -17,6 +17,9 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   - the owner chose Storybook Painted as the lead direction, with a readability-focused prompt (stronger
     silhouettes, outlines and colour contrast); one polished scene comes first. First result saved as
     docs/art/reference/scene-a-v1.webp for review.
+  - after review, the direction was simplified: soft, colourful 2D art with characters about 35% smaller,
+    plain terrain and road with detail at the map edges, a lighter interface and quieter effects, so the
+    battlefield stays open for free placement (draft rules in docs/art/VISUAL_DIRECTION.md).
 - Manny-specific work (knockback, balance, his design lab) is on hold, kept as decided; the specs
   and the balance report are marked accordingly.
 - v0.8.0 art direction investigation, with no game changes:

@@ -1,195 +1,122 @@
-# Last Stand visual direction (v0.8.0): process and options
+# Last Stand visual direction (v0.8.0)
 
-Status: **Direction A (Storybook Painted) is the lead direction** (owner, 2026-10-30), with stronger
-silhouettes, outlines and colour contrast than the concept sheet. Next step: one polished gameplay scene
-(shared brief plus the A style below), then visual review. B and C are parked. Design only: no game changes.
-
-**Priority (owner, 2026-10-30):** one cohesive, high-quality visual identity for the whole game comes
-first, across:
-- the four heroes (Wren, Brakk, Fen, Old Rime);
-- enemies and their readability;
-- maps (terrain, roads, scenery);
-- the interface (menus, portraits, upgrade panels);
-- combat effects and polish.
+Status: **draft for the owner's agreement** (2026-10-30). Nothing is generated or implemented until
+it's agreed. Design only: no game changes.
 
 Manny-specific work (knockback, balance, his design lab) is **on hold** and kept as decided:
 [KNOCKBACK.md](../KNOCKBACK.md), [MANNY_ASSETS.md](MANNY_ASSETS.md), [balance/manny.md](../balance/manny.md).
 
-The concept sheet ([reference/concept-sheet-v1.webp](reference/concept-sheet-v1.webp)) sets the bar
-for personality and quality. Its details aren't final.
+## 1. Direction: clean, colourful, spacious
 
-## 1. Process (four steps, judged on whole game scenes)
+**Target:** a polished, colourful, readable tower-defense game, not a crowded fantasy painting.
 
-1. **Pick the candidates.** This document proposes three strong, clearly different directions
-   (section 2). You can approve, drop, or swap one.
-2. **One complete scene per direction, same layout.** Each direction is generated as a full
-   1600 × 900 gameplay screen from one fixed layout guide
-   ([reference/scene-layout-guide.png](reference/scene-layout-guide.png)).
-   - The guide fixes the route, the castle gate, the four heroes, every enemy type and the boss, the
-     shots and impacts, and the whole interface (top bar, hero shop with portraits, upgrade panel,
-     bottom bar).
-   - Everything is at real gameplay size: heroes ~100–118 px tall, a goblin 55 px, the boss 150 px.
-     The scenes therefore differ only in style.
-   - Two or three attempts per direction in ChatGPT; keep the best. The prompts are in section 4.
-3. **Review at real scale.** I check each scene:
-   - at 100% on a 1600 × 900 screen, and at phone scale;
-   - in greyscale (do heroes, enemies, road and interface separate by brightness alone?);
-   - with a squint/blur test (what reads first);
-   - for cohesion of characters, map, interface and effects.
+The first Storybook Painted scene ([reference/scene-a-v1.webp](reference/scene-a-v1.webp)) was
+attractive but cramped:
+- characters too large for the map;
+- detail everywhere;
+- a busy, heavily bordered interface.
 
-   You get one side-by-side comparison with a short scorecard (section 3). There's no new tooling: just
-   the images and the analysis.
-4. **Decide and lock.** You choose a direction, or a blend such as "A's characters with B's
-   readability". I then write **style guide v2**: palette, outline and lighting rules, proportions,
-   enemy readability rules, map kit, interface kit, effect language, and the production order. Manny
-   later resumes inside it.
+The concept sheet ([reference/concept-sheet-v1.webp](reference/concept-sheet-v1.webp)) still sets the
+bar for **personality**, not for detail level.
 
-Only after step 4 come shortlist extras (a main-menu or upgrade-draft screen) and any asset or
-animation production.
+**Keep:**
+- soft, colourful 2D fantasy art;
+- expressive, distinctive characters with clean silhouettes and appealing animation;
+- a polished fantasy interface.
 
-## 2. Three directions
+**Change:**
+- characters 30–40% smaller in the gameplay view, with simpler rendering;
+- simple terrain, road and grass, with detailed scenery mainly at the map edges;
+- less interface ornamentation and fewer borders;
+- a larger, more open battlefield with room for free tower placement and enemy movement;
+- effects that read clearly without visual noise.
 
-All three keep the game's personality bar: big readable heroes with attitude, comic enemies, juicy hits.
+## 2. Rules
 
-### A. Storybook Painted (the concept sheet, refined)
-- **Look:** painted cel shading with soft gradients, warm afternoon light, thick plum-brown outlines;
-  heroic cartoon proportions; a richly propped, layered environment (cliffs, water, fences, crates).
-- **Interface:** a dark violet and gold trim, illustrated portraits.
-- **Effects:** glowing additive bursts, debris and dust.
-- **Strengths:** the closest to what you liked; feels premium and full of life.
-- **Risks:**
-  - Painted detail turns to mush at 100 px.
-  - A busy, detailed ground competes with enemies for attention.
-  - Painterly style is the hardest to keep consistent across dozens of generated assets.
+Sizes are on the 1600 × 900 screen. The map area is 1336 × 768, about 28 × 16 tiles of 48 px.
 
-### B. Bold Toon (graphic, readability first)
-- **Look:** flat colour with one crisp shadow tone, very thick uniform outlines, chunky simple shapes,
-  exaggerated poses and faces. The environment is built from big clean colour areas, stylised
-  patterned foliage and a high-contrast road. A strict palette: warm heroes, cool or neutral ground,
-  saturated enemies.
-- **Interface:** chunky, bright, sticker-like badges.
-- **Effects:** graphic shapes such as star bursts, speed lines and comic "pow" frames.
-- **Strengths:**
-  - reads best at 100 px and on phones;
-  - the easiest style to keep consistent across a growing roster and to animate (clean parts suit
-    rigs);
-  - the lightest on performance.
-- **Risks:** can look less premium, or like generic mobile art, if the shapes and palette aren't
-  distinctive enough.
+### Scale (about 35% below scene v1)
 
-### C. Toy Diorama (soft 3D-render look in 2D)
-- **Look:** characters like rounded vinyl or clay toys under soft studio light with gentle ambient
-  occlusion; the map as a tilt-shift diorama with chunky terrain tiles, bevelled stone and plush trees.
-- **Interface:** glossy rounded buttons and toy-box panels.
-- **Effects:** soft glows, puffy smoke, chunky particles.
-- **Strengths:**
-  - very polished and distinctive, with strong depth;
-  - one consistent material makes generated assets match each other more easily;
-  - the scene reads like a physical board.
-- **Risks:**
-  - expressive animation is harder (toy forms look rigid when moved as cut-outs);
-  - large sprites;
-  - can slide into a generic "AI 3D render" look;
-  - the interface and effects must be designed to match the material.
+| | Scene v1 | Target | In tiles |
+| --- | --- | --- | --- |
+| Heroes | ~120 px | **75–85 px** | ~1.7 tall, ~1 tile footprint |
+| Goblin | ~75 px | **~45 px** | ~1 |
+| Wolf | ~60 px tall | **~35 px tall, ~55 px long** | ~1 long |
+| Armoured orc | ~95 px | **~60 px** | ~1.3 |
+| Ogre Warlord (boss) | ~260 px | **~140 px** | ~3 |
+| Road width | varies, opens into clearings | **~70 px, constant** | ~1.5 |
 
-**Left out:**
-- **High-resolution pixel art**, which can't carry the expressiveness you're after.
-- **Dark painterly fantasy**, which is off the colourful, playful tone.
+### Characters
+- **Personality comes from shape:**
+  - a recognisable head or hat shape;
+  - one signature colour;
+  - a signature weapon;
+  - a clear pose.
 
-Either can be brought back if you want it compared.
+  Faces are simple, with readable eyes and expression, but no fine painted detail.
+- **Rendering:**
+  - flat base colours with one soft shadow tone and one highlight;
+  - a medium dark outline (about 2–3 px at gameplay size);
+  - a soft contact shadow.
+- **Hero colours:** Wren red, Brakk rust-orange and brass, Fen teal and cream, Old Rime icy blue and
+  white. Each enemy type has its own hue family, distinct from the grass.
+- **Placement marker:** a small flat base disc (about 1 tile), with a ring when the hero is selected.
+  Large stone plinths take too much room.
 
-## 3. Scorecard (1–5 per direction, filled in at step 3)
+### Map
+- **The open playfield:**
+  - two or three grass tones in large soft shapes;
+  - sparse small tufts or flowers;
+  - no per-blade or per-stone texture.
+- **The road:**
+  - one flat, light, warm colour, clearly lighter than the grass;
+  - soft, continuous edges;
+  - a constant width, with no clearings.
+- **Scenery** (trees, rocks, cliffs, water, buildings, the gate):
+  - concentrated in a border band of about 1–2 tiles;
+  - a few small accents further in, kept well away from the road.
+- **At least about 60% of the playfield** is open, buildable ground. The road's turns leave clear
+  pockets for heroes on both sides.
 
-| Criterion | What is checked |
-| --- | --- |
-| Personality and charm | Do the four heroes feel like characters with attitude? |
-| Readability at 1600 × 900 | Do heroes, enemies, the boss, the road and the interface separate at a glance? Greyscale and blur tests. |
-| Readability at phone scale | The same at about 0.6 × |
-| Enemy clarity | Are the four enemy types told apart instantly, and do slowed or damaged states read? |
-| Cohesion | Do characters, map, interface and effects look like one game? |
-| Polish | Lighting, materials, effects, finish |
-| Production fit | How consistently can this be generated and cleaned up for 12–20 heroes and 15–25 enemies? |
-| Animation fit | How well do the characters survive being animated (cut-out rig and key frames)? |
+### Interface
+- **Panels:**
+  - flat dark violet panels at slight transparency;
+  - one thin gold accent line;
+  - rounded corners;
+  - no double frames, rivets or banners.
+- **Bars:**
+  - a slim top bar (about 56 px) with icons and numbers only;
+  - a compact bottom bar.
+- **Hero shop:**
+  - illustrated portraits are kept (the one place for detailed art);
+  - simple cards without star rows or heavy frames;
+  - the shop can collapse to give the map more room.
+- **Upgrade panel:** appears only when a hero is selected.
+- **Gold:** saved for primary actions (Next wave, Upgrade).
 
-## 4. Scene prompts (ChatGPT image generation)
+### Effects
+- **Projectiles:** short, thin streaks in the hero's colour (an arrow, a bolt, a frost shard).
+- **Impacts:** small and brief, about 1 tile or less and 0.2–0.3 s, with no screen-wide glow.
+- **Enemy states:** tint and outline only (frost blue for slowed, a white flash for a hit); never
+  cover the enemy.
+- **Big moments:** the boss hit and the ballista get one extra frame of punch, not more particles.
 
-**For every direction:**
-- Attach the layout guide, and write the shared brief below, then the direction's style paragraph.
-- **Attach the concept sheet only for direction A.** It would pull B and C toward its style.
-- Ask for 16:9, the largest size, then download the PNG.
+### Animation
+A few strong poses with squash and stretch:
+- idle breathing;
+- attack anticipation, release and recoil;
+- a hit flinch;
+- a victory pose.
 
-**Shared brief:**
-> A complete in-game screenshot of "Last Stand", a 2D fantasy tower defense game, 16:9. Use the
-> attached layout guide as the exact composition: same top-down camera (looking down at about 65°),
-> the same road route ending at a castle gate on the right, the same positions and on-screen sizes for
-> every character and enemy, and the same interface layout. The guide is only a wireframe: replace
-> every shape with finished art, and draw none of its boxes, guide labels or legend text.
->
-> **Heroes** (placed beside the road, each roughly 100–118 px tall in a 1600 × 900 screen):
-> - **Wren**, a young cocky archer in a red hood and cape with a long hood tail, freckles and a smirk,
->   shooting an arrow;
-> - **Brakk**, a stout grumpy dwarf engineer with goggles, a leather apron and a big braided beard,
->   cranking a heavy wooden ballista that fires a bolt into the boss;
-> - **Fen**, a lithe elf ranger in a green hood with a leaf circlet, firing rapid arrows;
-> - **Old Rime**, an ancient frost mage with a huge white beard, a tall pointed blue hat and an ice
->   staff, casting a frost bolt that tints slowed enemies icy blue.
->
-> **Enemies on the road:**
-> - small comic **goblins** with oversized helmets and spears;
-> - lean grey **wolves**;
-> - hulking **armoured orcs** with iron plates and cleavers;
-> - one huge **Ogre Warlord boss** with a horned helmet and a spiked club, taking a heavy impact.
->
-> Each enemy has a small health bar.
->
-> **Map:** a grassy fantasy valley with the dirt road, trees along the top and bottom edges, a pond
-> lower left, and scattered props.
->
-> **Interface:**
-> - top bar: the "LAST STAND" logo, Wave 12, Gold 845, Lives 18;
-> - left "Heroes" shop: four cards with portraits of Wren, Brakk, Fen and Old Rime and their costs
->   (Free, 110, 70, 60);
-> - top-right upgrade panel for Brakk: "Siege Master", level 2 of 3, Upgrade 170 and Sell 147 buttons;
-> - bottom bar: 1x, 2x, 3x, Pause, Auto and a big "Next wave" button.
->
-> Mid-combat: arrows in flight, the ballista bolt hitting the boss, a frost burst. Every character
-> must read clearly at its small size: bold silhouettes, strong contrast against the ground and the
-> road.
+Built as a small set of parts or frames per character, light enough to cover 12–20 heroes and 15–25
+enemies.
 
-**A · Storybook Painted** (also attach the concept sheet):
-> Style: use the attached concept sheet as the foundation for art quality, personality and charm:
-> polished painted cartoon fantasy, cel shading with soft gradients, warm afternoon light from the upper
-> left. Push readability further than the sheet:
-> - every hero and enemy has a bold, simple silhouette, a thick dark plum-brown outline (thicker than any
->   outline in the environment), a thin warm rim light and a dark contact shadow;
-> - the ground is calm, mid-toned and low in detail, with slightly desaturated greens; the road is
->   clearly lighter than the grass; props and clutter stay near the map edges, away from the road;
-> - characters are the most saturated, highest-contrast things on the map. Each hero has one signature
->   colour: Wren red, Brakk rust-orange and brass, Fen deep teal with cream, Old Rime icy blue and white.
->   Enemies have their own hue families: goblins yellow-green with rusty gear, wolves charcoal grey,
->   orcs grey-green with steel plates, the Ogre Warlord purple-grey with bone-white horns;
-> - interface in dark violet with gold trim, large crisp legible text, illustrated hero portraits;
-> - glowing golden and icy impact effects that stay compact and never cover a character.
+## 3. Next step, after agreement
 
-**B · Bold Toon:**
-> Style: bold graphic cartoon. Flat colours with one crisp shadow tone, very thick uniform dark
-> outlines, chunky simplified shapes, exaggerated poses and faces. Environment from big clean colour
-> areas and stylised patterned foliage, a high-contrast sandy road. Strict colour roles: heroes in warm
-> saturated colours, enemies in their own distinct hues, ground in calm cool greens. Interface like
-> chunky bright stickers and badges with thick outlines. Graphic effects: star bursts, speed lines,
-> comic impact shapes.
+1. Update the layout guide ([reference/scene-layout-guide.png](reference/scene-layout-guide.png)) to the
+   sizes above. It still shows the earlier, larger sizes.
+2. Generate one scene with it in this simpler direction, then review it as before.
 
-**C · Toy Diorama:**
-> Style: a charming toy diorama rendered in 2D. Characters look like rounded vinyl or clay toys with
-> soft studio lighting and gentle ambient occlusion, big expressive heads and hands. The map is a
-> tilt-shift tabletop diorama: chunky terrain tiles, bevelled stones, plush rounded trees, a glossy
-> pond. Interface with glossy rounded buttons and toy-box style panels. Soft glowing effects, puffy
-> smoke and chunky particles.
-
-## 5. What you'll be asked to decide
-
-After the review:
-1. **Which direction**, or which blend.
-2. **Which details from the concept sheet to keep:** for example Bones's hooded look versus the
-   cardigan, and Manny's red hair versus the topknot.
-3. **Then:** approve style guide v2 before any production starts.
+**History:** an earlier version of this file compared three directions (Storybook Painted, Bold Toon,
+Toy Diorama) and held their scene prompts. Bold Toon and Toy Diorama are parked. That version is in git
+history at commit `89fb4ea`.
