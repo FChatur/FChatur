@@ -1,9 +1,12 @@
 # Manny: asset spec and production workflow (v0.8.0 art test)
 
 Manny is the first character made to the new style reference ([STYLE_REFERENCE.md](STYLE_REFERENCE.md)).
-The workflow here becomes the template for every later hero and enemy. Nothing goes into the live game
-until his design and animation are approved in the prototype
-(`docs/prototypes/battle-screen.html`, Manny animation lab).
+The workflow here becomes the template for every later hero and enemy.
+
+> **Status (owner, 2026-10-30): the design is not approved, and the full animation set is on hold.**
+> - First comes one excellent, consistent Manny design, validated at real gameplay size (section 7).
+> - The frame list and pipeline below stay as the plan for afterwards.
+> - His knockback is specified separately in [KNOCKBACK.md](../KNOCKBACK.md).
 
 ## 1. Design lock
 
@@ -136,3 +139,55 @@ limits.
 
 **Overall:** at gameplay size, next to the map and the interface, Manny looks charismatic and
 ridiculous, and matches the reference.
+
+## 7. Revised plan: design first, then animation
+
+The owner's feedback: the sprites so far look too basic, and the concept sheet is closer but not final.
+Before any animation pipeline, settle **one** Manny design and prove it works at gameplay size. The lab
+changes below support that; none are made until approved.
+
+### Stage 1: Manny design lab (new, replaces the animation lab for now)
+
+- **Candidates side by side.** Add several single-image Manny candidates (variations generated from the
+  reference). Each is shown:
+  - large, to judge the face and costume;
+  - at gameplay size (128 px) standing on the real map ground, next to Wren, Bones and the enemies for
+    scale;
+  - as a black silhouette at gameplay size;
+  - at phone scale (~0.6×), where most of the detail is lost.
+- **Readability checks.**
+  - On grass, on the road and on dark ground.
+  - With his ground shadow.
+  - In the middle of a crowd of enemies.
+  - Behind the bright impact effect.
+- **Checklist scoring.** Each candidate is ticked against the design lock (section 1: hair, fists,
+  rings, bracers, sash, medallion, trousers, wraps). There is a notes field and a "favourite" mark.
+  - The checklist itself can change: if the best candidate departs from the lock in a good way, the
+    lock is updated rather than the candidate rejected.
+- **Consistency probe.** For the favourite only: the same Manny in two or three different poses (a
+  turnaround, plus one action pose), shown side by side with a difference overlay that highlights what
+  changed. If the costume or proportions drift here, they'll drift in every animation; better to find
+  out now.
+- **Exploration directions** for the candidates (prompts to follow once approved):
+  - **A, faithful:** the reference as is.
+  - **B, more ridiculous:** even bigger fists, smaller legs, a bigger chin.
+  - **C, monk-brawler:** prayer beads and a topknot from the original concept.
+  - **D, signature colours:** a stronger, simpler palette for readability.
+
+  The goal is one design that is clearly better at 128 px, not the most detailed one.
+
+### Stage 2: animation lab (the current lab, after the design is approved)
+
+Changes to the existing lab:
+- **Knockback preview.** Enemies launched backward along the road, as in KNOCKBACK.md:
+  - an arc between the two route points, a tumble, landing dust, a dazed beat;
+  - weight classes and the repeat rule visible, with a slow-motion scrubber.
+- **Hit-frame marker.** Choose which frame lands the punch; the impact effect and the launch are timed
+  to it.
+- **Consistency tools.**
+  - A frame-to-frame difference overlay to catch costume or face flicker.
+  - A colour check against the master's palette.
+  - A nudge for each frame's anchor, not only for the whole animation.
+- **Timeline.** A scrubber with frame stepping and 0.25× playback.
+- **Export.** A JSON of frames, anchors, timings and the hit frame, the format the game's atlas tool
+  will read.

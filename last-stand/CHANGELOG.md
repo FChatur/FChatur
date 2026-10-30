@@ -19,6 +19,11 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   (docs/art/MANNY_ASSETS.md). The battle-screen concept gains a Manny animation lab:
   - generated strips are split into frames, cleaned and anchored, previewed at game size;
   - the frames drive Manny's idle, punch with impact effect, alarm and victory in the live scene.
+- Manny's knockback spec (docs/KNOCKBACK.md): enemies are knocked backward along their route by a
+  configurable distance in tiles. It's reduced for heavier enemies and bosses, with diminishing returns
+  on repeat knocks, airborne and dazed states, and corner, crowd and speed cases. Manny's plan is
+  revised to design first (a design lab with gameplay-size, silhouette and consistency checks), with
+  animation after approval (docs/art/MANNY_ASSETS.md section 7).
 
 ## [0.7.0] - 2026-10-29 (Phase 7: Audio & Music)
 
