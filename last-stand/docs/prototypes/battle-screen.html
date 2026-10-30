@@ -108,6 +108,27 @@
   .file span, .slot .reset { font: 700 13px var(--body); padding: 7px 12px; border-radius: 999px; border: 2px solid var(--gold); color: var(--gold); background: transparent; cursor: pointer; }
   .slot .reset { border-color: var(--line); color: var(--muted); }
   .slot .msg { font-size: 13px; color: var(--muted); min-height: 1.4em; overflow-wrap: anywhere; }
+  .labsec { display: grid; gap: 14px; }
+  .anims { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .anim { display: grid; gap: 10px; align-content: start; padding: 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
+  .anim .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .anim strong { font: 400 19px var(--display); }
+  .anim .preview { width: 100%; max-width: 320px; aspect-ratio: 320 / 220; border-radius: 8px; background: #8fd16a; justify-self: center; }
+  .anim .thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .anim .thumbs canvas { width: 60px; height: 60px; border-radius: 6px; background: repeating-conic-gradient(#2b2350 0% 25%, #241d44 0% 50%) 50% / 12px 12px; }
+  .anim .acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .anim .play, .anim .copy, .master .copy { font: 700 13px var(--body); padding: 7px 12px; border-radius: 999px; border: 2px solid var(--line); color: var(--text); background: var(--panel-2); cursor: pointer; }
+  .anim .reset { font: 700 13px var(--body); padding: 7px 12px; border-radius: 999px; border: 2px solid var(--line); color: var(--muted); background: transparent; cursor: pointer; }
+  .sliders { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  .sliders label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
+  .sliders input { width: 100%; accent-color: var(--gold); }
+  .durs { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; color: var(--muted); }
+  .durs input { width: 70px; font: 600 13px var(--body); color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+  details summary { cursor: pointer; font-weight: 700; color: var(--gold); }
+  details pre { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 500 13px/1.5 var(--body); color: #e6defa; max-height: 12em; overflow: auto; }
+  .master { padding: 12px 14px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .check { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
+  .check select { font: 600 13px var(--body); color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
   .prompts { display: grid; gap: 12px; }
   .prompt { padding: 14px 16px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: grid; gap: 8px; min-width: 0; }
   .prompt .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -120,8 +141,9 @@
 <main>
   <header>
     <h1>Battle screen concept · v0.8.0 art test</h1>
-    <p class="lede">A full gameplay screen built to judge an art direction. Every character, enemy and the ground is an art slot:
-      it starts with code-drawn art and switches to your illustrated image as soon as you add one.</p>
+    <p class="lede">A full gameplay screen for judging the art direction against style reference v1. Manny is built frame by
+      frame in the animation lab below; every other character, the enemies and the ground are art slots that switch from
+      code-drawn art to your illustrations as soon as you add one.</p>
   </header>
 
   <div class="stage" id="stage">
@@ -137,7 +159,7 @@
       </div>
       <aside class="shop">
         <h3>HEROES</h3>
-        <div class="card on" data-hero="manny"><canvas width="192" height="192"></canvas><div><div class="nm">Manny</div><div class="role">Brawler monk</div><div class="cost"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#ffcf4a" stroke="#2b1a22" stroke-width="3"/></svg>140</div></div></div>
+        <div class="card on" data-hero="manny"><canvas width="192" height="192"></canvas><div><div class="nm">Manny</div><div class="role">Brawler</div><div class="cost"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#ffcf4a" stroke="#2b1a22" stroke-width="3"/></svg>140</div></div></div>
         <div class="card" data-hero="wren"><canvas width="192" height="192"></canvas><div><div class="nm">Wren</div><div class="role">Archer</div><div class="cost"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#ffcf4a" stroke="#2b1a22" stroke-width="3"/></svg>Free</div></div></div>
         <div class="card" data-hero="bones"><canvas width="192" height="192"></canvas><div><div class="nm">Bones</div><div class="role">Bone mage</div><div class="cost"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#ffcf4a" stroke="#2b1a22" stroke-width="3"/></svg>90</div></div></div>
         <p class="hint">Drag a hero anywhere off the road. Each hero needs room around them.</p>
@@ -168,6 +190,22 @@
     <span class="status" id="status">Loading the art…</span>
   </div>
 
+  <section class="labsec">
+    <h2>Manny animation lab</h2>
+    <p class="note">Manny's frames, made to the style reference (docs/art/MANNY_ASSETS.md). Add a whole strip as one image, or
+      separate frames. The lab removes the background, splits the strip, lines up the feet and plays it at game size. The
+      battle above uses the frames straight away: idle, the punch with its impact effect, alarm when a big orc comes,
+      victory when a wave is cleared.</p>
+    <details class="master"><summary>Step 1: the Manny master (attach the concept sheet)</summary><pre id="master-prompt"></pre><button type="button" id="copy-master" class="copy">Copy prompt</button>
+      <p class="note">Pick the best of three or four. Then for each animation below, attach the master first and the concept sheet second, and use that animation's prompt.</p></details>
+    <div class="controls">
+      <button class="plain" id="lab-zoom" type="button">Preview at 2x</button>
+      <label class="check"><input type="checkbox" id="lab-onion" checked> Onion skin (idle frame behind)</label>
+      <label class="check">Background removal <select id="lab-strength"><option value="60">Normal</option><option value="95">Strong</option><option value="35">Gentle</option></select></label>
+    </div>
+    <div class="anims" id="lab-anims"></div>
+  </section>
+
   <section>
     <h2>Art slots</h2>
     <p class="note" id="store-note">Add an image to a slot to see it in the scene. A plain magenta or green background is removed automatically.</p>
@@ -177,10 +215,9 @@
   <section class="prompts" id="prompts">
     <h2>Prompts</h2>
     <ol class="steps">
-      <li>Generate <strong>Manny</strong> first, a few times, and keep the best one. It sets the style for everything else.</li>
-      <li>For Manny's attack pose, attach your chosen Manny and use his attack prompt.</li>
-      <li>For Wren, Bones, the enemies and the ground, attach the chosen Manny as the style reference.</li>
-      <li>Download the biggest PNG, then add it to the matching slot above.</li>
+      <li>Manny comes first, in the animation lab above.</li>
+      <li>For the other slots, attach the concept sheet as the style reference.</li>
+      <li>Download the biggest PNG (transparent if offered), then add it to the matching slot above.</li>
     </ol>
   </section>
 </main>
@@ -608,8 +645,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
 
   // ---------------------------------------------------------------- art slots
   const SLOTS = [
-    { id: 'manny', name: 'Manny', kind: 'hero', key: 'magenta' },
-    { id: 'manny-attack', name: 'Manny: attack', kind: 'pose', of: 'manny', key: 'magenta' },
+    { id: 'manny-portrait', name: 'Manny portrait', kind: 'portrait', key: 'magenta' },
     { id: 'wren', name: 'Wren', kind: 'hero', key: 'magenta' },
     { id: 'wren-attack', name: 'Wren: attack', kind: 'pose', of: 'wren', key: 'magenta' },
     { id: 'bones', name: 'Bones', kind: 'hero', key: 'green' },
@@ -618,53 +654,144 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     { id: 'orc', name: 'Armoured Orc', kind: 'enemy', key: 'magenta' },
     { id: 'ground', name: 'Map ground', kind: 'ground', key: 'none' },
   ];
+  /**
+   * Manny's illustrated animation sets (the animation lab). Each holds processed frames
+   * ({img, ax, ay}: canvas plus feet anchor in its pixels), timings, and lab adjustments.
+   * `expect` is the animation's tallest frame relative to idle (attack crouches a little).
+   */
+  const MANNY = {
+    idleH: 136,
+    anims: {
+      idle: { name: 'Idle', n: 2, durations: [450, 450], expect: 1.0, poses: 'breathe in · breathe out', required: true },
+      attack: { name: 'Attack (haymaker)', n: 3, durations: [260, 190, 320], expect: 0.98, poses: 'wind-up · strike · follow-through', required: true },
+      alarm: { name: 'Alarm', n: 1, durations: [800], expect: 1.0, poses: 'shocked, fists up', required: true },
+      victory: { name: 'Victory', n: 2, durations: [500, 700], expect: 1.04, poses: 'double bicep · laughing', required: true },
+      flex: { name: 'Fidget (optional)', n: 2, durations: [600, 900], expect: 1.0, poses: 'bicep flex · kissing his fist', required: false },
+      impact: { name: 'Impact effect', n: 5, durations: [40, 40, 40, 40, 40], fx: true, poses: '5 frames on black, drawn additively', required: true },
+    },
+  };
+  for (const a of Object.values(MANNY.anims)) Object.assign(a, { frames: [], scale: 1, ox: 0, oy: 0 });
+  const mannyOn = (id) => useUserArt && MANNY.anims[id].frames.length > 0;
+  /** Display pixels per frame pixel for an animation. */
+  function mannyK(a) {
+    const maxH = Math.max(...a.frames.map((f) => f.img.height));
+    return (MANNY.idleH * a.expect * a.scale) / maxH;
+  }
+  /** Which frame of an animation is showing `t` seconds in (clamped to the last). */
+  function frameAt(a, t) {
+    let acc = 0;
+    for (let i = 0; i < a.frames.length; i++) { acc += (a.durations[i] ?? a.durations[a.durations.length - 1]) / 1000; if (t < acc) return i; }
+    return a.frames.length - 1;
+  }
+  /** The largest frame dimension of an effect, for a shared scale across its frames. */
+  const fxMax = (a) => Math.max(...a.frames.map((f) => Math.max(f.img.width, f.img.height)));
+  const animLen = (a) => a.frames.reduce((s, _, i) => s + (a.durations[i] ?? 300) / 1000, 0);
+
   /** slot id -> { def: {img, w, h}, user: {img, w, h} | null } */
-  const art = Object.fromEntries(SLOTS.map((s) => [s.id, { def: null, user: null }]));
+  const art = Object.fromEntries([...SLOTS.map((s) => s.id), 'manny', 'manny-attack'].map((id) => [id, { def: null, user: null }]));
   let useUserArt = true;
 
-  /** Removes a flat background colour (sampled from the corners) and trims to the content. */
-  function keyAndTrim(source, removeBackground, maxH = 640) {
+  /**
+   * Makes the background transparent: keeps existing transparency (a transparent PNG), otherwise removes
+   * the flat colour sampled from the corners. `mode` 'none' leaves the image as is (map ground, effects).
+   */
+  function keyImage(source, mode, maxH = 1024, tolerance = 60) {
     const sw = source.naturalWidth || source.width, sh = source.naturalHeight || source.height;
-    const scale = Math.min(1, maxH / sh, 2048 / sw);
+    const scale = Math.min(1, maxH / sh, 3072 / sw);
     const c = document.createElement('canvas');
     c.width = Math.max(1, Math.round(sw * scale));
     c.height = Math.max(1, Math.round(sh * scale));
     const g = c.getContext('2d', { willReadFrequently: true });
     g.imageSmoothingQuality = 'high';
     g.drawImage(source, 0, 0, c.width, c.height);
+    if (mode === 'none') return c;
     const im = g.getImageData(0, 0, c.width, c.height);
     const d = im.data;
-    if (removeBackground) {
-      const pts = [[1, 1], [c.width - 2, 1], [1, c.height - 2], [c.width - 2, c.height - 2], [c.width >> 1, 1]];
-      let r = 0, gg = 0, b = 0;
-      for (const [x, y] of pts) { const i = (y * c.width + x) * 4; r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
-      r /= pts.length; gg /= pts.length; b /= pts.length;
-      const t0 = 60, t1 = 130; // fully clear within t0, ramp to opaque by t1
-      for (let i = 0; i < d.length; i += 4) {
-        const dist = Math.hypot(d[i] - r, d[i + 1] - gg, d[i + 2] - b);
-        if (dist < t1) {
-          const a = dist <= t0 ? 0 : (dist - t0) / (t1 - t0);
-          d[i + 3] = Math.min(d[i + 3], Math.round(a * 255));
-          // Pull the key colour out of soft edge pixels so no coloured fringe remains.
-          if (a > 0 && a < 1) {
-            const k = 1 - a;
-            d[i] = Math.max(0, Math.min(255, (d[i] - r * k) / a));
-            d[i + 1] = Math.max(0, Math.min(255, (d[i + 1] - gg * k) / a));
-            d[i + 2] = Math.max(0, Math.min(255, (d[i + 2] - b * k) / a));
-          }
+    const pts = [[1, 1], [c.width - 2, 1], [1, c.height - 2], [c.width - 2, c.height - 2], [c.width >> 1, 1]];
+    if (pts.every(([x, y]) => d[(y * c.width + x) * 4 + 3] < 16)) return c; // already transparent
+    let r = 0, gg = 0, b = 0;
+    for (const [x, y] of pts) { const i = (y * c.width + x) * 4; r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+    r /= pts.length; gg /= pts.length; b /= pts.length;
+    const t0 = tolerance, t1 = tolerance + 70; // fully clear within t0, ramp to opaque by t1
+    for (let i = 0; i < d.length; i += 4) {
+      const dist = Math.hypot(d[i] - r, d[i + 1] - gg, d[i + 2] - b);
+      if (dist < t1) {
+        const a = dist <= t0 ? 0 : (dist - t0) / (t1 - t0);
+        d[i + 3] = Math.min(d[i + 3], Math.round(a * 255));
+        // Pull the key colour out of soft edge pixels so no coloured fringe remains.
+        if (a > 0 && a < 1) {
+          const k = 1 - a;
+          d[i] = Math.max(0, Math.min(255, (d[i] - r * k) / a));
+          d[i + 1] = Math.max(0, Math.min(255, (d[i + 1] - gg * k) / a));
+          d[i + 2] = Math.max(0, Math.min(255, (d[i + 2] - b * k) / a));
         }
       }
-      g.putImageData(im, 0, 0);
     }
+    g.putImageData(im, 0, 0);
+    return c;
+  }
+
+  /** Per-column "something is here" test: alpha for sprites, brightness for effects on black. */
+  function occupied(d, i, luma) {
+    return luma ? Math.max(d[i], d[i + 1], d[i + 2]) > 28 : d[i + 3] > 24;
+  }
+
+  function trimCanvas(c, luma = false) {
+    const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data;
     let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
     for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
-      if (d[(y * c.width + x) * 4 + 3] > 12) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (occupied(d, (y * c.width + x) * 4, luma)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     }
     if (x1 < 0) return c;
+    const pad = luma ? 6 : 1;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(c.width - 1, x1 + pad); y1 = Math.min(c.height - 1, y1 + pad);
     const out = document.createElement('canvas');
     out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
     out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
     return out;
+  }
+
+  function keyAndTrim(source, removeBackground, maxH = 640) {
+    return trimCanvas(keyImage(source, removeBackground ? 'key' : 'none', maxH));
+  }
+
+  /**
+   * Splits a horizontal strip into `n` frames at the empty columns between figures. If the gaps don't give
+   * exactly n pieces, falls back to n equal columns. Each frame is trimmed.
+   */
+  function splitStrip(c, n, luma = false) {
+    const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data;
+    const col = new Array(c.width).fill(0);
+    for (let x = 0; x < c.width; x++) for (let y = 0; y < c.height; y += 2) if (occupied(d, (y * c.width + x) * 4, luma)) col[x]++;
+    let segs = [];
+    for (let x = 0, start = -1; x <= c.width; x++) {
+      const on = x < c.width && col[x] > 1;
+      if (on && start < 0) start = x;
+      if (!on && start >= 0) { segs.push([start, x - 1]); start = -1; }
+    }
+    // Drop specks, then merge the closest neighbours until n remain.
+    segs = segs.filter(([a, b]) => b - a > c.width * 0.01);
+    while (segs.length > n) {
+      let best = 0, gap = Infinity;
+      for (let i = 0; i < segs.length - 1; i++) { const g2 = segs[i + 1][0] - segs[i][1]; if (g2 < gap) { gap = g2; best = i; } }
+      segs.splice(best, 2, [segs[best][0], segs[best + 1][1]]);
+    }
+    if (segs.length !== n) segs = Array.from({ length: n }, (_, i) => [Math.floor((i * c.width) / n), Math.floor(((i + 1) * c.width) / n) - 1]);
+    return segs.map(([a, b]) => {
+      const piece = document.createElement('canvas');
+      piece.width = b - a + 1; piece.height = c.height;
+      piece.getContext('2d').drawImage(c, a, 0, piece.width, c.height, 0, 0, piece.width, c.height);
+      return trimCanvas(piece, luma);
+    });
+  }
+
+  /** Where the feet touch the ground: the centre of the lowest opaque rows. */
+  function footAnchor(c) {
+    const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data;
+    const band = Math.max(2, Math.round(c.height * 0.05));
+    let sx = 0, n = 0;
+    for (let y = c.height - band; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 64) { sx += x; n++; }
+    return { ax: n ? sx / n : c.width / 2, ay: c.height - 1 };
   }
 
   function svgImage(markup, viewBox, w, h) {
@@ -843,6 +970,11 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   heroes.forEach((h, i) => { h.quipAt = 4 + i * 3.5; h.bubble = null; });
   let enemies = [], shots = [], fx = [], texts = [];
   let spawnT = 0, time = 0, hitStop = 0, shake = 0, gateShake = 0;
+  let banner = null, nextBoss = 26, nextClear = 14, nextFidget = 6;
+  /** Starts a reaction on every hero (Manny shows his frames when he has them). */
+  function react(kind, len) {
+    for (const h of heroes) if (!h.anim) h.react = { kind, t: 0, len: h.id === 'manny' && mannyOn(kind) ? Math.max(len, animLen(MANNY.anims[kind]) * (kind === 'victory' ? 2 : 1)) : len };
+  }
   const stats = { wave: 12, gold: 845, health: 18 };
 
   function spawn() {
@@ -880,7 +1012,11 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     h.face = target.x < h.x ? -1 : 1;
     h.t = h.cd;
     if (h.id === 'manny') {
-      h.anim = { t: 0, len: 0.95, target };
+      if (mannyOn('attack')) {
+        const d = MANNY.anims.attack.durations.map((x) => x / 1000);
+        h.anim = { t: 0, len: d[0] + d[1] + (d[2] ?? 0.3), strike: d[0], target };
+      } else h.anim = { t: 0, len: 0.95, strike: 0.34, target };
+      h.react = null;
     } else if (h.id === 'wren') {
       h.anim = { t: 0, len: 0.3 };
       const sx = h.x + h.face * 24, sy = h.y - h.h * 0.62;
@@ -897,6 +1033,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     const cx = h.x + h.face * 40, cy = h.y - 10;
     fx.push({ type: 'ring', x: cx, y: cy, t: 0, life: 0.45, r: h.range });
     fx.push({ type: 'pow', x: cx + h.face * 10, y: h.y - h.h - 10, t: 0, life: 0.7 });
+    if (mannyOn('impact')) fx.push({ type: 'impact', x: cx + h.face * 30, y: h.y - h.h * 0.55, t: 0, life: animLen(MANNY.anims.impact), flip: h.face < 0 });
     for (let i = 0; i < 6; i++) fx.push({ type: 'dust', x: cx + (Math.random() - 0.5) * 80, y: cy + (Math.random() - 0.5) * 30, t: 0, life: 0.6 + Math.random() * 0.3, r: 10 + Math.random() * 12 });
     hitStop = 0.07; shake = 0.22;
     for (const e of alive()) {
@@ -972,10 +1109,17 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     shake = Math.max(0, shake - dt); gateShake = Math.max(0, gateShake - dt);
     spawnT -= dt;
     if (spawnT <= 0) { spawn(); spawnT = 0.85 + Math.random() * 0.6; }
+    if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
+    if (time > nextBoss) { nextBoss = time + 34; react('alarm', 1.0); banner = { s: 'Big orc incoming!', t: 1.8, c: '#ff8a6b' };
+      enemies.push({ type: 'orc', s: -20, speed: 36, hp: 520, max: 520, h: 124, phase: 0, flash: 0, chill: 0, air: null, dazed: 0, x: 0, y: 0, face: 1, big: true }); }
+    if (time > nextClear) { nextClear = time + 41; react('victory', 2.4); banner = { s: 'Wave cleared!', t: 1.8, c: '#ffd34d' }; stats.wave++; }
+    const manny = heroes[0];
+    if (!manny.anim && !manny.react && time > nextFidget) { nextFidget = time + 7 + Math.random() * 4; if (mannyOn('flex')) react('flex', animLen(MANNY.anims.flex)); }
     for (const h of heroes) {
       const before = h.anim && h.anim.t;
       updateHero(h, dt);
-      if (h.id === 'manny' && h.anim && before !== undefined && before < 0.34 && h.anim.t >= 0.34) mannyStrike(h);
+      if (h.id === 'manny' && h.anim && before !== undefined && before < h.anim.strike && h.anim.t >= h.anim.strike) mannyStrike(h);
+      if (h.react) { h.react.t += dt; if (h.react.t > h.react.len) h.react = null; }
     }
     enemies.forEach((e) => updateEnemy(e, dt));
     enemies = enemies.filter((e) => e.hp > 0 || e.air);
@@ -997,11 +1141,46 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     g.drawImage(img, -w / 2, -h, w, h);
     g.restore();
   }
+  /** Draws one animation frame with its feet anchor on (x, y). */
+  function drawFrame(g, fr, x, y, k, o = {}) {
+    if (!fr) return;
+    g.save();
+    g.translate(x + (o.ox || 0), y + (o.oy || 0));
+    if (o.rot) g.rotate(o.rot);
+    g.scale((o.flip ? -1 : 1) * (o.sx || 1) * k, (o.sy || 1) * k);
+    g.drawImage(fr.img, -fr.ax, -fr.ay);
+    g.restore();
+  }
   function shadow(g, x, y, r) {
     g.fillStyle = 'rgba(43,26,34,0.25)';
     g.beginPath(); g.ellipse(x, y, r, r * 0.3, 0, 0, TAU); g.fill();
   }
   const ease = (t) => 1 - (1 - t) * (1 - t);
+
+  /** Manny drawn from his illustrated frames: which frame, at what scale, with code motion on top. */
+  function mannyFramePose(h) {
+    const A = MANNY.anims;
+    const breathe = Math.sin(time * 2.4) * 0.012;
+    const o = { sx: 1 - breathe, sy: 1 + breathe, flip: h.face < 0 };
+    let a = A.idle, fi = frameAt(A.idle, time % animLen(A.idle));
+    if (h.anim && mannyOn('attack')) {
+      a = A.attack; fi = frameAt(a, h.anim.t);
+      const t = h.anim.t, s0 = h.anim.strike;
+      if (fi === 0) { const k = ease(Math.min(1, t / s0)); o.sx = 1 + 0.04 * k; o.sy = 1 - 0.05 * k; }
+      else if (fi === 1) { o.ox = 10 * h.face; o.sx = 1.06; o.sy = 0.96; }
+    } else if (h.anim) {
+      const t = h.anim.t; // no attack frames yet: code motion on the idle frame
+      if (t < 0.34) { const k = ease(t / 0.34); o.rot = -0.1 * k * h.face; o.sy = 1 - 0.06 * k; o.ox = -8 * k * h.face; }
+      else if (t < 0.46) { o.rot = 0.1 * h.face; o.sx = 1.12; o.sy = 0.93; o.ox = 22 * h.face; }
+    } else if (h.react) {
+      const r = h.react;
+      if (mannyOn(r.kind)) { a = A[r.kind]; fi = r.kind === 'victory' ? frameAt(a, r.t % animLen(a)) : frameAt(a, r.t); }
+      if (r.kind === 'alarm') { o.ox = (Math.random() - 0.5) * 4 * Math.max(0, 1 - r.t); }
+      if (r.kind === 'victory' && !mannyOn('victory')) o.oy = -Math.abs(Math.sin(r.t * 7)) * 14;
+    }
+    o.ox = (o.ox || 0) + a.ox; o.oy = (o.oy || 0) + a.oy;
+    return { frame: a.frames[fi], k: mannyK(a), o };
+  }
 
   function heroPose(h) {
     const breathe = Math.sin(time * 2.4 + h.x) * 0.018;
@@ -1063,6 +1242,14 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     } else if (f.type === 'sparkle') {
       g.globalAlpha = 1 - k; g.fillStyle = '#c9a2ff'; g.translate(f.x, f.y);
       for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU + k * 2; const r = 8 + 26 * ease(k); star(g, Math.cos(a) * r, Math.sin(a) * r, 6 * (1 - k * 0.5)); }
+    } else if (f.type === 'impact') {
+      const a = MANNY.anims.impact, fr = a.frames[frameAt(a, f.t)];
+      if (fr) {
+        const k = (190 * a.scale) / fxMax(a); // one scale for all frames, so the burst can grow and fade
+        g.globalCompositeOperation = 'lighter';
+        g.translate(f.x + a.ox, f.y + a.oy); g.scale(f.flip ? -k : k, k);
+        g.drawImage(fr.img, -fr.img.width / 2, -fr.img.height / 2);
+      }
     } else if (f.type === 'stuck') {
       g.globalAlpha = Math.min(1, (1 - k) * 3); g.translate(f.x, f.y); g.rotate(f.rot); drawArrow(g, 0.8);
     }
@@ -1102,7 +1289,19 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     }
     // Shadows, then everything that stands on the ground, back to front.
     const things = [];
-    for (const h of heroes) things.push({ y: h.y, draw: () => { const { img, o } = heroPose(h); shadow(g, h.x + (o.ox || 0), h.y, h.h * 0.32); drawSprite(g, img, h.x, h.y, h.h, o); } });
+    for (const h of heroes) things.push({ y: h.y, draw: () => {
+      if (h.id === 'manny' && mannyOn('idle')) {
+        const { frame, k, o } = mannyFramePose(h);
+        shadow(g, h.x + (o.ox || 0), h.y, MANNY.idleH * 0.34);
+        drawFrame(g, frame, h.x, h.y, k, o);
+        return;
+      }
+      const { img, o } = heroPose(h);
+      if (h.react && h.react.kind === 'victory') o.oy = (o.oy || 0) - Math.abs(Math.sin(h.react.t * 7)) * 12;
+      if (h.react && h.react.kind === 'alarm') o.ox = (o.ox || 0) + (Math.random() - 0.5) * 4;
+      shadow(g, h.x + (o.ox || 0), h.y, h.h * 0.32);
+      drawSprite(g, img, h.x, h.y, h.h, o);
+    } });
     for (const e of enemies) {
       things.push({ y: e.y, draw: () => {
         const a = e.air, bob = Math.abs(Math.sin(time * (e.type === 'orc' ? 7 : 11) + e.phase));
@@ -1133,6 +1332,13 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       g.save(); g.globalAlpha = Math.min(1, t.t * 3); g.font = `${t.size}px "Lilita One", Impact, sans-serif`; g.textAlign = 'center';
       g.lineWidth = 6; g.strokeStyle = '#2b1a22'; g.lineJoin = 'round'; g.strokeText(t.s, t.x, t.y); g.fillStyle = t.c; g.fillText(t.s, t.x, t.y); g.restore();
     }
+    if (banner) {
+      const k = Math.min(1, (1.8 - banner.t) * 5, banner.t * 3);
+      g.save(); g.globalAlpha = k; g.translate(W / 2, 120); g.scale(0.85 + 0.15 * k, 0.85 + 0.15 * k);
+      g.font = '54px "Lilita One", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineJoin = 'round'; g.lineWidth = 10; g.strokeStyle = '#2b1a22'; g.strokeText(banner.s, 0, 0); g.fillStyle = banner.c; g.fillText(banner.s, 0, 0);
+      g.restore();
+    }
     g.restore();
   }
 
@@ -1144,7 +1350,8 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   }
 
   window.BattleScene = {
-    SLOTS, art, heroes, stats, keyAndTrim, loadDefaults, sprite, update, draw, warmUp,
+    SLOTS, art, heroes, stats, keyAndTrim, keyImage, splitStrip, trimCanvas, footAnchor, MANNY, mannyK, frameAt, animLen, fxMax, drawFrame, loadDefaults, sprite, update, draw, warmUp,
+    trigger(kind) { if (kind === 'attack') { const h = heroes[0]; h.t = 0; } else react(kind, kind === 'victory' ? 2.4 : 1.0); },
     get useUserArt() { return useUserArt; }, set useUserArt(v) { useUserArt = v; },
     get selected() { return selected; }, set selected(v) { selected = v; },
     W, H,
@@ -1159,17 +1366,16 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   const KEY = { magenta: 'magenta (#FF00FF)', green: 'green (#00FF00)' };
   const PREFIX = (key) => `Colourful hand-painted 2D fantasy game character art, polished premium mobile-game quality, bold and instantly readable silhouette, exaggerated cartoon proportions (big head, big hands), thick dark plum outline, clean cel shading with soft painted highlights, warm sunny light from the upper left, saturated but not neon colours, crisp edges. Full body, three-quarter view facing right, the whole character visible with space around it, centred. Perfectly flat solid ${KEY[key]} background with no shadow, gradient, texture or floor. No text, no watermark, no frame.`;
   const REF = 'Using the attached image as the exact character reference (same design, colours, proportions and outfit), ';
-  const STYLE = 'In exactly the same art style as the attached image (same outline weight, shading, colours and level of detail), draw a different character: ';
+  const STYLE = 'In exactly the same art style as the attached concept sheet (same outline weight, painted cel shading, colours and level of detail), draw a different character: ';
   const PROMPTS = {
-    manny: { attach: 'nothing (first image)', text: PREFIX('magenta') + '\n\nManny the Manhandler: an absurdly strong, cheerful, cocky fist-fighting monk. Pear-shaped body on tiny legs, gigantic taped fists bigger than his head, bald with a ridiculous topknot tied with a red ribbon, huge cocky grin with one gold tooth, a taped broken nose, bushy eyebrows, an orange monk robe, a red sash with a big brass gong as the belt buckle, a necklace of oversized jade prayer beads, wrapped ankles, bare feet. He flexes one giant fist proudly, eyebrows raised. Charismatic, ridiculous, likeable.' },
-    'manny-attack': { attach: 'your chosen Manny', text: REF + 'show him mid-haymaker: lunging forward, one giant fist thrust out to the right, the other fist pulled back, robe flaring, a delighted grin. Same outfit and proportions.\n\n' + PREFIX('magenta') },
-    wren: { attach: 'your chosen Manny (style)', text: STYLE + "Wren: a young, cocky archer prodigy and the game's signature hero. Recognizable red hood and short cape with a long pointed hood tail that streams like a pennant, freckles, a confident smirk, short auburn hair, a spare arrow tucked behind one ear, a leather jerkin, mismatched green and cream fletching in her quiver, a curved wooden longbow. Light and agile, smaller than the others, standing with the bow lowered and a smug look.\n\n" + PREFIX('magenta') },
+    'manny-portrait': { attach: 'your Manny master', text: 'Using the attached image as the exact character reference (same design, colours, proportions and outfit), draw a head-and-shoulders portrait of Manny with a cocky grin, three-quarter view facing right, square image, plain flat background. Same art style: polished cartoon fantasy game art, painted cel shading with soft gradients, warm light from the upper left, thick dark plum-brown outline.' },
+    wren: { attach: 'the concept sheet (style)', text: STYLE + "Wren: a young, cocky archer prodigy and the game's signature hero. Recognizable red hood and short cape with a long pointed hood tail that streams like a pennant, freckles, a confident smirk, short auburn hair, a spare arrow tucked behind one ear, a leather jerkin, mismatched green and cream fletching in her quiver, a curved wooden longbow. Light and agile, smaller than the others, standing with the bow lowered and a smug look.\n\n" + PREFIX('magenta') },
     'wren-attack': { attach: 'your chosen Wren', text: REF + 'show her releasing an arrow: bow fully drawn toward the right, hood tail whipping back, one eye narrowed. Same outfit and proportions.\n\n' + PREFIX('magenta') },
-    bones: { attach: 'your chosen Manny (style)', text: STYLE + 'Bones: a tall, lanky, playful skeleton mage with deadpan humour (an original design). Clean ivory bones, very long thin limbs, a big friendly skull with glowing purple eye-lights shaped like half-closed, lazy eyes, a cosy knitted cardigan worn open over his ribcage, a long striped scarf, a slouchy pom-pom beanie, a staff made from a femur with a lit candle on top. Slouching, one hand casually raised as if about to tell a pun. Charming, not scary.\n\n' + PREFIX('green') },
+    bones: { attach: 'the concept sheet (style)', text: STYLE + 'Bones: a tall, lanky, playful skeleton mage with deadpan humour (an original design). Clean ivory bones, very long thin limbs, a big friendly skull with glowing purple eye-lights shaped like half-closed, lazy eyes, a cosy knitted cardigan worn open over his ribcage, a long striped scarf, a slouchy pom-pom beanie, a staff made from a femur with a lit candle on top. Slouching, one hand casually raised as if about to tell a pun. Charming, not scary.\n\n' + PREFIX('green') },
     'bones-attack': { attach: 'your chosen Bones', text: REF + 'show him flinging one of his own ribs like a boomerang toward the right, purple sparkles trailing from his hand, a deadpan expression. Same outfit and proportions.\n\n' + PREFIX('green') },
-    goblin: { attach: 'your chosen Manny (style)', text: STYLE + 'a small scrappy goblin raider: green skin, huge floppy ears, an oversized dented helmet slipping over its eyes, a crude wooden spear, a patched leather vest, scurrying forward. Comic, not gory.\n\n' + PREFIX('magenta') },
-    orc: { attach: 'your chosen Manny (style)', text: STYLE + 'a hulking armoured orc brute: grey-green skin, a dented iron helmet with short horns, one big shoulder plate, tusks, a heavy cleaver, a slow stomping pose. Tough but cartoonish.\n\n' + PREFIX('magenta') },
-    ground: { attach: 'your chosen Manny (style)', text: 'Top-down view (looking down at about 70 degrees) of a sunny fantasy meadow for a tower defense game, 16:9 landscape. Lush stylised grass with soft painted variation, scattered wildflowers and small rocks, clusters of round cartoon trees along the top and bottom edges, a small pond in one corner. No road, no buildings, no characters, no text. Same art style as the attached image: thick dark outlines on props, cel shading, warm light from the upper left.' },
+    goblin: { attach: 'the concept sheet (style)', text: STYLE + 'a small scrappy goblin raider: green skin, huge floppy ears, an oversized dented helmet slipping over its eyes, a crude wooden spear, a patched leather vest, scurrying forward. Comic, not gory.\n\n' + PREFIX('magenta') },
+    orc: { attach: 'the concept sheet (style)', text: STYLE + 'a hulking armoured orc brute: grey-green skin, a dented iron helmet with short horns, one big shoulder plate, tusks, a heavy cleaver, a slow stomping pose. Tough but cartoonish.\n\n' + PREFIX('magenta') },
+    ground: { attach: 'the concept sheet (style)', text: 'Top-down view (looking down at about 70 degrees) of a sunny fantasy meadow for a tower defense game, 16:9 landscape. Lush stylised grass with soft painted variation, scattered wildflowers and small rocks, clusters of round cartoon trees along the top and bottom edges, a small pond in one corner. No road, no buildings, no characters, no text. Same art style as the attached concept sheet: painted, layered, thick dark outlines on props, cel shading, warm light from the upper left.' },
   };
   const promptsEl = $('prompts');
   for (const slot of S.SLOTS) {
@@ -1231,10 +1437,208 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       c.reset.hidden = !a.user;
       fitDraw(c.canvas, a.user || a.def, 10, slot.kind === 'ground');
     }
-    document.querySelectorAll('.card').forEach((card) => portrait(card.querySelector('canvas'), S.sprite(card.dataset.hero)));
-    portrait($('panel-portrait'), S.sprite('manny'));
+    const mannyFace = (S.useUserArt && S.art['manny-portrait'].user) ? { img: S.art['manny-portrait'].user, full: true }
+      : (S.useUserArt && S.MANNY.anims.idle.frames[0]) ? { img: S.MANNY.anims.idle.frames[0].img } : { img: S.sprite('manny') };
+    document.querySelectorAll('.card').forEach((card) => {
+      const c = card.querySelector('canvas');
+      if (card.dataset.hero === 'manny') mannyFace.full ? fitDraw(c, mannyFace.img, 0, true) : portrait(c, mannyFace.img);
+      else portrait(c, S.sprite(card.dataset.hero));
+    });
+    mannyFace.full ? fitDraw($('panel-portrait'), mannyFace.img, 0, true) : portrait($('panel-portrait'), mannyFace.img);
     $('status').textContent = `${mine} of ${S.SLOTS.length} slots use your images${!S.useUserArt && mine ? ' (showing code-drawn)' : ''}.`;
   }
+
+  // ---------------------------------------------------------------- Manny animation lab
+  const M = S.MANNY;
+  const LAB_PROMPTS = {
+    idle: 'horizontal strip of 2 poses: 1) idle, breathing in, fists low; 2) idle, breathing out, chest puffed and slightly taller',
+    attack: 'horizontal strip of 3 poses: 1) wind-up: crouching, weight on the back leg, right fist cocked far back behind his head, gritted grin; 2) strike: lunging, right fist fully extended to the right at chest height, arm straight, left fist pulled back, hair swept back; 3) follow-through: fist still forward, body upright, delighted laugh',
+    alarm: 'single pose: alarmed, eyes wide, mouth open, both fists raised in guard, leaning back',
+    victory: 'horizontal strip of 2 poses: 1) double-bicep victory pose with a huge grin; 2) head thrown back laughing, fists on hips',
+    flex: 'horizontal strip of 2 poses: 1) flexing his right bicep with a smug look; 2) kissing his own giant fist',
+  };
+  const LOCK = 'Manny the Manhandler: a cocky, cheerful, ridiculous bare-knuckle brawler. Spiky crimson hair swept back, a square jaw, thick eyebrows, a big confident grin. Shirtless, with a huge chest and shoulders and defined abs. Gigantic fists wrapped in cream bandages with gold knuckle rings, and brown leather bracers. A navy-blue sash with a round gold belt medallion bearing a star. Baggy orange-gold trousers, brown leather leg wraps, sandals. Proportions: a very large upper body and fists, short legs, a head about one fifth of his height.';
+  const STYLE_LINE = 'Same art style as the attached reference: polished cartoon fantasy game art, painted cel shading with soft gradients, warm light from the upper left, thick dark plum-brown outline.';
+  const FORMAT_LINE = 'Game sprite. Full body, three-quarter view facing right. Transparent background (if not possible, a perfectly flat solid #FF00FF magenta). No ground shadow, no effects, no text, no other characters, nothing cropped at the edges.';
+  function labPrompt(id) {
+    if (id === 'impact') return 'A game effect sprite strip on a pure black background: 5 frames left to right of a golden-white punch impact burst: 1 small bright flash, 2 large starburst with sparks, 3 burst breaking into streaks, 4 fading sparks and smoke, 5 last embers. Evenly spaced, no character, no text. Same art style as the attached concept sheet.';
+    return `Using the first attached image as the exact character (same design, colours, proportions and size), draw a ${LAB_PROMPTS[id]}. Evenly spaced with clear gaps, all at the same scale and standing on the same ground line, each full body facing right.\n\n${LOCK}\n\n${STYLE_LINE}\n\n${FORMAT_LINE}`;
+  }
+  const MASTER_PROMPT = `Create one clean game sprite of Manny exactly as designed on the attached concept sheet, in his idle stance.\n\n${LOCK}\n\n${STYLE_LINE}\n\n${FORMAT_LINE}`;
+
+  const labEl = $('lab-anims');
+  const lab = {};
+  let zoom = 1, onion = true, tolerance = 60;
+  const copyBtn = (btn, text, pre) => btn.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; }
+    catch { const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); btn.textContent = 'Selected: copy it'; }
+    setTimeout(() => (btn.textContent = 'Copy prompt'), 2000);
+  });
+  {
+    const pre = $('master-prompt'); pre.textContent = MASTER_PROMPT; copyBtn($('copy-master'), MASTER_PROMPT, pre);
+  }
+  for (const [id, a] of Object.entries(M.anims)) {
+    const el = document.createElement('div');
+    el.className = 'anim';
+    el.innerHTML = `<div class="top"><strong></strong><span class="badge"></span></div>
+      <p class="note poses"></p>
+      <canvas class="preview" width="640" height="440"></canvas>
+      <div class="thumbs"></div>
+      <div class="acts"><label class="file"><input type="file" multiple accept="image/png,image/jpeg,image/webp" id="lab-${id}"><span>Add strip or frames</span></label>
+        <button type="button" class="reset" hidden>Clear</button>${['attack', 'alarm', 'victory', 'flex'].includes(id) ? '<button type="button" class="play">Play in scene</button>' : ''}</div>
+      <div class="sliders">
+        <label>Scale <input type="range" min="50" max="150" value="100" data-k="scale"></label>
+        <label>Left / right <input type="range" min="-60" max="60" value="0" data-k="ox"></label>
+        <label>Up / down <input type="range" min="-60" max="60" value="0" data-k="oy"></label>
+      </div>
+      <div class="durs"></div>
+      <details><summary>Prompt</summary><pre></pre><button type="button" class="copy">Copy prompt</button></details>
+      <p class="msg" aria-live="polite"></p>`;
+    el.querySelector('strong').textContent = a.name;
+    el.querySelector('.poses').textContent = `${a.n} frame${a.n > 1 ? 's' : ''}: ${a.poses}`;
+    const badge = el.querySelector('.badge'); badge.textContent = a.required ? 'Required' : 'Optional';
+    const pre = el.querySelector('pre'); const text = labPrompt(id); pre.textContent = text; copyBtn(el.querySelector('.copy'), text, pre);
+    labEl.appendChild(el);
+    const ui = lab[id] = { el, badge, preview: el.querySelector('.preview'), thumbs: el.querySelector('.thumbs'), msg: el.querySelector('.msg'), reset: el.querySelector('.reset'), durs: el.querySelector('.durs') };
+    el.querySelector('input[type=file]').addEventListener('change', (e) => { const fs = [...e.target.files]; e.target.value = ''; if (fs.length) addFrames(id, fs); });
+    ui.reset.addEventListener('click', () => clearFrames(id));
+    el.querySelector('.play')?.addEventListener('click', () => S.trigger(id === 'flex' ? 'flex' : id));
+    el.querySelectorAll('.sliders input').forEach((inp) => inp.addEventListener('input', () => {
+      a[inp.dataset.k] = inp.dataset.k === 'scale' ? Number(inp.value) / 100 : Number(inp.value);
+      saveSettings(id);
+    }));
+  }
+
+  function renderLabCard(id) {
+    const a = M.anims[id], ui = lab[id];
+    ui.badge.textContent = a.frames.length ? `${a.frames.length} frame${a.frames.length > 1 ? 's' : ''}` : a.required ? 'Required' : 'Optional';
+    ui.badge.classList.toggle('mine', a.frames.length > 0);
+    ui.reset.hidden = !a.frames.length;
+    ui.thumbs.innerHTML = '';
+    a.frames.forEach((f) => { const c = document.createElement('canvas'); c.width = 120; c.height = 120; fitDraw(c, f.img, 4); ui.thumbs.appendChild(c); });
+    ui.durs.innerHTML = '';
+    a.frames.forEach((_, i) => {
+      const l = document.createElement('label');
+      l.innerHTML = `Frame ${i + 1} <input type="number" min="20" max="3000" step="10"> ms`;
+      const inp = l.querySelector('input'); inp.value = a.durations[i] ?? a.durations[a.durations.length - 1];
+      inp.addEventListener('change', () => { a.durations[i] = Math.max(20, Number(inp.value) || 100); saveSettings(id); });
+      ui.durs.appendChild(l);
+    });
+    ui.el.querySelectorAll('.sliders input').forEach((inp) => { inp.value = inp.dataset.k === 'scale' ? Math.round(a.scale * 100) : a[inp.dataset.k]; });
+  }
+
+  /** Loops every lab preview at gameplay size (or 2x), with the idle frame as an onion skin. */
+  function drawPreviews(now) {
+    const t = now / 1000;
+    for (const [id, a] of Object.entries(M.anims)) {
+      const c = lab[id].preview, g2 = c.getContext('2d');
+      g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, c.width, c.height);
+      g2.setTransform(2, 0, 0, 2, 0, 0); // canvas is 2x its CSS size
+      const W2 = 320, H2 = 220, gy = 196;
+      if (a.fx) { g2.fillStyle = '#120d22'; g2.fillRect(0, 0, W2, H2); }
+      else { g2.fillStyle = '#5c9e45'; g2.fillRect(0, gy, W2, H2 - gy); g2.strokeStyle = 'rgba(255,255,255,.25)'; g2.beginPath(); g2.moveTo(0, gy); g2.lineTo(W2, gy); g2.stroke(); }
+      if (!a.frames.length) { g2.fillStyle = 'rgba(255,255,255,.45)'; g2.font = '600 13px Nunito, sans-serif'; g2.textAlign = 'center'; g2.fillText('Add a strip or frames', W2 / 2, 100); continue; }
+      const cycle = S.animLen(a) + (id === 'idle' || id === 'flex' ? 0 : 0.6);
+      const fi = S.frameAt(a, (t % cycle));
+      if (a.fx) {
+        const fr = a.frames[fi], k = (160 * a.scale * zoom) / S.fxMax(a);
+        g2.save(); g2.globalCompositeOperation = 'lighter'; g2.translate(W2 / 2 + a.ox, 100 + a.oy); g2.scale(k, k); g2.drawImage(fr.img, -fr.img.width / 2, -fr.img.height / 2); g2.restore();
+        continue;
+      }
+      const idle = M.anims.idle;
+      if (onion && id !== 'idle' && idle.frames.length) { g2.globalAlpha = 0.3; S.drawFrame(g2, idle.frames[0], W2 / 2 + idle.ox * zoom, gy + idle.oy * zoom, S.mannyK(idle) * zoom); g2.globalAlpha = 1; }
+      g2.fillStyle = 'rgba(43,26,34,.25)'; g2.beginPath(); g2.ellipse(W2 / 2, gy, 44 * zoom, 10 * zoom, 0, 0, Math.PI * 2); g2.fill();
+      S.drawFrame(g2, a.frames[fi], W2 / 2 + a.ox * zoom, gy + a.oy * zoom, S.mannyK(a) * zoom);
+    }
+  }
+
+  const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+  /** Scales a processed frame down so it is stored no bigger than needed (2x gameplay plus headroom). */
+  function capFrame(c, maxH = 420) {
+    if (c.height <= maxH) return c;
+    const k = maxH / c.height, out = document.createElement('canvas');
+    out.width = Math.round(c.width * k); out.height = maxH;
+    const g2 = out.getContext('2d'); g2.imageSmoothingQuality = 'high'; g2.drawImage(c, 0, 0, out.width, out.height);
+    return out;
+  }
+
+  async function addFrames(id, files) {
+    const a = M.anims[id], ui = lab[id];
+    ui.msg.textContent = 'Processing…';
+    try {
+      let canvases = [];
+      const mode = a.fx ? 'none' : 'key';
+      if (files.length === 1 && a.n > 1) {
+        const url = URL.createObjectURL(files[0]); const img = await loadImg(url); URL.revokeObjectURL(url);
+        canvases = S.splitStrip(S.keyImage(img, mode, 1400, tolerance), a.n, !!a.fx);
+      } else {
+        for (const f of files.slice(0, a.n)) {
+          const url = URL.createObjectURL(f); const img = await loadImg(url); URL.revokeObjectURL(url);
+          canvases.push(S.trimCanvas(S.keyImage(img, mode, 1400, tolerance), !!a.fx));
+        }
+      }
+      canvases = canvases.map((c) => capFrame(c, a.fx ? 360 : 420));
+      a.frames = canvases.map((c) => (a.fx ? { img: c, ax: c.width / 2, ay: c.height / 2 } : { img: c, ...S.footAnchor(c) }));
+      a.scale = 1; a.ox = 0; a.oy = 0;
+      S.useUserArt = true; setToggle();
+      renderLabCard(id); refresh();
+      const short = files.length === 1 && a.n > 1 ? ` Split into ${canvases.length}.` : '';
+      if (!assets || !db) { ui.msg.textContent = `Shown in the preview and the scene (not saved in this view).${short}`; return; }
+      ui.msg.textContent = 'Saving…';
+      const blobs = await Promise.all(canvases.map((c) => new Promise((res) => c.toBlob(res, 'image/png'))));
+      const ups = await Promise.all(blobs.map((b) => assets.upload(b)));
+      const srcs = await Promise.all(files.map((f) => assets.upload(f)));
+      const frames = ups.map((u, i) => ({ id: u.id, url: u.url, w: canvases[i].width, h: canvases[i].height, ax: a.frames[i].ax, ay: a.frames[i].ay }));
+      labLoaded[id] = frames.map((f) => f.url).join('|');
+      await db.collection('manny').doc(id).set({ frames, sources: srcs.map((u) => ({ id: u.id, url: u.url })), durations: a.durations, scale: a.scale, ox: a.ox, oy: a.oy, updatedAt: new Date().toISOString() });
+      ui.msg.textContent = `Saved ${frames.length} frame${frames.length > 1 ? 's' : ''}.${short}`;
+    } catch (e) {
+      ui.msg.textContent = e && e.code === 'too_large' ? 'A file is too big (20 MB limit). Export a smaller PNG.' : 'These images couldn’t be used. Try PNG exports.';
+    }
+  }
+  async function clearFrames(id) {
+    const a = M.anims[id];
+    a.frames = []; delete labLoaded[id];
+    renderLabCard(id); refresh();
+    lab[id].msg.textContent = 'Cleared. The images stay in the page’s storage and can be added again.';
+    if (db) { try { await db.collection('manny').doc(id).delete(); } catch { lab[id].msg.textContent = 'Couldn’t update the saved animation. Try again.'; } }
+  }
+  const saveTimers = {};
+  function saveSettings(id) {
+    if (!db || !M.anims[id].frames.length) return;
+    clearTimeout(saveTimers[id]);
+    saveTimers[id] = setTimeout(() => {
+      const a = M.anims[id];
+      db.collection('manny').doc(id).update({ durations: a.durations, scale: a.scale, ox: a.ox, oy: a.oy }).catch(() => (lab[id].msg.textContent = 'Couldn’t save the adjustment. Try again.'));
+    }, 500);
+  }
+  const labLoaded = {};
+  function watchLab() {
+    db.collection('manny').onSnapshot(async (snap) => {
+      const present = new Set();
+      for (const doc of snap.docs) {
+        const v = doc.data(), a = M.anims[doc.id];
+        if (!v || !a || !Array.isArray(v.frames)) continue;
+        present.add(doc.id);
+        Object.assign(a, { durations: v.durations || a.durations, scale: v.scale ?? 1, ox: v.ox ?? 0, oy: v.oy ?? 0 });
+        const key = v.frames.map((f) => f.url).join('|');
+        if (labLoaded[doc.id] !== key) {
+          labLoaded[doc.id] = key;
+          try {
+            const imgs = await Promise.all(v.frames.map((f) => loadImg(f.url)));
+            a.frames = imgs.map((img, i) => ({ img, ax: v.frames[i].ax, ay: v.frames[i].ay }));
+          } catch { lab[doc.id].msg.textContent = 'Saved frames couldn’t be loaded. Reload to try again.'; }
+        }
+        renderLabCard(doc.id);
+      }
+      for (const id of Object.keys(M.anims)) if (!present.has(id) && labLoaded[id]) { delete labLoaded[id]; M.anims[id].frames = []; renderLabCard(id); }
+      refresh();
+    });
+  }
+  $('lab-zoom').addEventListener('click', () => { zoom = zoom === 1 ? 2 : 1; $('lab-zoom').textContent = zoom === 1 ? 'Preview at 2x' : 'Preview at game size'; });
+  $('lab-onion').addEventListener('change', (e) => { onion = e.target.checked; });
+  $('lab-strength').addEventListener('change', (e) => { tolerance = Number(e.target.value); });
+  Object.keys(M.anims).forEach(renderLabCard);
 
   // ---------------------------------------------------------------- storage: assets + db when this view has them
   let assets = null, db = null;
@@ -1247,6 +1651,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       return;
     }
     $('store-note').textContent = 'Images you add are kept with this page (private to people you share it with), so they are still here next time and Claude can use them in the game.';
+    watchLab();
     db.collection('slots').onSnapshot((snap) => {
       const present = new Set();
       for (const doc of snap.docs) {
@@ -1334,10 +1739,12 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       $('s-gold').textContent = S.stats.gold;
       $('s-health').textContent = S.stats.health;
     }
+    drawPreviews(now);
     requestAnimationFrame(frame);
   }
 
   S.loadDefaults().then(() => {
+    S.art['manny-portrait'].def = S.art.manny.def;
     S.warmUp(20);
     refresh();
     requestAnimationFrame(frame);

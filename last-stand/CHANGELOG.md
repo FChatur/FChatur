@@ -13,6 +13,12 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   - a prompt pack for Manny, Wren, Bones, two enemies and the map ground (docs/art/PROMPTS.md);
   - a full gameplay-screen concept (docs/prototypes/battle-screen.html). Every art slot can take a
     generated image, which is keyed, trimmed, kept with the hosted page and animated in the scene.
+- Style reference v1 (the owner's concept sheet, docs/art/reference/) with an analysis and a comparison
+  against the prototype (docs/art/STYLE_REFERENCE.md). Manny's asset spec and production workflow:
+  design lock, frames and timings, sizes, strip-based generation, processing, acceptance checklist
+  (docs/art/MANNY_ASSETS.md). The battle-screen concept gains a Manny animation lab:
+  - generated strips are split into frames, cleaned and anchored, previewed at game size;
+  - the frames drive Manny's idle, punch with impact effect, alarm and victory in the live scene.
 
 ## [0.7.0] - 2026-10-29 (Phase 7: Audio & Music)
 
