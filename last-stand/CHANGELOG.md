@@ -24,6 +24,20 @@ git tag `last-stand-vX.Y.Z` that can be checked out to play or restore that buil
   on repeat knocks, airborne and dazed states, and corner, crowd and speed cases. Manny's plan is
   revised to design first (a design lab with gameplay-size, silhouette and consistency checks), with
   animation after approval (docs/art/MANNY_ASSETS.md section 7).
+- Manny balance work (provisional, not in the game):
+  - a deterministic model of his rules (src/balance/manny/model.ts, unit-tested in
+    tests/mannyModel.test.ts): normal punches plus a charged launch every 3rd attack, knocking back along
+    the route with the owner's provisional level values, weight factors and diminishing returns;
+  - a report against light, fast, heavy and boss enemies and real mixed waves, with leaks past one
+    Manny, an Archer comparison and a spawn-lock check (docs/balance/manny.md, from tests/manny.report.ts);
+  - docs/KNOCKBACK.md updated to the approved mechanic and results;
+  - the battle-screen concept uses the same rules, with a level switch.
+- Manny design lab (docs/prototypes/manny-design-lab.html, Stage 1):
+  - candidates side by side at gameplay size with the cast, as silhouettes, at phone scale and on
+    five readability backgrounds;
+  - design-lock scoring, notes and a favourite;
+  - a consistency check with difference overlay, flicker view and palette comparison;
+  - prompts for four design directions.
 
 ## [0.7.0] - 2026-10-29 (Phase 7: Audio & Music)
 

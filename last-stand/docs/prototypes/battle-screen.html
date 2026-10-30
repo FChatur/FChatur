@@ -166,10 +166,10 @@
       </aside>
       <canvas class="map" id="map"></canvas>
       <div class="panel">
-        <header><canvas id="panel-portrait" width="140" height="140"></canvas><div><div class="nm">Manny the Manhandler</div><div class="stars">★★☆</div></div></header>
-        <dl><dt>Punch</dt><dd>55 · area</dd><dt>Knockback</dt><dd>Launches foes</dd><dt>Every</dt><dd>2.3 s</dd></dl>
+        <header><canvas id="panel-portrait" width="140" height="140"></canvas><div><div class="nm">Manny the Manhandler</div><div class="stars" id="p-stars">★☆☆</div></div></header>
+        <dl><dt>Punch</dt><dd id="p-punch">18 · 1 target</dd><dt>Launch</dt><dd id="p-launch">every 3rd · 0.75 tiles</dd><dt>Every</dt><dd id="p-every">3.2 s</dd></dl>
         <div class="tg"><span class="on">First</span><span>Last</span><span>Strong</span><span>Fast</span></div>
-        <div class="row"><span class="btn up">Upgrade 160</span><span class="btn sell">Sell 98</span></div>
+        <div class="row"><span class="btn up" id="p-up">Upgrade 70</span><span class="btn sell" id="p-sell">Sell 42</span></div>
       </div>
       <div class="bottombar">
         <span class="hint">Wave 12: goblins and armoured orcs</span>
@@ -184,6 +184,11 @@
     <div class="toggle" role="group" aria-label="Art shown">
       <button id="show-mine" type="button" aria-pressed="true">Your images</button>
       <button id="show-code" type="button" aria-pressed="false">Code-drawn</button>
+    </div>
+    <div class="toggle" role="group" aria-label="Manny's level">
+      <button id="lv-0" type="button" aria-pressed="true">Manny L1</button>
+      <button id="lv-1" type="button" aria-pressed="false">L2</button>
+      <button id="lv-2" type="button" aria-pressed="false">L3</button>
     </div>
     <button class="plain" id="pause" type="button">Pause</button>
     <button class="plain" id="slow" type="button">Slow motion</button>
@@ -637,10 +642,390 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   Object.assign(window.ART, { goblin, orc, ENEMY_VIEWBOX: { goblin: '0 0 200 200', orc: '0 0 220 220' } });
 })();
 </script>
+<script>"use strict";
+var MannyModel = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+  // src/balance/manny/model.ts
+  var model_exports = {};
+  __export(model_exports, {
+    ENEMY_WEIGHT: () => ENEMY_WEIGHT,
+    MANNY: () => MANNY,
+    afterArmor: () => afterArmor,
+    knockback: () => knockback,
+    placements: () => placements,
+    simulate: () => simulate,
+    stream: () => stream
+  });
+
+  // src/config/balance.ts
+  var BALANCE = {
+    startingGold: 120,
+    startingHealth: 20,
+    sellRefundRatio: 0.7,
+    freeStarterTower: "basic",
+    armorMinDamageFraction: 0.25,
+    autoWaveDelay: 3,
+    waves: {
+      baseCount: 8,
+      countPerWave: 2,
+      maxCount: 30,
+      spawnIntervalStart: 1,
+      spawnIntervalMin: 0.35,
+      spawnIntervalDecay: 0.96,
+      hpGrowthPerWave: 1.12,
+      hpLinearPerWave: 0.02,
+      clearBonusBase: 20,
+      clearBonusPerWave: 3,
+      runners: { fromWave: 3, startShare: 0.15, sharePerWave: 0.03, maxShare: 0.35 },
+      armored: { fromWave: 5, startShare: 0.1, sharePerWave: 0.025, maxShare: 0.3 },
+      bossEvery: 10,
+      bossDelay: 2
+    },
+    roguelite: {
+      draftEvery: 5,
+      draftChoices: 3,
+      rarityWeights: { common: 60, uncommon: 28, rare: 10, legendary: 2 }
+    }
+  };
+  var SIMULATION = {
+    /** Fixed simulation step. Rendering interpolates between steps. */
+    stepSeconds: 1 / 60,
+    /** Upper bound on catch-up steps per rendered frame, so a stall can't freeze the tab. */
+    maxStepsPerFrame: 24,
+    /** Frame deltas above this (e.g. returning from a background tab) are clamped. */
+    maxFrameDeltaMs: 250
+  };
+
+  // src/config/enemies.ts
+  var ENEMIES = {
+    basic: {
+      id: "basic",
+      name: "Goblin",
+      maxHp: 30,
+      speedTiles: 1.5,
+      armor: 0,
+      reward: 4,
+      leakDamage: 1,
+      radius: 11,
+      shape: "square",
+      color: 16739179
+    },
+    runner: {
+      id: "runner",
+      name: "Wolf",
+      maxHp: 16,
+      speedTiles: 2.6,
+      armor: 0,
+      reward: 3,
+      leakDamage: 1,
+      radius: 9,
+      shape: "diamond",
+      color: 16436245
+    },
+    armored: {
+      id: "armored",
+      name: "Armored Orc",
+      maxHp: 70,
+      speedTiles: 1,
+      armor: 4,
+      reward: 8,
+      leakDamage: 2,
+      radius: 13,
+      shape: "octagon",
+      color: 9741240
+    },
+    boss: {
+      id: "boss",
+      name: "Ogre Warlord",
+      maxHp: 500,
+      speedTiles: 0.75,
+      armor: 6,
+      reward: 60,
+      leakDamage: 6,
+      radius: 18,
+      shape: "boss",
+      color: 14753096
+    }
+  };
+
+  // src/config/towers.ts
+  var GLOBAL_RANGE = Number.POSITIVE_INFINITY;
+  var TOWERS = {
+    basic: {
+      id: "basic",
+      name: "Archer Tower",
+      role: "All-rounder \xB7 Single target",
+      description: "Reliable, affordable archers. A solid backbone for any defence, and steady against armor.",
+      cost: 50,
+      targeting: "first",
+      levels: [
+        { upgradeCost: 0, damage: 10, fireRate: 1.4, rangeTiles: 2.75, projectileSpeed: 520 },
+        { upgradeCost: 45, damage: 16, fireRate: 1.6, rangeTiles: 3, projectileSpeed: 560 },
+        { upgradeCost: 80, damage: 26, fireRate: 1.8, rangeTiles: 3.25, projectileSpeed: 600 }
+      ],
+      color: 14572879,
+      hotkey: "1"
+    },
+    sniper: {
+      id: "sniper",
+      name: "Ballista Tower",
+      role: "Global range \xB7 Heavy hits",
+      description: "Heavy bolts that reach anywhere on the map. Expensive: an investment that pays off in later waves.",
+      cost: 110,
+      targeting: "strongest",
+      // Priced for global range: it covers the whole path from anywhere, so it costs more than its
+      // raw damage alone would suggest.
+      levels: [
+        // Global range at every level; shots are fast so cross-map hits land before the target moves on.
+        { upgradeCost: 0, damage: 45, fireRate: 0.45, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2400 },
+        { upgradeCost: 100, damage: 80, fireRate: 0.5, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2600 },
+        { upgradeCost: 170, damage: 140, fireRate: 0.55, rangeTiles: GLOBAL_RANGE, projectileSpeed: 2800 }
+      ],
+      color: 10117826,
+      hotkey: "2"
+    },
+    rapid: {
+      id: "rapid",
+      name: "Ranger Tower",
+      role: "Short range \xB7 Rapid fire",
+      description: "Rangers loose a stream of quick arrows that shred fast, lightly armored enemies.",
+      cost: 70,
+      targeting: "first",
+      levels: [
+        { upgradeCost: 0, damage: 5, fireRate: 5, rangeTiles: 2.5, projectileSpeed: 650 },
+        { upgradeCost: 60, damage: 7, fireRate: 6, rangeTiles: 2.75, projectileSpeed: 700 },
+        { upgradeCost: 100, damage: 10, fireRate: 7.5, rangeTiles: 3, projectileSpeed: 750 }
+      ],
+      color: 6856796,
+      hotkey: "3"
+    },
+    frost: {
+      id: "frost",
+      name: "Frost Mage Tower",
+      role: "Support \xB7 Crowd control",
+      description: "Ice magic slows enemies so the rest of your defence gets more time to hit them.",
+      cost: 60,
+      targeting: "first",
+      levels: [
+        { upgradeCost: 0, damage: 3, fireRate: 1, rangeTiles: 2.5, projectileSpeed: 480, slow: { factor: 0.6, duration: 1.5 } },
+        { upgradeCost: 50, damage: 5, fireRate: 1.1, rangeTiles: 2.75, projectileSpeed: 500, slow: { factor: 0.5, duration: 1.75 } },
+        { upgradeCost: 90, damage: 8, fireRate: 1.25, rangeTiles: 3, projectileSpeed: 520, slow: { factor: 0.4, duration: 2 } }
+      ],
+      color: 7126256,
+      hotkey: "4"
+    }
+  };
+
+  // src/balance/manny/model.ts
+  var MANNY = {
+    /** Melee reach from Manny's tile centre, in tiles. */
+    reachTiles: 1.25,
+    /** Wind-up before an attack lands; targets are chosen when it lands. */
+    windupSeconds: 0.25,
+    /** Every Nth attack is the charged launch (the others are normal punches with no knockback). */
+    launchEvery: 3,
+    launchDamageMultiplier: 1.5,
+    levels: [
+      { punchDamage: 18, interval: 3.2, targets: 1, knockTiles: 0.75, dazeSeconds: 0 },
+      { punchDamage: 26, interval: 2.7, targets: 2, knockTiles: 1.75, dazeSeconds: 0.15 },
+      { punchDamage: 40, interval: 2.3, targets: 3, knockTiles: 3, dazeSeconds: 0.3 }
+    ],
+    weightFactor: { light: 1, medium: 0.7, heavy: 0.45, boss: 0.2 },
+    dazeFactor: { light: 1, medium: 0.8, heavy: 0.5, boss: 0 },
+    /** Diminishing returns: the nth knock on the same enemy within the window uses factors[n-1]. */
+    repeat: { windowSeconds: 6, factors: [1, 0.6, 0.35, 0.2] },
+    /** Time spent in the air (not moving, not targetable): base + perTile x distance. Bosses aren't launched. */
+    air: { base: 0.2, perTile: 0.1 },
+    bossStaggerSeconds: 0.15,
+    /** A single knock never exceeds this share of the route (protects short maps). */
+    maxRouteFraction: 0.12
+  };
+  var ENEMY_WEIGHT = { basic: "light", runner: "light", armored: "heavy", boss: "boss" };
+  function knockback(level, weight, recentKnocks, progress, routeLength, tileSize) {
+    const repeat = MANNY.repeat.factors[Math.min(recentKnocks, MANNY.repeat.factors.length - 1)];
+    const capTiles = MANNY.maxRouteFraction * routeLength / tileSize;
+    const tiles = Math.min(capTiles, level.knockTiles * MANNY.weightFactor[weight] * repeat);
+    const to = Math.max(0, progress - tiles * tileSize);
+    const realTiles = (progress - to) / tileSize;
+    if (weight === "boss") return { to, tiles: realTiles, air: 0, hold: MANNY.bossStaggerSeconds };
+    return { to, tiles: realTiles, air: MANNY.air.base + MANNY.air.perTile * realTiles, hold: level.dazeSeconds * MANNY.dazeFactor[weight] };
+  }
+  function afterArmor(damage, armor) {
+    return Math.max(damage - armor, damage * BALANCE.armorMinDamageFraction);
+  }
+  function simulate(o) {
+    const step = o.step ?? 1 / 60;
+    const L = o.path.length;
+    const zone = (o.spawnZoneTiles ?? 3) * o.tileSize;
+    const enemies = o.spawns.map((s, i) => ({
+      id: i,
+      type: s.type,
+      hp: ENEMIES[s.type].maxHp * o.hpMultiplier,
+      progress: 0,
+      spawnAt: s.at,
+      state: "waiting",
+      until: 0,
+      knockTimes: [],
+      knocks: 0,
+      holdNext: 0,
+      heldSeconds: 0,
+      tilesLost: 0,
+      spawnZoneTime: 0,
+      spawnZoneMax: 0
+    }));
+    let t = 0, cooldown = 0, attacks = 0, launches = 0, punches = 0, whiffs = 0;
+    let pending = null;
+    const reach = MANNY.reachTiles * o.tileSize;
+    const heroLevel = o.hero.kind === "none" ? null : o.hero.level;
+    const archer = o.hero.kind === "archer" ? TOWERS.basic.levels[o.hero.level] : null;
+    const manny = o.hero.kind === "manny" ? MANNY.levels[o.hero.level] : null;
+    const launchEvery = o.hero.kind === "manny" ? o.hero.launchEvery ?? MANNY.launchEvery : MANNY.launchEvery;
+    const inRange = (e, r) => {
+      if (e.state !== "walk" && e.state !== "hold") return false;
+      const p = o.path.positionAt(e.progress);
+      return Math.hypot(p.x - o.at.x, p.y - o.at.y) <= r;
+    };
+    const firstN = (r, n) => enemies.filter((e) => inRange(e, r)).sort((a, b) => b.progress - a.progress || a.id - b.id).slice(0, n);
+    const hit = (e, damage) => {
+      e.hp -= afterArmor(damage, ENEMIES[e.type].armor);
+      if (e.hp <= 0) e.state = "dead";
+    };
+    let guard = 0;
+    while (enemies.some((e) => e.state !== "leaked" && e.state !== "dead") && guard++ < 60 * 60 * 30) {
+      t += step;
+      for (const e of enemies) {
+        if (e.state === "waiting" && t >= e.spawnAt) e.state = "walk";
+        if ((e.state === "air" || e.state === "hold") && t >= e.until) {
+          if (e.state === "air" && e.holdNext > 0) {
+            e.state = "hold";
+            e.until = t + e.holdNext;
+            e.holdNext = 0;
+          } else e.state = "walk";
+        }
+        if (e.state === "walk") {
+          e.progress += ENEMIES[e.type].speedTiles * (o.speedMultiplier ?? 1) * o.tileSize * step;
+          if (e.progress >= L) e.state = "leaked";
+        }
+        if (e.state === "air" || e.state === "hold") e.heldSeconds += step;
+        if (e.state !== "waiting" && e.state !== "dead" && e.state !== "leaked" && e.progress < zone) {
+          e.spawnZoneTime += step;
+          e.spawnZoneMax = Math.max(e.spawnZoneMax, e.spawnZoneTime);
+        } else e.spawnZoneTime = 0;
+      }
+      if (archer) {
+        cooldown -= step;
+        const r = archer.rangeTiles * o.tileSize;
+        if (cooldown <= 0) {
+          const [target] = firstN(r, 1);
+          if (target) {
+            hit(target, archer.damage);
+            cooldown = 1 / archer.fireRate;
+          }
+        }
+      } else if (manny && heroLevel !== null) {
+        cooldown -= step;
+        if (!pending && cooldown <= 0 && firstN(reach, 1).length) {
+          attacks++;
+          pending = { at: t + MANNY.windupSeconds, launch: attacks % launchEvery === 0 };
+          cooldown = manny.interval;
+        }
+        if (pending && t >= pending.at) {
+          const targets = firstN(reach, manny.targets);
+          if (!targets.length) whiffs++;
+          if (pending.launch) launches++;
+          else punches++;
+          for (const e of targets) {
+            hit(e, manny.punchDamage * (pending.launch ? MANNY.launchDamageMultiplier : 1));
+            if (!pending.launch || e.state === "dead") continue;
+            e.knockTimes = e.knockTimes.filter((k2) => t - k2 < MANNY.repeat.windowSeconds);
+            const k = knockback(manny, ENEMY_WEIGHT[e.type], e.knockTimes.length, e.progress, L, o.tileSize);
+            e.knockTimes.push(t);
+            e.knocks++;
+            e.heldSeconds += (e.progress - k.to) / (ENEMIES[e.type].speedTiles * (o.speedMultiplier ?? 1) * o.tileSize);
+            e.tilesLost += k.tiles;
+            e.progress = k.to;
+            if (k.air > 0) {
+              e.state = "air";
+              e.until = t + k.air;
+              e.holdNext = k.hold;
+            } else if (k.hold > 0) {
+              e.state = "hold";
+              e.until = t + k.hold;
+            }
+            o.onKnock?.(e, k);
+          }
+          pending = null;
+        }
+      }
+    }
+    return {
+      total: enemies.length,
+      leaked: enemies.filter((e) => e.state === "leaked").length,
+      killed: enemies.filter((e) => e.state === "dead").length,
+      launches,
+      punches,
+      avgHeld: enemies.reduce((s, e) => s + e.heldSeconds, 0) / enemies.length,
+      whiffs,
+      maxTilesLost: Math.max(...enemies.map((e) => e.tilesLost)),
+      maxKnocksOnOne: Math.max(...enemies.map((e) => e.knocks)),
+      spawnZoneMax: Math.max(...enemies.map((e) => e.spawnZoneMax)),
+      duration: t
+    };
+  }
+  function stream(type, count, spacing) {
+    return Array.from({ length: count }, (_, i) => ({ type, at: i * spacing }));
+  }
+  function placements(path, cols, rows, tileSize) {
+    const reach = MANNY.reachTiles * tileSize;
+    const cands = [];
+    for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+      if (path.isPathTile(c, r)) continue;
+      const at = { x: (c + 0.5) * tileSize, y: (r + 0.5) * tileSize };
+      let covered = 0, first = -1;
+      for (let d = 0; d <= path.length; d += 4) {
+        const p = path.positionAt(d);
+        if (Math.hypot(p.x - at.x, p.y - at.y) <= reach) {
+          covered += 4;
+          if (first < 0) first = d;
+        }
+      }
+      if (covered > 0) cands.push({ at, coverageTiles: covered / tileSize, progress: first / path.length });
+    }
+    const straight = cands.filter((k) => k.coverageTiles > 1.2 && k.coverageTiles < 1.8).sort((a, b) => Math.abs(a.progress - 0.5) - Math.abs(b.progress - 0.5))[0];
+    const corner = [...cands].sort((a, b) => b.coverageTiles - a.coverageTiles)[0];
+    const spawn = [...cands].sort((a, b) => a.progress - b.progress)[0];
+    return [{ name: "straight", ...straight }, { name: "corner", ...corner }, { name: "spawn", ...spawn }];
+  }
+  return __toCommonJS(model_exports);
+})();
+</script>
 <script>// Battle-screen concept: a living gameplay scene that draws whatever art is in each slot (code-drawn
 // default or an uploaded illustration) and animates it the way the game would.
 (function () {
   const W = 1336, H = 768; // map area, same as the game at 1600 x 900
+  /** Screen pixels per tile in this concept (the game's 48-px tiles at the 1600 x 900 layout scale). */
+  const TILE = 64;
+  /** Manny's rules and provisional numbers come from the same module as the balance report. */
+  const MM = window.MannyModel;
+  let mannyLevel = 0;
+  const WEIGHT = (e) => (e.big ? 'boss' : e.type === 'orc' ? 'heavy' : 'light');
   const TAU = Math.PI * 2;
 
   // ---------------------------------------------------------------- art slots
@@ -963,7 +1348,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
 
   // ---------------------------------------------------------------- entities
   const heroes = [
-    { id: 'manny', x: 512, y: 520, h: 150, range: 128, cd: 2.3, t: 1, face: 1, anim: null, quips: ['These hands are rated E for Everyone!', 'Who ordered the knuckle sandwich?', 'Next!', 'Did that tickle?'] },
+    { id: 'manny', x: 412, y: 440, h: 150, range: MM.MANNY.reachTiles * TILE, cd: 3.2, t: 1, face: 1, anim: null, attacks: 0, quips: ['These hands are rated E for Everyone!', 'Who ordered the knuckle sandwich?', 'Next!', 'Did that tickle?'] },
     { id: 'wren', x: 712, y: 470, h: 118, range: 340, cd: 0.72, t: 0.3, face: 1, anim: null, quips: ['Warning shot.', 'I never miss.', 'Too easy!', 'Was that a goblin or a turnip?'] },
     { id: 'bones', x: 1040, y: 560, h: 162, range: 300, cd: 1.35, t: 0.6, face: 1, anim: null, quips: ['I’m bonely here for the gold.', 'Rib-tickling, huh?', 'Chill out.', 'I’ve got a bone to pick.'] },
   ];
@@ -977,11 +1362,12 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   }
   const stats = { wave: 12, gold: 845, health: 18 };
 
+  let nextId = 1;
   function spawn() {
     const orc = Math.random() < 0.24;
-    enemies.push({ type: orc ? 'orc' : 'goblin', s: -20, speed: orc ? 46 : 74, hp: orc ? 190 : 70, max: orc ? 190 : 70, h: orc ? 92 : 64, phase: Math.random() * TAU, flash: 0, chill: 0, air: null, dazed: 0, x: 0, y: 0, face: 1 });
+    enemies.push({ id: nextId++, type: orc ? 'orc' : 'goblin', s: -20, speed: orc ? 46 : 74, hp: orc ? 190 : 70, max: orc ? 190 : 70, h: orc ? 92 : 64, phase: Math.random() * TAU, flash: 0, chill: 0, air: null, dazed: 0, x: 0, y: 0, face: 1 });
   }
-  const alive = () => enemies.filter((e) => e.hp > 0 && !e.air);
+  const alive = () => enemies.filter((e) => e.hp > 0 && !e.flight);
   /** The enemy furthest along the road within range ("First" targeting, as in the game). */
   function nearest(h, list = alive()) {
     let best = null;
@@ -1012,6 +1398,10 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     h.face = target.x < h.x ? -1 : 1;
     h.t = h.cd;
     if (h.id === 'manny') {
+      const lv = MM.MANNY.levels[mannyLevel];
+      h.cd = lv.interval; h.t = h.cd;
+      h.attacks++;
+      h.launch = h.attacks % MM.MANNY.launchEvery === 0;
       if (mannyOn('attack')) {
         const d = MANNY.anims.attack.durations.map((x) => x / 1000);
         h.anim = { t: 0, len: d[0] + d[1] + (d[2] ?? 0.3), strike: d[0], target };
@@ -1029,34 +1419,56 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     }
   }
 
+  /**
+   * Manny's blow lands. Normal punches: modest damage to the first `targets` enemies in reach. Every 3rd
+   * attack is the charged launch: more damage, and knockback BACKWARD ALONG THE ROUTE (the enemy's progress
+   * drops; the flight between the two road points is only drawn). Rules: src/balance/manny/model.ts.
+   */
   function mannyStrike(h) {
-    const cx = h.x + h.face * 40, cy = h.y - 10;
-    fx.push({ type: 'ring', x: cx, y: cy, t: 0, life: 0.45, r: h.range });
-    fx.push({ type: 'pow', x: cx + h.face * 10, y: h.y - h.h - 10, t: 0, life: 0.7 });
-    if (mannyOn('impact')) fx.push({ type: 'impact', x: cx + h.face * 30, y: h.y - h.h * 0.55, t: 0, life: animLen(MANNY.anims.impact), flip: h.face < 0 });
-    for (let i = 0; i < 6; i++) fx.push({ type: 'dust', x: cx + (Math.random() - 0.5) * 80, y: cy + (Math.random() - 0.5) * 30, t: 0, life: 0.6 + Math.random() * 0.3, r: 10 + Math.random() * 12 });
-    hitStop = 0.07; shake = 0.22;
-    for (const e of alive()) {
-      if (Math.hypot(e.x - cx, (e.y - cy) / 0.62) > h.range) continue;
-      damage(e, 55, '#ffe28a');
-      if (e.hp > 0) {
-        const away = Math.sign(e.x - h.x) || h.face;
-        e.air = { vx: away * (140 + Math.random() * 80), vy: -(420 + Math.random() * 140), z: 0, ox: 0, spin: 0, vs: away * (8 + Math.random() * 6) };
-      }
+    const lv = MM.MANNY.levels[mannyLevel];
+    const targets = alive().filter((e) => Math.hypot(e.x - h.x, (e.y - (h.y - 10)) / 0.62) <= h.range).sort((a, b) => b.s - a.s).slice(0, lv.targets);
+    const cx = targets[0] ? targets[0].x : h.x + h.face * 50, cy = targets[0] ? targets[0].y - 20 : h.y - 30;
+    if (!h.launch) {
+      fx.push({ type: 'spark', x: cx, y: cy, t: 0, life: 0.22, rot: h.face > 0 ? 0 : Math.PI });
+      fx.push({ type: 'dust', x: cx, y: cy + 18, t: 0, life: 0.4, r: 9 });
+      for (const e of targets) damage(e, lv.punchDamage, '#ffffff');
+      return;
     }
+    fx.push({ type: 'ring', x: cx, y: cy + 18, t: 0, life: 0.45, r: h.range * (0.8 + mannyLevel * 0.25) });
+    fx.push({ type: 'pow', x: cx, y: cy - 60, t: 0, life: 0.7, size: 0.7 + mannyLevel * 0.2 });
+    if (mannyOn('impact')) fx.push({ type: 'impact', x: cx, y: cy, t: 0, life: animLen(MANNY.anims.impact), flip: h.face < 0 });
+    for (let i = 0; i < 3 + mannyLevel * 2; i++) fx.push({ type: 'dust', x: cx + (Math.random() - 0.5) * 70, y: cy + 18 + (Math.random() - 0.5) * 20, t: 0, life: 0.6 + Math.random() * 0.3, r: 10 + Math.random() * 12 });
+    hitStop = 0.04 + 0.02 * mannyLevel; shake = 0.1 + 0.08 * mannyLevel;
+    targets.forEach((e, i) => {
+      damage(e, Math.round(lv.punchDamage * MM.MANNY.launchDamageMultiplier), '#ffe28a');
+      if (e.hp <= 0) return;
+      e.knockTimes = (e.knockTimes || []).filter((k) => time - k < MM.MANNY.repeat.windowSeconds);
+      const k = MM.knockback(lv, WEIGHT(e), e.knockTimes.length, e.s, route.length, TILE);
+      e.knockTimes.push(time);
+      const from = [e.x, e.y], to = at(k.to);
+      e.s = k.to; // the simulation's truth: the enemy is now this far back on the route
+      if (k.air > 0) {
+        const dist = Math.hypot(to[0] - from[0], to[1] - from[1]);
+        e.flight = { from, to, t: -i * 0.05, dur: k.air, h: Math.max(40, dist * 0.55), spin: -(e.face || 1) * TAU * (0.6 + k.tiles * 0.3), hold: k.hold };
+      } else {
+        e.flight = { stagger: true, s0: e.s + k.tiles * TILE, s1: k.to, t: 0, dur: 0.15, hold: k.hold };
+      }
+    });
   }
 
   function updateEnemy(e, dt) {
     e.flash = Math.max(0, e.flash - dt);
     e.chill = Math.max(0, e.chill - dt);
-    if (e.air) {
-      const a = e.air;
-      a.vy += 1300 * dt; a.z -= a.vy * dt; a.ox += a.vx * dt; a.spin += a.vs * dt;
-      if (a.z <= 0 && a.vy > 0) {
-        e.s = Math.max(-10, e.s - 45); // knocked back along the road
+    if (e.flight) {
+      const f = e.flight;
+      f.t += dt;
+      const u = Math.max(0, Math.min(1, f.t / f.dur));
+      if (f.stagger) { const [x, y] = at(f.s0 + (f.s1 - f.s0) * ease(u)); e.x = x; e.y = y; }
+      else { e.x = f.from[0] + (f.to[0] - f.from[0]) * u; e.y = f.from[1] + (f.to[1] - f.from[1]) * u; }
+      if (f.t >= f.dur) {
         const [x, y] = at(e.s); e.x = x; e.y = y;
-        e.air = null; e.dazed = 0.9;
-        fx.push({ type: 'dust', x: e.x, y: e.y, t: 0, life: 0.5, r: 18 });
+        e.flight = null; e.dazed = f.hold;
+        if (!f.stagger) fx.push({ type: 'dust', x: e.x, y: e.y, t: 0, life: 0.5, r: 16 + f.h * 0.08 });
       }
       return;
     }
@@ -1079,7 +1491,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       if (d < p.speed * dt) {
         p.done = true;
         const e = p.target;
-        if (e.hp > 0 && !e.air && Math.hypot(e.x - p.tx, e.y - e.h * 0.45 - p.ty) < 40) {
+        if (e.hp > 0 && !e.flight && Math.hypot(e.x - p.tx, e.y - e.h * 0.45 - p.ty) < 40) {
           damage(e, p.dmg);
           fx.push({ type: 'spark', x: p.tx, y: p.ty, t: 0, life: 0.25, rot: p.rot });
         } else fx.push({ type: 'stuck', x: p.tx, y: p.ty + 20, t: 0, life: 1.2, rot: p.rot });
@@ -1088,7 +1500,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       p.x += (dx / d) * p.speed * dt; p.y += (dy / d) * p.speed * dt;
     } else {
       const e = p.target;
-      if (!e || e.hp <= 0 || e.air) { p.done = true; fx.push({ type: 'sparkle', x: p.x, y: p.y, t: 0, life: 0.4 }); return; }
+      if (!e || e.hp <= 0 || e.flight) { p.done = true; fx.push({ type: 'sparkle', x: p.x, y: p.y, t: 0, life: 0.4 }); return; }
       const tx = e.x, ty = e.y - e.h * 0.5, dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
       p.spin += dt * 22;
       p.trail.push([p.x, p.y]); if (p.trail.length > 10) p.trail.shift();
@@ -1111,7 +1523,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     if (spawnT <= 0) { spawn(); spawnT = 0.85 + Math.random() * 0.6; }
     if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
     if (time > nextBoss) { nextBoss = time + 34; react('alarm', 1.0); banner = { s: 'Big orc incoming!', t: 1.8, c: '#ff8a6b' };
-      enemies.push({ type: 'orc', s: -20, speed: 36, hp: 520, max: 520, h: 124, phase: 0, flash: 0, chill: 0, air: null, dazed: 0, x: 0, y: 0, face: 1, big: true }); }
+      enemies.push({ id: nextId++, type: 'orc', s: -20, speed: 36, hp: 520, max: 520, h: 124, phase: 0, flash: 0, chill: 0, air: null, dazed: 0, x: 0, y: 0, face: 1, big: true }); }
     if (time > nextClear) { nextClear = time + 41; react('victory', 2.4); banner = { s: 'Wave cleared!', t: 1.8, c: '#ffd34d' }; stats.wave++; }
     const manny = heroes[0];
     if (!manny.anim && !manny.react && time > nextFidget) { nextFidget = time + 7 + Math.random() * 4; if (mannyOn('flex')) react('flex', animLen(MANNY.anims.flex)); }
@@ -1122,7 +1534,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       if (h.react) { h.react.t += dt; if (h.react.t > h.react.len) h.react = null; }
     }
     enemies.forEach((e) => updateEnemy(e, dt));
-    enemies = enemies.filter((e) => e.hp > 0 || e.air);
+    enemies = enemies.filter((e) => e.hp > 0 || e.flight);
     shots.forEach((p) => updateShot(p, dt)); shots = shots.filter((p) => !p.done);
     fx.forEach((f) => (f.t += dt)); fx = fx.filter((f) => f.t < f.life);
     texts.forEach((t) => { t.t -= dt; t.y += t.v * dt; t.v *= 0.96; }); texts = texts.filter((t) => t.t > 0);
@@ -1224,7 +1636,7 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
       g.strokeStyle = `rgba(255,236,170,${1 - k})`; g.lineWidth = 10 * (1 - k) + 2;
       g.beginPath(); g.ellipse(f.x, f.y, f.r * ease(k), f.r * ease(k) * 0.42, 0, 0, TAU); g.stroke();
     } else if (f.type === 'pow') {
-      const s = k < 0.2 ? 0.6 + k * 3 : 1.2 - (k - 0.2) * 0.3;
+      const s = (f.size || 1) * (k < 0.2 ? 0.6 + k * 3 : 1.2 - (k - 0.2) * 0.3);
       g.translate(f.x, f.y); g.rotate(-0.12); g.scale(s, s); g.globalAlpha = k > 0.75 ? (1 - k) * 4 : 1;
       g.fillStyle = '#ffd23f'; g.strokeStyle = '#2b1a22'; g.lineWidth = 4;
       g.beginPath(); for (let i = 0; i < 18; i++) { const r = i % 2 ? 30 : 52, a = (i / 18) * TAU; g[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r * 1.3, Math.sin(a) * r); } g.closePath(); g.fill(); g.stroke();
@@ -1304,14 +1716,16 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
     } });
     for (const e of enemies) {
       things.push({ y: e.y, draw: () => {
-        const a = e.air, bob = Math.abs(Math.sin(time * (e.type === 'orc' ? 7 : 11) + e.phase));
-        shadow(g, e.x + (a ? a.ox : 0), e.y, e.h * 0.34 * (a ? Math.max(0.4, 1 - a.z / 300) : 1));
-        const o = { flip: e.face < 0, oy: a ? -a.z : -bob * 5, ox: a ? a.ox : 0, rot: a ? a.spin : Math.sin(time * 9 + e.phase) * 0.05, sy: 1 - bob * 0.04, sx: 1 + bob * 0.03 };
+        const f = e.flight && !e.flight.stagger ? e.flight : null, bob = Math.abs(Math.sin(time * (e.type === 'orc' ? 7 : 11) + e.phase));
+        const u = f ? Math.max(0, Math.min(1, f.t / f.dur)) : 0, z = f ? 4 * f.h * u * (1 - u) : 0;
+        shadow(g, e.x, e.y, e.h * 0.34 * (f ? Math.max(0.45, 1 - z / 260) : 1));
+        const flinch = e.flight && e.flight.stagger ? 0.12 : 0;
+        const o = { flip: e.face < 0, oy: f ? -z : -bob * 5, rot: f ? f.spin * u : flinch * -e.face + Math.sin(time * 9 + e.phase) * 0.05, sy: f && u > 0.85 ? 0.9 : 1 - bob * 0.04, sx: 1 + bob * 0.03 };
         if (e.flash > 0) o.filter = 'brightness(2.4) saturate(0.3)';
         else if (e.chill > 0) o.filter = 'hue-rotate(160deg) saturate(0.7) brightness(1.15)';
         drawSprite(g, sprite(e.type), e.x, e.y, e.h, o);
         if (e.dazed > 0) { g.fillStyle = '#ffe066'; for (let i = 0; i < 3; i++) { const ang = time * 6 + (i / 3) * TAU; star(g, e.x + Math.cos(ang) * 22, e.y - e.h - 6 + Math.sin(ang) * 6, 6); } }
-        if (e.hp < e.max && !a) {
+        if (e.hp < e.max && !f) {
           const w = 46, x = e.x - w / 2, y = e.y - e.h - 16;
           g.fillStyle = '#2b1a22'; g.beginPath(); g.roundRect(x - 2, y - 2, w + 4, 10, 4); g.fill();
           g.fillStyle = e.hp / e.max > 0.4 ? '#7fd858' : '#f2b33d'; g.beginPath(); g.roundRect(x, y, w * Math.max(0, e.hp / e.max), 6, 3); g.fill();
@@ -1351,6 +1765,11 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
 
   window.BattleScene = {
     SLOTS, art, heroes, stats, keyAndTrim, keyImage, splitStrip, trimCanvas, footAnchor, MANNY, mannyK, frameAt, animLen, fxMax, drawFrame, loadDefaults, sprite, update, draw, warmUp,
+    /** Read-only snapshot for tests: enemies' route progress and flight state. */
+    debug() { return { routeLength: route.length, enemies: enemies.map((e) => ({ id: e.id, s: e.s, x: e.x, y: e.y, flight: !!e.flight, stagger: !!(e.flight && e.flight.stagger), type: e.type, big: !!e.big, hp: e.hp })), attacks: heroes[0].attacks }; },
+    onRoute(x, y) { let best = Infinity; for (const [px, py] of route.pts) best = Math.min(best, Math.hypot(px - x, py - y)); return best; },
+    get mannyLevel() { return mannyLevel; },
+    set mannyLevel(v) { mannyLevel = v; heroes[0].t = Math.min(heroes[0].t, 0.5); },
     trigger(kind) { if (kind === 'attack') { const h = heroes[0]; h.t = 0; } else react(kind, kind === 'victory' ? 2.4 : 1.0); },
     get useUserArt() { return useUserArt; }, set useUserArt(v) { useUserArt = v; },
     get selected() { return selected; }, set selected(v) { selected = v; },
@@ -1706,6 +2125,21 @@ ${o.noLine ? '' : `<path d="${d}" fill="none" stroke="${INK}" stroke-width="${o.
   }
   $('show-mine').addEventListener('click', () => { S.useUserArt = true; setToggle(); refresh(); });
   $('show-code').addEventListener('click', () => { S.useUserArt = false; setToggle(); refresh(); });
+  // Manny's level: provisional numbers from the shared model (docs/KNOCKBACK.md).
+  const COST = [60, 70, 120]; // proposal: buy, then each upgrade
+  function setLevel(i) {
+    S.mannyLevel = i;
+    const lv = window.MannyModel.MANNY.levels[i];
+    [0, 1, 2].forEach((k) => $(`lv-${k}`).setAttribute('aria-pressed', String(k === i)));
+    $('p-stars').textContent = '★'.repeat(i + 1) + '☆'.repeat(2 - i);
+    $('p-punch').textContent = `${lv.punchDamage} · ${lv.targets} target${lv.targets > 1 ? 's' : ''}`;
+    $('p-launch').textContent = `every ${window.MannyModel.MANNY.launchEvery}rd · ${lv.knockTiles} tiles`;
+    $('p-every').textContent = `${lv.interval} s`;
+    $('p-up').textContent = i < 2 ? `Upgrade ${COST[i + 1]}` : 'Max level';
+    $('p-sell').textContent = `Sell ${Math.round(COST.slice(0, i + 1).reduce((a, b) => a + b, 0) * 0.7)}`;
+  }
+  [0, 1, 2].forEach((i) => $(`lv-${i}`).addEventListener('click', () => setLevel(i)));
+  setLevel(0);
   let paused = false, slow = false;
   $('pause').addEventListener('click', () => { paused = !paused; $('pause').textContent = paused ? 'Play' : 'Pause'; });
   $('slow').addEventListener('click', () => { slow = !slow; $('slow').textContent = slow ? 'Normal speed' : 'Slow motion'; });
